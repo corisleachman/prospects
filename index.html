@@ -366,7 +366,7 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: "599130136239-ovgqal950rhg5sqsp14si2qss3b799np.apps.googleusercontent.com",// OAuth client ID (…apps.googleusercontent.com)
   GATE_PASSWORD: "prospects",              // change or set "" to disable the gate
   SENDER_NAME: "Coris Leachman",
-  SENDER_SIGNOFF: "Coris Leachman\n07779 327 526",
+  SENDER_SIGNOFF: "Coris Leachman\n—\n+44 7380 331 824",
   FOLLOWUP_DAYS: 4                          // days after sending to schedule a chase-up
 };
 const TABLE = "contacts";
@@ -706,7 +706,7 @@ function setImpStatus(m,c){ const e=document.getElementById('imp-status'); e.tex
 function templates(first,company){
   const co=company||'your agency';
   return {
-    checkin:{subject:'Checking in',body:`Hi ${first},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at ${co}.\n\nI'm still offering fractional new business support, if there's anything new business-related that you still need support for, that you've not yet been able to get to yourself, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nCheers,\nCoris\n+44 7380 331 824`},
+    checkin:{subject:'Checking in',body:`Hi ${first},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at ${co}.\n\nI'm still offering fractional new business support, if there's anything new business-related that you still need support for, that you've not yet been able to get to yourself, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nCheers,\nCoris\n—\n+44 7380 331 824`},
     reintro:{subject:'Fractional new business support',body:`Hi ${first},\n\nWe connected a little while back about fractional new business support for ${co}. I thought I'd reach out again in case the timing is better now.\n\nI work with independent agencies to bring structure and momentum to new business and growth. If it would be useful to find 20 minutes for a chat, I'd welcome it.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`},
     chaser:{subject:'Following up',body:`Hi ${first},\n\nJust nudging my previous note in case it landed at a busy time. No worries if now isn't right — happy to reconnect another time should things change.\n\nEither way, appreciate you taking a look.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`}
   };
