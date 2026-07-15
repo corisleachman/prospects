@@ -132,6 +132,31 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .notewarn{padding:12px 14px;background:rgba(240,180,41,0.1);border:1px solid rgba(240,180,41,0.25);border-radius:8px;font-size:12px;color:var(--grey-mid);line-height:1.5}
 .notewarn a{color:var(--black);font-weight:600;cursor:pointer}
 .hint{font-size:11px;color:var(--grey-mid);line-height:1.5}
+
+/* NUDGE PANE */
+#nudge-toggle .ncount{background:var(--coral);color:#fff;border-radius:100px;padding:1px 6px;font-size:9px;margin-left:4px;font-weight:700}
+#nudge-pane{position:fixed;top:var(--header-h);right:0;bottom:0;width:376px;max-width:92vw;background:#0E0E0E;border-left:1px solid rgba(255,255,255,0.08);z-index:400;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-16px 0 48px rgba(0,0,0,0.35)}
+#nudge-pane.open{transform:translateX(0)}
+.np-head{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;position:relative}
+.np-title{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.np-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:4px}
+.np-close{position:absolute;top:18px;right:16px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:15px;cursor:pointer;padding:4px}
+.np-close:hover{color:#fff}
+.np-body{flex:1;overflow-y:auto;padding:14px 16px 48px}
+.np-group{margin-bottom:16px}
+.np-glabel{display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin:6px 4px 10px}
+.np-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+.np-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:13px 14px;margin-bottom:10px}
+.np-card.overdue{border-color:rgba(255,107,74,0.32)}
+.np-name{font-size:14px;font-weight:700;color:#fff;line-height:1.3}
+.np-meta{display:flex;align-items:center;gap:8px;margin-top:6px}
+.np-warm{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6)}
+.np-since{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.42)}
+.np-actions{display:flex;gap:6px;margin-top:11px}
+.np-btn{flex:1;height:30px;border-radius:8px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.75);display:flex;align-items:center;justify-content:center;gap:4px}
+.np-btn:hover{background:rgba(255,255,255,0.1)}
+.np-btn.email{border-color:rgba(135,251,102,0.35);color:var(--green)}
+.np-empty{color:rgba(255,255,255,0.4);font-size:12px;line-height:1.6;text-align:center;padding:44px 16px}
 </style>
 </head>
 <body>
@@ -153,6 +178,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     <button class="tbtn gconn" id="gbtn" onclick="toggleGoogle()">
       <svg viewBox="0 0 24 24"><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
       <span id="gbtn-label">Connect Google</span>
+    </button>
+    <button class="tbtn" id="nudge-toggle" onclick="toggleNudge()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+      Needs a nudge <span class="ncount" id="nudge-count" style="display:none">0</span>
     </button>
     <button class="tbtn solid" onclick="openImportModal()">Import list</button>
     <button class="tbtn solid" onclick="openAddModal()">+ Add</button>
@@ -208,6 +237,16 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
       </div>
     </div>
   </div>
+</div>
+
+<!-- NUDGE PANE -->
+<div id="nudge-pane">
+  <div class="np-head">
+    <button class="np-close" onclick="toggleNudge()">✕</button>
+    <div class="np-title">Needs a nudge</div>
+    <div class="np-sub" id="np-sub">0 to action</div>
+  </div>
+  <div class="np-body" id="np-body"></div>
 </div>
 
 <!-- ADD / EDIT MODAL -->
@@ -322,7 +361,8 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: "599130136239-ovgqal950rhg5sqsp14si2qss3b799np.apps.googleusercontent.com",// OAuth client ID (…apps.googleusercontent.com)
   GATE_PASSWORD: "prospects",              // change or set "" to disable the gate
   SENDER_NAME: "Coris Leachman",
-  SENDER_SIGNOFF: "Coris Leachman\n07779 327 526"
+  SENDER_SIGNOFF: "Coris Leachman\n07779 327 526",
+  FOLLOWUP_DAYS: 4                          // days after sending to schedule a chase-up
 };
 const TABLE = "contacts";
 function isConfigured(){ return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes("__"); }
@@ -397,7 +437,7 @@ async function load(){
     const r=await sb(`${TABLE}?select=*&order=replied.desc,company.asc`);
     if(!r.ok) throw new Error('HTTP '+r.status);
     ALL=await r.json();
-    buildTabs(); buildCatList(); render();
+    buildTabs(); buildCatList(); render(); renderNudge();
   }catch(e){
     document.getElementById('loading').innerHTML=`<span style="color:#b23c22">Couldn't load: ${e.message}</span>`;
   }
@@ -485,6 +525,7 @@ function render(){
   const mailableRows=rows.filter(c=>c.email&&!c.bounced);
   document.getElementById('select-all').checked=mailableRows.length>0&&mailableRows.every(c=>SELECTED.has(c.id));
   updateSelBar();
+  updateNudgeCount();
 }
 function toggleReplied(){ repliedOnly=!repliedOnly; document.getElementById('replied-toggle').classList.toggle('on',repliedOnly); render(); }
 function toggleHideBounced(){ hideBounced=!hideBounced; document.getElementById('hidebounced-toggle').classList.toggle('on',hideBounced); render(); }
@@ -698,8 +739,67 @@ async function gmailSend(to,subject,body){
   if(!res.ok){ const er=await res.json().catch(()=>({})); throw new Error(er?.error?.message||('Gmail '+res.status)); }
 }
 async function markContacted(id){
-  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:'Contacted',updated_at:new Date().toISOString()})});
-    const c=ALL.find(x=>x.id===id); if(c&&!c.replied) c.status='Contacted'; }catch(e){}
+  const nowIso=new Date().toISOString();
+  const followUp=addDaysStr(CONFIG.FOLLOWUP_DAYS||4);
+  const c=ALL.find(x=>x.id===id);
+  const newStatus=(c&&c.replied)?c.status:'Contacted';
+  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; }
+  renderNudge(); render();
+  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso})}); }catch(e){}
+}
+
+/* ── Follow-up nudges ── */
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function addDaysStr(days){ const d=new Date(); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function daysSinceContact(c){ if(!c.last_emailed_at) return null; return Math.floor((Date.now()-new Date(c.last_emailed_at).getTime())/86400000); }
+function nudgeList(){ return ALL.filter(c=>c.follow_up_at && !c.replied && !(c.bounced||c.status==='Bounced')); }
+function toggleNudge(){ const p=document.getElementById('nudge-pane'); p.classList.toggle('open'); if(p.classList.contains('open')) renderNudge(); }
+function updateNudgeCount(){
+  const due=nudgeList().filter(c=>c.follow_up_at<=todayStr()).length;
+  const el=document.getElementById('nudge-count');
+  if(el){ if(due>0){ el.style.display='inline-block'; el.textContent=due; } else el.style.display='none'; }
+}
+function renderNudge(){
+  updateNudgeCount();
+  const body=document.getElementById('np-body'); if(!body) return;
+  const list=nudgeList().sort((a,b)=>a.follow_up_at<b.follow_up_at?-1:(a.follow_up_at>b.follow_up_at?1:0));
+  document.getElementById('np-sub').textContent=`${list.length} to action`;
+  if(!list.length){ body.innerHTML='<div class="np-empty">Nothing to chase yet.<br>When you email someone through the page, they\'ll appear here '+(CONFIG.FOLLOWUP_DAYS||4)+' days later for a follow-up.</div>'; return; }
+  const t=todayStr();
+  const groups=[
+    {key:'overdue',label:'Overdue',color:'#FF6B4A',items:list.filter(c=>c.follow_up_at<t)},
+    {key:'today',label:'Due today',color:'#F0B429',items:list.filter(c=>c.follow_up_at===t)},
+    {key:'soon',label:'Upcoming',color:'#3ECF8E',items:list.filter(c=>c.follow_up_at>t)},
+  ];
+  body.innerHTML=groups.filter(g=>g.items.length).map(g=>{
+    const cards=g.items.map(c=>{
+      const since=daysSinceContact(c);
+      const sinceLabel=since==null?'':(since<=0?'sent today':since===1?'1d since contact':`${since}d since contact`);
+      const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
+      const pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>`;
+      return `<div class="np-card ${g.key==='overdue'?'overdue':''}">
+        <div class="np-name">${escapeHtml(c.name)}${c.company?` · <span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`:''}</div>
+        <div class="np-meta">${pill}<span class="np-since">${sinceLabel}</span></div>
+        <div class="np-actions">
+          ${c.email&&!c.bounced?`<button class="np-btn email" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
+          <button class="np-btn" onclick="snoozeFollowup('${c.id}')">Snooze 3d</button>
+          <button class="np-btn" onclick="doneFollowup('${c.id}')">✓ Done</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="np-group"><div class="np-glabel"><span><span class="np-dot" style="background:${g.color}"></span>${g.label}</span><span>${g.items.length}</span></div>${cards}</div>`;
+  }).join('');
+}
+async function snoozeFollowup(id){
+  const nd=addDaysStr(3);
+  const c=ALL.find(x=>x.id===id); if(c) c.follow_up_at=nd;
+  renderNudge();
+  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:nd,updated_at:new Date().toISOString()})}); }catch(e){}
+}
+async function doneFollowup(id){
+  const c=ALL.find(x=>x.id===id); if(c) c.follow_up_at=null;
+  renderNudge();
+  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:null,updated_at:new Date().toISOString()})}); }catch(e){}
 }
 /* single + batch send */
 let BATCH=false, batchQueue=[], batchSent=0, batchCurrent=null;
