@@ -230,7 +230,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
           <thead><tr>
             <th style="width:34px"><input type="checkbox" id="select-all" onchange="toggleSelectAllVisible(this)"></th>
             <th>Name</th><th>Company</th><th>Title</th><th>Email</th>
-            <th>Category</th><th>Status</th><th></th>
+            <th>Category</th><th>Status</th><th>Last contact</th><th></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -279,6 +279,11 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
         </div>
         <div class="fld"><label>LinkedIn URL</label><input id="f-linkedin" type="url" placeholder="https://linkedin.com/in/…"></div>
       </div>
+      <div class="row2">
+        <div class="fld"><label>Last emailed / contacted</label><input id="f-last-emailed" type="date"></div>
+        <div class="fld"><label>Follow-up on</label><input id="f-followup" type="date"></div>
+      </div>
+      <p class="hint" style="margin-top:-6px">Set "Last emailed" when you've contacted them outside the page (e.g. straight from Gmail). Leave "Follow-up" blank and it auto-sets 4 days later.</p>
       <div class="fld full"><label>Notes</label><textarea id="f-notes" placeholder="Context, last conversation, next step…"></textarea></div>
     </div>
     <div class="mfoot">
@@ -329,15 +334,15 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
       <div>
         <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:8px">Quick templates</div>
         <div class="tpills">
-          <button class="tpill" onclick="applyTemplate('checkin',this)">Check-in</button>
-          <button class="tpill" onclick="applyTemplate('reintro',this)">Re-introduction</button>
-          <button class="tpill" onclick="applyTemplate('chaser',this)">Chaser</button>
+          <button class="tpill" id="tp-checkin" onclick="applyTemplate('checkin',this)">Check-in</button>
+          <button class="tpill" id="tp-reintro" onclick="applyTemplate('reintro',this)">Re-introduction</button>
+          <button class="tpill" id="tp-chaser" onclick="applyTemplate('chaser',this)">Chaser</button>
         </div>
       </div>
       <div class="fld"><label>To</label><input id="e-to" type="email"></div>
       <div class="fld"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
-      <div class="fld"><label>Message</label><textarea id="e-body" rows="11" placeholder="Body… (use {{first}} and {{company}} in batch mode)"></textarea></div>
-      <p class="hint">In batch mode, <code>{{first}}</code> and <code>{{company}}</code> are replaced per recipient, and each person gets a separate email.</p>
+      <div class="fld"><label>Message</label><textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea></div>
+      <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
       <div id="e-notoken" class="notewarn" style="display:none">⚠️ Google not connected. <a onclick="googleSignIn()">Connect Google</a> to send via Gmail, or use Copy.</div>
     </div>
     <div class="mfoot">
@@ -478,6 +483,8 @@ function buildCatList(){
 
 /* ── Render ── */
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDate(v){ if(!v) return '—'; const d=new Date(v); if(isNaN(d)) return '—'; return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); }
+function toDateInput(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function statusClass(c){ if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
@@ -515,8 +522,10 @@ function render(){
       <td style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
       <td><span class="pill p-cat">${escapeHtml(c.category||'—')}</span></td>
       <td><span class="pill ${statusClass(c)}">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
+      <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         ${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
+        <button class="iconbtn" title="Log a contact today (e.g. you emailed them from Gmail)" onclick="markContacted('${c.id}')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg></button>
         <button class="iconbtn" title="Edit" onclick='openEditModal(${cdata})'><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg></button>
       </td>
     </tr>`;
@@ -553,7 +562,7 @@ function openAddModal(){
   editingId=null;
   document.getElementById('edit-title').textContent='Add contact';
   document.getElementById('del-btn').style.display='none';
-  ['f-name','f-email','f-company','f-title','f-linkedin','f-notes'].forEach(i=>document.getElementById(i).value='');
+  ['f-name','f-email','f-company','f-title','f-linkedin','f-notes','f-last-emailed','f-followup'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('f-category').value=(activeTab!=='all'&&activeTab!=='__replied__')?activeTab:'';
   document.getElementById('f-status').value='Not contacted';
   document.getElementById('f-replied').value='false';
@@ -576,6 +585,8 @@ function openEditModal(c){
   document.getElementById('f-replied').value=String(!!full.replied);
   document.getElementById('f-linkedin').value=full.linkedin_url||'';
   document.getElementById('f-notes').value=full.notes||'';
+  document.getElementById('f-last-emailed').value=toDateInput(full.last_emailed_at);
+  document.getElementById('f-followup').value=full.follow_up_at?toDateInput(full.follow_up_at):'';
   document.getElementById('edit-status').textContent='';
   document.getElementById('edit-modal').classList.add('open');
 }
@@ -596,6 +607,13 @@ async function saveContact(){
     notes:document.getElementById('f-notes').value.trim()||null,
     updated_at:new Date().toISOString()
   };
+  // Last-contacted + follow-up dates (manual logging for emails sent outside the page)
+  const leInput=document.getElementById('f-last-emailed').value;
+  const fuInput=document.getElementById('f-followup').value;
+  payload.last_emailed_at = leInput ? new Date(leInput+'T12:00:00').toISOString() : null;
+  if(fuInput){ payload.follow_up_at=fuInput; }
+  else if(leInput){ const d=new Date(leInput+'T12:00:00'); d.setDate(d.getDate()+(CONFIG.FOLLOWUP_DAYS||4)); payload.follow_up_at=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  else { payload.follow_up_at=null; }
   const btn=document.getElementById('save-btn'); btn.disabled=true; setEditStatus('Saving…','var(--grey-mid)');
   try{
     if(editingId){
@@ -608,7 +626,7 @@ async function saveContact(){
       if(!r.ok) throw new Error('HTTP '+r.status);
       ALL.push((await r.json())[0]);
     }
-    buildTabs(); buildCatList(); render(); closeEditModal();
+    buildTabs(); buildCatList(); render(); renderNudge(); closeEditModal();
   }catch(e){ setEditStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
   btn.disabled=false;
 }
@@ -688,7 +706,7 @@ function setImpStatus(m,c){ const e=document.getElementById('imp-status'); e.tex
 function templates(first,company){
   const co=company||'your agency';
   return {
-    checkin:{subject:'Checking in',body:`Hi ${first},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at ${co}.\n\nI'm still offering fractional new business support, so if bringing a bit more structure and momentum to your growth is still on your radar, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`},
+    checkin:{subject:'Checking in',body:`Hi ${first},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at ${co}.\n\nI'm still offering fractional new business support, if there's anything new business-related that you still need support for, that you've not yet been able to get to yourself, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nCheers,\nCoris\n+44 7380 331 824`},
     reintro:{subject:'Fractional new business support',body:`Hi ${first},\n\nWe connected a little while back about fractional new business support for ${co}. I thought I'd reach out again in case the timing is better now.\n\nI work with independent agencies to bring structure and momentum to new business and growth. If it would be useful to find 20 minutes for a chat, I'd welcome it.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`},
     chaser:{subject:'Following up',body:`Hi ${first},\n\nJust nudging my previous note in case it landed at a busy time. No worries if now isn't right — happy to reconnect another time should things change.\n\nEither way, appreciate you taking a look.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`}
   };
@@ -699,10 +717,11 @@ function openEmailModal(c){
   emailContact=typeof c==='string'?JSON.parse(c):c;
   document.getElementById('email-title').textContent='Email '+emailContact.name;
   document.getElementById('e-to').value=emailContact.email||'';
-  document.getElementById('e-subject').value='';
-  document.getElementById('e-body').value='';
   document.getElementById('e-skip').style.display='none';
-  document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active'));
+  // Default template: Check-in, pre-filled with this contact's name
+  activeTemplate='checkin';
+  fillTemplate('checkin',emailContact);
+  markPill('checkin');
   refreshSendState();
   document.getElementById('email-modal').classList.add('open');
 }
@@ -711,13 +730,20 @@ function closeEmailModal(){
   BATCH=false; batchQueue=[];
   document.getElementById('email-modal').classList.remove('open'); emailContact=null;
 }
-function applyTemplate(type,btn){
-  const c=emailContact||{}; const first=(c.name||'there').split(' ')[0];
-  const t=templates(first,c.company)[type]; if(!t) return;
+let activeTemplate=null;
+function fillTemplate(type,contact){
+  const first=((contact&&contact.name)||'there').split(' ')[0];
+  const t=templates(first,contact&&contact.company)[type]; if(!t) return;
   document.getElementById('e-subject').value=t.subject;
   document.getElementById('e-body').value=t.body;
-  document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); btn.classList.add('active');
 }
+function markPill(type){ document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); const el=document.getElementById('tp-'+type); if(el) el.classList.add('active'); }
+function applyTemplate(type,btn){
+  activeTemplate=type;
+  fillTemplate(type,emailContact||{});
+  markPill(type);
+}
+function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
 function refreshSendState(){
   const nt=document.getElementById('e-notoken'), sb=document.getElementById('e-send');
   if(gConnected()){ nt.style.display='none'; sb.style.display=''; } else { nt.style.display='block'; sb.style.display='none'; }
@@ -727,8 +753,8 @@ function copyEmail(){
   navigator.clipboard.writeText(t).then(()=>{ const b=document.getElementById('e-copy'); const o=b.textContent; b.textContent='Copied ✓'; setTimeout(()=>b.textContent=o,1600); });
 }
 function personalize(text,contact){
-  const first=(contact.name||'there').split(' ')[0];
-  return text.replace(/\{\{\s*first\s*\}\}/gi,first).replace(/\{\{\s*company\s*\}\}/gi,contact.company||'your agency');
+  const first=((contact&&contact.name)||'there').split(' ')[0];
+  return text.replace(/\{\{\s*first(?:_?name)?\s*\}\}/gi,first).replace(/\{\{\s*company\s*\}\}/gi,(contact&&contact.company)||'your agency');
 }
 async function gmailSend(to,subject,body){
   const encSub='=?UTF-8?B?'+btoa(unescape(encodeURIComponent(subject)))+'?=';
@@ -806,7 +832,7 @@ let BATCH=false, batchQueue=[], batchSent=0, batchCurrent=null;
 function sendToSelected(){
   const list=ALL.filter(c=>SELECTED.has(c.id)&&c.email&&!c.bounced);
   if(!list.length){ alert('No mailable contacts selected.'); return; }
-  BATCH=true; batchQueue=[...list]; batchSent=0;
+  BATCH=true; batchQueue=[...list]; batchSent=0; activeTemplate='checkin';
   openNextBatch();
   document.getElementById('email-modal').classList.add('open');
 }
@@ -817,7 +843,8 @@ function openNextBatch(){
   const total=batchSent+batchQueue.length+1;
   document.getElementById('email-title').textContent=`Email ${batchCurrent.name} (${batchSent+1} of ${total})`;
   document.getElementById('e-to').value=batchCurrent.email;
-  if(batchSent>0 && lastSubject){ document.getElementById('e-subject').value=lastSubject; document.getElementById('e-body').value=lastBodyTemplate; }
+  if(activeTemplate){ fillTemplate(activeTemplate,emailContact); markPill(activeTemplate); }
+  else if(batchSent>0 && lastSubject){ document.getElementById('e-subject').value=lastSubject; document.getElementById('e-body').value=lastBodyTemplate; }
   else { document.getElementById('e-subject').value=''; document.getElementById('e-body').value=''; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
   document.getElementById('e-skip').style.display='inline-flex';
   document.getElementById('e-send').textContent=batchQueue.length?`Send & next (${batchQueue.length} left) →`:'Send final →';
@@ -833,8 +860,9 @@ async function sendEmail(){
   if(!gConnected()){ refreshSendState(); return; }
   const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
   try{
-    const body=BATCH?personalize(bodyRaw,emailContact):bodyRaw;
-    await gmailSend(to,subject,body);
+    const body=personalize(bodyRaw,emailContact||{});
+    const subj=personalize(subject,emailContact||{});
+    await gmailSend(to,subj,body);
     if(emailContact&&emailContact.id) markContacted(emailContact.id);
     if(BATCH){ lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch(); }
     else{ btn.disabled=false; btn.textContent=orig; alert('Sent to '+to+' ✓'); document.getElementById('email-modal').classList.remove('open'); render(); }
