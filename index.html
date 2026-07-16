@@ -161,6 +161,32 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(18px);background:var(--black);color:var(--green);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.04em;padding:11px 20px;border-radius:100px;opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;z-index:700;box-shadow:0 10px 34px rgba(0,0,0,0.32);white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ATTACHMENTS */
+.attach-btn{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 14px;border:1.5px dashed var(--grey);border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;background:var(--white)}
+.attach-btn:hover{border-color:var(--black);color:var(--black)}
+.attach-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--cream-soft);border:1px solid var(--grey-light);border-radius:100px;padding:3px 10px;color:var(--black)}
+
+/* CONVERSATION PANE */
+#convo-pane{position:fixed;top:var(--header-h);right:0;bottom:0;width:460px;max-width:96vw;background:#0E0E0E;border-left:1px solid rgba(255,255,255,0.08);z-index:410;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-16px 0 48px rgba(0,0,0,0.4)}
+#convo-pane.open{transform:translateX(0)}
+.cv-head{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;position:relative}
+.cv-title{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.02em;padding-right:26px}
+.cv-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;color:rgba(255,255,255,0.4);margin-top:3px}
+.cv-close{position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:15px;cursor:pointer;padding:4px}
+.cv-close:hover{color:#fff}
+.cv-open-gmail{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--green);text-decoration:none;border:1px solid rgba(135,251,102,0.3);border-radius:100px;padding:4px 10px}
+.cv-body{flex:1;overflow-y:auto;padding:16px}
+.cv-msg{margin-bottom:12px;max-width:88%}
+.cv-msg.me{margin-left:auto}
+.cv-mh{display:flex;align-items:center;gap:8px;margin-bottom:4px;padding:0 3px}
+.cv-who{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.75)}
+.cv-msg.me .cv-who{color:var(--green)}
+.cv-date{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.35)}
+.cv-text{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.5;color:rgba(255,255,255,0.88);white-space:pre-wrap;word-break:break-word}
+.cv-msg.me .cv-text{background:rgba(135,251,102,0.09);border-color:rgba(135,251,102,0.18)}
+.cv-empty{color:rgba(255,255,255,0.4);font-size:12px;line-height:1.6;text-align:center;padding:48px 20px}
+.cv-connect{background:var(--green);color:var(--black);border:none;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 18px;cursor:pointer;margin-top:12px}
 </style>
 </head>
 <body>
@@ -257,6 +283,17 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
   <div class="np-body" id="np-body"></div>
 </div>
 
+<!-- CONVERSATION PANE -->
+<div id="convo-pane">
+  <div class="cv-head">
+    <button class="cv-close" onclick="closeConvo()">✕</button>
+    <div class="cv-title" id="cv-title">Conversation</div>
+    <div class="cv-sub" id="cv-sub"></div>
+    <a class="cv-open-gmail" id="cv-gmail" href="#" target="_blank" rel="noopener" style="display:none">Open in Gmail ↗</a>
+  </div>
+  <div class="cv-body" id="cv-body"></div>
+</div>
+
 <!-- ADD / EDIT MODAL -->
 <div id="edit-modal" class="modal" onclick="if(event.target===this)closeEditModal()">
   <div class="mbox">
@@ -351,6 +388,14 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
       <div class="fld"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
       <div class="fld"><label>Message</label><textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea></div>
       <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
+      <div class="fld">
+        <label>Attachments</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label for="e-attach" class="attach-btn">📎 Add files<input type="file" id="e-attach" multiple onchange="onAttachChange()" style="display:none"></label>
+          <div id="e-attach-list" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <p class="hint" style="margin-top:2px">In a batch, the same file(s) go to everyone. Max 24MB total.</p>
+      </div>
       <div id="e-notoken" class="notewarn" style="display:none">⚠️ Google not connected. <a onclick="googleSignIn()">Connect Google</a> to send via Gmail, or use Copy.</div>
     </div>
     <div class="mfoot">
@@ -405,7 +450,8 @@ function gConnected(){ return gToken && Date.now()<gExpiry; }
 function googleSignIn(){
   if(!googleReady()){ alert('Google client ID not set yet in CONFIG.'); return; }
   const redirect=encodeURIComponent(location.href.split('?')[0].split('#')[0]);
-  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CONFIG.GOOGLE_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${encodeURIComponent('https://www.googleapis.com/auth/gmail.send')}&prompt=select_account`;
+  const scope='https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly';
+  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CONFIG.GOOGLE_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true&prompt=consent%20select_account`;
 }
 function googleSignOut(){ gToken='';gExpiry=0;localStorage.removeItem('g_token');localStorage.removeItem('g_expiry');updateGoogleBtn(); }
 function toggleGoogle(){ gConnected()?googleSignOut():googleSignIn(); }
@@ -533,6 +579,7 @@ function render(){
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         ${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
+        ${c.email?`<button class="iconbtn" title="View the email conversation" onclick='openConversation(${cdata})'><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></button>`:''}
         <button class="iconbtn" title="Log that you contacted them — pick the date" onclick="logContactPick('${c.id}')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg></button>
         <button class="iconbtn" title="Edit" onclick='openEditModal(${cdata})'><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg></button>
       </td>
@@ -726,6 +773,7 @@ function openEmailModal(c){
   document.getElementById('email-title').textContent='Email '+emailContact.name;
   document.getElementById('e-to').value=emailContact.email||'';
   document.getElementById('e-skip').style.display='none';
+  clearAttachments();
   // Default template: Check-in, pre-filled with this contact's name
   activeTemplate='checkin';
   fillTemplate('checkin',emailContact);
@@ -764,14 +812,52 @@ function personalize(text,contact){
   const first=((contact&&contact.name)||'there').split(' ')[0];
   return text.replace(/\{\{\s*first(?:_?name)?\s*\}\}/gi,first).replace(/\{\{\s*company\s*\}\}/gi,(contact&&contact.company)||'your agency');
 }
-async function gmailSend(to,subject,body){
+async function gmailSend(to,subject,body,attachments){
   const encSub='=?UTF-8?B?'+btoa(unescape(encodeURIComponent(subject)))+'?=';
   const html=body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  const raw=[`To: ${to}`,`Subject: ${encSub}`,'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',html].join('\r\n');
+  let raw;
+  if(attachments && attachments.length){
+    const bnd='b_'+Math.random().toString(36).slice(2)+Date.now().toString(36);
+    const htmlB64=btoa(unescape(encodeURIComponent(html))).replace(/(.{76})/g,'$1\r\n');
+    const parts=[
+      `To: ${to}`,`Subject: ${encSub}`,'MIME-Version: 1.0',
+      `Content-Type: multipart/mixed; boundary="${bnd}"`,'',
+      `--${bnd}`,'Content-Type: text/html; charset=utf-8','Content-Transfer-Encoding: base64','',htmlB64,''
+    ];
+    for(const a of attachments){
+      const name=(a.name||'attachment').replace(/"/g,'');
+      parts.push(`--${bnd}`,
+        `Content-Type: ${a.type||'application/octet-stream'}; name="${name}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${name}"`,'',
+        a.b64.replace(/(.{76})/g,'$1\r\n'),'');
+    }
+    parts.push(`--${bnd}--`);
+    raw=parts.join('\r\n');
+  } else {
+    raw=[`To: ${to}`,`Subject: ${encSub}`,'MIME-Version: 1.0','Content-Type: text/html; charset=utf-8','',html].join('\r\n');
+  }
   const enc=btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   const res=await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:`Bearer ${gToken}`,'Content-Type':'application/json'},body:JSON.stringify({raw:enc})});
   if(!res.ok){ const er=await res.json().catch(()=>({})); throw new Error(er?.error?.message||('Gmail '+res.status)); }
 }
+function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result).split(',')[1]||''); r.onerror=rej; r.readAsDataURL(file); }); }
+async function collectAttachments(){
+  const inp=document.getElementById('e-attach');
+  const files=inp&&inp.files?[...inp.files]:[];
+  const total=files.reduce((s,f)=>s+f.size,0);
+  if(total>24*1024*1024){ throw new Error('Attachments exceed 24MB — Gmail limit for this method.'); }
+  const out=[]; for(const f of files){ out.push({name:f.name,type:f.type,b64:await fileToBase64(f)}); }
+  return out;
+}
+function onAttachChange(){
+  const inp=document.getElementById('e-attach'); const el=document.getElementById('e-attach-list');
+  const files=inp&&inp.files?[...inp.files]:[];
+  if(!files.length){ el.innerHTML=''; return; }
+  const kb=b=>b>1048576?(b/1048576).toFixed(1)+'MB':Math.max(1,Math.round(b/1024))+'KB';
+  el.innerHTML=files.map((f,i)=>`<span class="attach-chip">📎 ${escapeHtml(f.name)} <span style="opacity:.6">${kb(f.size)}</span></span>`).join('');
+}
+function clearAttachments(){ const inp=document.getElementById('e-attach'); if(inp) inp.value=''; const el=document.getElementById('e-attach-list'); if(el) el.innerHTML=''; }
 function followUpFrom(iso){ const d=new Date(iso); d.setDate(d.getDate()+(CONFIG.FOLLOWUP_DAYS||4)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 async function markContactedOn(id, whenIso){
   const nowIso=whenIso||new Date().toISOString();
@@ -867,6 +953,7 @@ function sendToSelected(){
   const list=ALL.filter(c=>SELECTED.has(c.id)&&c.email&&!c.bounced);
   if(!list.length){ alert('No mailable contacts selected.'); return; }
   BATCH=true; batchQueue=[...list]; batchSent=0; activeTemplate='checkin';
+  clearAttachments();
   openNextBatch();
   document.getElementById('email-modal').classList.add('open');
 }
@@ -894,16 +981,90 @@ async function sendEmail(){
   if(!gConnected()){ refreshSendState(); return; }
   const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
   try{
+    const attachments=await collectAttachments();
     const body=personalize(bodyRaw,emailContact||{});
     const subj=personalize(subject,emailContact||{});
-    await gmailSend(to,subj,body);
+    await gmailSend(to,subj,body,attachments);
     if(emailContact&&emailContact.id) markContacted(emailContact.id);
     if(BATCH){ lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch(); }
     else{ btn.disabled=false; btn.textContent=orig; alert('Sent to '+to+' ✓'); document.getElementById('email-modal').classList.remove('open'); render(); }
   }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
+/* ── Conversation viewer (reads Gmail) ── */
+let MY_EMAIL='', convoContact=null;
+async function gGet(url){
+  const r=await fetch(url,{headers:{Authorization:`Bearer ${gToken}`}});
+  if(r.status===401||r.status===403){ const e=new Error('auth'); e.needAuth=true; throw e; }
+  if(!r.ok){ const e=new Error('HTTP '+r.status); e.code=r.status; throw e; }
+  return r.json();
+}
+async function ensureMyEmail(){ if(MY_EMAIL) return MY_EMAIL; const p=await gGet('https://gmail.googleapis.com/gmail/v1/users/me/profile'); MY_EMAIL=(p.emailAddress||'').toLowerCase(); return MY_EMAIL; }
+function closeConvo(){ document.getElementById('convo-pane').classList.remove('open'); }
+function b64urlDecode(s){ if(!s) return ''; s=s.replace(/-/g,'+').replace(/_/g,'/'); try{ return decodeURIComponent(escape(atob(s))); }catch(e){ try{ return atob(s); }catch(_){ return ''; } } }
+function stripHtml(h){ const d=document.createElement('div'); d.innerHTML=String(h).replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|tr|li|h[1-6])>/gi,'\n'); return (d.textContent||d.innerText||''); }
+function findBody(payload){
+  if(!payload) return '';
+  if(payload.mimeType==='text/plain' && payload.body && payload.body.data) return b64urlDecode(payload.body.data);
+  if(payload.parts){
+    for(const p of payload.parts){ if(p.mimeType==='text/plain' && p.body && p.body.data) return b64urlDecode(p.body.data); }
+    for(const p of payload.parts){ const r=findBody(p); if(r) return r; }
+  }
+  if(payload.mimeType==='text/html' && payload.body && payload.body.data) return stripHtml(b64urlDecode(payload.body.data));
+  return '';
+}
+function trimQuoted(t){
+  const lines=String(t).replace(/\r/g,'').split('\n'); const out=[];
+  for(const ln of lines){
+    const s=ln.trim();
+    if(/^On .+wrote:$/.test(s)) break;
+    if(/wrote:$/.test(s) && /^On /.test(s)) break;
+    if(/^-{2,}\s*(Original Message|Forwarded message)/i.test(s)) break;
+    if(/^>{1,}/.test(s)) break;
+    out.push(ln);
+  }
+  return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function hdr(m,name){ const h=(m.payload&&m.payload.headers)||[]; const x=h.find(z=>z.name.toLowerCase()===name); return x?x.value:''; }
+async function openConversation(c){
+  c=typeof c==='string'?JSON.parse(c):c; convoContact=c;
+  document.getElementById('cv-title').textContent=c.name||c.email||'Conversation';
+  document.getElementById('cv-sub').textContent=c.email||'';
+  const gm=document.getElementById('cv-gmail');
+  if(c.email){ gm.style.display='inline-block'; gm.href='https://mail.google.com/mail/u/0/#search/'+encodeURIComponent(c.email); } else gm.style.display='none';
+  document.getElementById('convo-pane').classList.add('open');
+  const body=document.getElementById('cv-body');
+  if(!c.email){ body.innerHTML='<div class="cv-empty">No email address on file for this contact.</div>'; return; }
+  if(!gConnected()){ body.innerHTML='<div class="cv-empty">Connect Google to read the conversation here.<br><button class="cv-connect" onclick="googleSignIn()">Connect Google</button></div>'; return; }
+  body.innerHTML='<div class="cv-empty">Loading conversation…</div>';
+  try{
+    const me=await ensureMyEmail();
+    const q=encodeURIComponent(`from:${c.email} OR to:${c.email}`);
+    const list=await gGet(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=25`);
+    const ids=(list.messages||[]).map(m=>m.id);
+    if(!ids.length){ body.innerHTML='<div class="cv-empty">No emails found with '+escapeHtml(c.email)+'.</div>'; return; }
+    const msgs=await Promise.all(ids.slice(0,14).map(id=>gGet(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`)));
+    msgs.sort((a,b)=>Number(a.internalDate)-Number(b.internalDate));
+    renderConversation(msgs,me);
+  }catch(e){
+    if(e&&e.needAuth){ body.innerHTML='<div class="cv-empty">The page needs permission to read your Gmail — a one-time reconnect.<br><button class="cv-connect" onclick="googleSignIn()">Reconnect Google</button></div>'; }
+    else{ body.innerHTML='<div class="cv-empty">Couldn\'t load the conversation'+(e&&e.code?` (${e.code})`:'')+'.</div>'; }
+  }
+}
+function renderConversation(msgs,me){
+  const body=document.getElementById('cv-body');
+  body.innerHTML=msgs.map(m=>{
+    const from=(hdr(m,'from')||'').toLowerCase();
+    const mine=!!(me && from.includes(me));
+    const d=new Date(Number(m.internalDate));
+    const dl=d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    let text=trimQuoted(findBody(m.payload)||''); if(!text) text=(m.snippet||'').trim();
+    return `<div class="cv-msg ${mine?'me':''}"><div class="cv-mh"><span class="cv-who">${mine?'You':'Them'}</span><span class="cv-date">${dl}</span></div><div class="cv-text">${escapeHtml(text||'(no text)')}</div></div>`;
+  }).join('');
+  body.scrollTop=body.scrollHeight;
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
 </script>
 </body>
 </html>
