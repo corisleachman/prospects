@@ -129,6 +129,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .tpills{display:flex;gap:6px;flex-wrap:wrap}
 .tpill{height:28px;padding:0 12px;background:var(--grey-light);border:1.5px solid transparent;border-radius:100px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
 .tpill:hover,.tpill.active{background:var(--black);color:var(--green)}
+.tp-edit{margin-left:6px;opacity:.55;font-size:10px}
+.tp-edit:hover{opacity:1}
+.tpill.tp-new{background:none;border:1.5px dashed var(--grey);color:var(--grey-mid)}
+.tpill.tp-new:hover{background:none;border-color:var(--black);color:var(--black)}
 .notewarn{padding:12px 14px;background:rgba(240,180,41,0.1);border:1px solid rgba(240,180,41,0.25);border-radius:8px;font-size:12px;color:var(--grey-mid);line-height:1.5}
 .notewarn a{color:var(--black);font-weight:600;cursor:pointer}
 .hint{font-size:11px;color:var(--grey-mid);line-height:1.5}
@@ -269,6 +273,29 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
   </div>
 </div>
 
+<!-- TEMPLATE EDITOR MODAL -->
+<div id="tpl-modal" class="modal" onclick="if(event.target===this)closeTemplateModal()">
+  <div class="mbox" style="width:min(560px,100%)">
+    <div class="mhead"><div class="mtitle" id="tpl-title">New template</div><button class="mclose" onclick="closeTemplateModal()">✕</button></div>
+    <div class="mbody">
+      <div class="fld"><label>Template name (shown on the pill) <span class="req">*</span></label><input id="tpl-name" placeholder="e.g. Recruiter intro"></div>
+      <div class="fld"><label>Subject</label><input id="tpl-subject" placeholder="Subject…"></div>
+      <div class="fld"><label>Message</label><textarea id="tpl-body" rows="10" placeholder="Body…"></textarea></div>
+      <p class="hint"><code>{{first_name}}</code> and <code>{{company}}</code> are filled in per recipient when you use the template. Save two or three variants and each becomes its own pill.</p>
+    </div>
+    <div class="mfoot">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="delbtn" id="tpl-del" style="display:none" onclick="deleteTemplate()">Delete</button>
+        <span class="mstatus" id="tpl-status"></span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="cancelbtn" onclick="closeTemplateModal()">Cancel</button>
+        <button class="savebtn" id="tpl-save" onclick="saveTemplate()">Save →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden date input for the row "log contact" picker -->
 <input type="date" id="quick-date" onchange="onQuickDate()" style="position:fixed;top:8px;right:8px;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none">
 <div id="toast"></div>
@@ -377,12 +404,8 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     <div class="mhead"><div class="mtitle" id="email-title">Email</div><button class="mclose" onclick="closeEmailModal()">✕</button></div>
     <div class="mbody">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:8px">Quick templates</div>
-        <div class="tpills">
-          <button class="tpill" id="tp-checkin" onclick="applyTemplate('checkin',this)">Check-in</button>
-          <button class="tpill" id="tp-reintro" onclick="applyTemplate('reintro',this)">Re-introduction</button>
-          <button class="tpill" id="tp-chaser" onclick="applyTemplate('chaser',this)">Chaser</button>
-        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:8px">Templates</div>
+        <div class="tpills" id="tpills"></div>
       </div>
       <div class="fld"><label>To</label><input id="e-to" type="email"></div>
       <div class="fld"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
@@ -476,6 +499,7 @@ const SELECTED=new Set();
 
 async function startApp(){
   handleGoogleCallback(); updateGoogleBtn();
+  renderTemplatePills();
   if(!isConfigured()){ showSetup(); return; }
   await load();
 }
@@ -496,7 +520,7 @@ async function load(){
     const r=await sb(`${TABLE}?select=*&order=replied.desc,company.asc`);
     if(!r.ok) throw new Error('HTTP '+r.status);
     ALL=await r.json();
-    buildTabs(); buildCatList(); render(); renderNudge();
+    buildTabs(); buildCatList(); render(); renderNudge(); loadTemplates();
   }catch(e){
     document.getElementById('loading').innerHTML=`<span style="color:#b23c22">Couldn't load: ${e.message}</span>`;
   }
@@ -757,14 +781,29 @@ async function runImport(){
 }
 function setImpStatus(m,c){ const e=document.getElementById('imp-status'); e.textContent=m; e.style.color=c||'var(--grey-mid)'; }
 
-/* ── Email templates ── */
-function templates(first,company){
-  const co=company||'your agency';
-  return {
-    checkin:{subject:'Checking in',body:`Hi ${first},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at ${co}.\n\nI'm still offering fractional new business support, if there's anything new business-related that you still need support for, that you've not yet been able to get to yourself, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nCheers,\nCoris\n—\n+44 7380 331 824`},
-    reintro:{subject:'Fractional new business support',body:`Hi ${first},\n\nWe connected a little while back about fractional new business support for ${co}. I thought I'd reach out again in case the timing is better now.\n\nI work with independent agencies to bring structure and momentum to new business and growth. If it would be useful to find 20 minutes for a chat, I'd welcome it.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`},
-    chaser:{subject:'Following up',body:`Hi ${first},\n\nJust nudging my previous note in case it landed at a busy time. No worries if now isn't right — happy to reconnect another time should things change.\n\nEither way, appreciate you taking a look.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`}
-  };
+/* ── Email templates (built-in + saved) ── */
+const BUILTINS={
+  checkin:{name:'Check-in',subject:'Checking in',body:`Hi {{first_name}},\n\nIt's been a little while since we last spoke, so I wanted to check in and see how things have been going at {{company}}.\n\nI'm still offering fractional new business support, if there's anything new business-related that you still need support for, that you've not yet been able to get to yourself, I'd be glad to pick up the conversation.\n\nEither way, hope all's well.\n\nCheers,\nCoris\n—\n+44 7380 331 824`},
+  reintro:{name:'Re-introduction',subject:'Fractional new business support',body:`Hi {{first_name}},\n\nWe connected a little while back about fractional new business support for {{company}}. I thought I'd reach out again in case the timing is better now.\n\nI work with independent agencies to bring structure and momentum to new business and growth. If it would be useful to find 20 minutes for a chat, I'd welcome it.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`},
+  chaser:{name:'Chaser',subject:'Following up',body:`Hi {{first_name}},\n\nJust nudging my previous note in case it landed at a busy time. No worries if now isn't right — happy to reconnect another time should things change.\n\nEither way, appreciate you taking a look.\n\nBest,\n${CONFIG.SENDER_SIGNOFF}`}
+};
+let SAVED_TEMPLATES=[];
+function allTemplates(){
+  const out=Object.keys(BUILTINS).map(k=>({key:k,name:BUILTINS[k].name,subject:BUILTINS[k].subject,body:BUILTINS[k].body,builtin:true}));
+  SAVED_TEMPLATES.forEach(t=>out.push({key:'db:'+t.id,id:t.id,name:t.name,subject:t.subject||'',body:t.body||'',builtin:false}));
+  return out;
+}
+function getTemplate(key){ return allTemplates().find(t=>t.key===key); }
+async function loadTemplates(){
+  try{ const r=await sb('email_templates?select=*&order=sort_order.asc,created_at.asc'); if(r.ok) SAVED_TEMPLATES=await r.json(); }catch(e){}
+  renderTemplatePills();
+}
+function renderTemplatePills(){
+  const wrap=document.getElementById('tpills'); if(!wrap) return;
+  let html=allTemplates().map(t=>`<button class="tpill" id="tp-${t.key}" onclick="applyTemplate('${t.key}',this)">${escapeHtml(t.name)}${t.builtin?'':`<span class="tp-edit" onclick="event.stopPropagation();editTemplate('${t.id}')" title="Edit template">✎</span>`}</button>`).join('');
+  html+=`<button class="tpill tp-new" onclick="newTemplate()" title="Save a new template">+ New</button>`;
+  wrap.innerHTML=html;
+  if(activeTemplate) markPill(activeTemplate);
 }
 let emailContact=null;
 function openEmailModal(c){
@@ -787,17 +826,66 @@ function closeEmailModal(){
   document.getElementById('email-modal').classList.remove('open'); emailContact=null;
 }
 let activeTemplate=null;
-function fillTemplate(type,contact){
-  const first=((contact&&contact.name)||'there').split(' ')[0];
-  const t=templates(first,contact&&contact.company)[type]; if(!t) return;
-  document.getElementById('e-subject').value=t.subject;
-  document.getElementById('e-body').value=t.body;
+function fillTemplate(key,contact){
+  const t=getTemplate(key); if(!t) return;
+  document.getElementById('e-subject').value=personalize(t.subject||'',contact||{});
+  document.getElementById('e-body').value=personalize(t.body||'',contact||{});
 }
-function markPill(type){ document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); const el=document.getElementById('tp-'+type); if(el) el.classList.add('active'); }
-function applyTemplate(type,btn){
-  activeTemplate=type;
-  fillTemplate(type,emailContact||{});
-  markPill(type);
+function markPill(key){ document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); const el=document.getElementById('tp-'+key); if(el) el.classList.add('active'); }
+function applyTemplate(key,btn){
+  activeTemplate=key;
+  fillTemplate(key,emailContact||{});
+  markPill(key);
+}
+/* Template CRUD */
+let editingTemplateId=null;
+function newTemplate(){
+  editingTemplateId=null;
+  document.getElementById('tpl-title').textContent='New template';
+  document.getElementById('tpl-del').style.display='none';
+  document.getElementById('tpl-name').value='';
+  document.getElementById('tpl-subject').value=document.getElementById('e-subject').value||'';
+  document.getElementById('tpl-body').value=document.getElementById('e-body').value||'';
+  document.getElementById('tpl-status').textContent='';
+  document.getElementById('tpl-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('tpl-name').focus(),80);
+}
+function editTemplate(id){
+  const t=SAVED_TEMPLATES.find(x=>String(x.id)===String(id)); if(!t) return;
+  editingTemplateId=t.id;
+  document.getElementById('tpl-title').textContent='Edit template';
+  document.getElementById('tpl-del').style.display='inline-block';
+  document.getElementById('tpl-name').value=t.name||'';
+  document.getElementById('tpl-subject').value=t.subject||'';
+  document.getElementById('tpl-body').value=t.body||'';
+  document.getElementById('tpl-status').textContent='';
+  document.getElementById('tpl-modal').classList.add('open');
+}
+function closeTemplateModal(){ document.getElementById('tpl-modal').classList.remove('open'); }
+function setTplStatus(m,c){ const e=document.getElementById('tpl-status'); e.textContent=m; e.style.color=c||'var(--grey-mid)'; }
+async function saveTemplate(){
+  const name=document.getElementById('tpl-name').value.trim();
+  if(!name){ setTplStatus('Give the template a name.','#b23c22'); return; }
+  const payload={name,subject:document.getElementById('tpl-subject').value,body:document.getElementById('tpl-body').value,updated_at:new Date().toISOString()};
+  const btn=document.getElementById('tpl-save'); btn.disabled=true; setTplStatus('Saving…','var(--grey-mid)');
+  try{
+    if(editingTemplateId){
+      const r=await sb(`email_templates?id=eq.${editingTemplateId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+      if(!r.ok) throw new Error('HTTP '+r.status); const saved=(await r.json())[0]; const i=SAVED_TEMPLATES.findIndex(x=>x.id===editingTemplateId); if(i>=0) SAVED_TEMPLATES[i]=saved;
+    }else{
+      const r=await sb('email_templates',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+      if(!r.ok) throw new Error('HTTP '+r.status); SAVED_TEMPLATES.push((await r.json())[0]);
+    }
+    renderTemplatePills(); closeTemplateModal(); toast('Template saved');
+  }catch(e){ setTplStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
+  btn.disabled=false;
+}
+async function deleteTemplate(){
+  if(!editingTemplateId||!confirm('Delete this template?')) return;
+  try{ const r=await sb(`email_templates?id=eq.${editingTemplateId}`,{method:'DELETE'}); if(!r.ok) throw new Error('HTTP '+r.status);
+    SAVED_TEMPLATES=SAVED_TEMPLATES.filter(x=>x.id!==editingTemplateId); if(activeTemplate==='db:'+editingTemplateId) activeTemplate=null;
+    renderTemplatePills(); closeTemplateModal();
+  }catch(e){ setTplStatus('Delete failed: '+e.message,'#b23c22'); }
 }
 function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
 function refreshSendState(){
@@ -1064,7 +1152,7 @@ function renderConversation(msgs,me){
   body.scrollTop=body.scrollHeight;
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
 </script>
 </body>
 </html>
