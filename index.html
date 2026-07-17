@@ -237,7 +237,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
   <div class="tabs-bar" id="tabs-bar"></div>
   <div class="body">
     <div class="inner">
-      <div class="controls">
+      <div class="controls" id="contact-controls">
         <input type="text" class="search" id="search" placeholder="Search name, company, email…" oninput="render()">
         <label class="selpill">Status:
           <select id="status-filter" onchange="render()">
@@ -269,6 +269,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
           <tbody id="tbody"></tbody>
         </table>
       </div>
+      <div id="enquiries-wrap" style="display:none;margin-top:4px"></div>
     </div>
   </div>
 </div>
@@ -511,6 +512,24 @@ function showSetup(){
     <p style="color:#b23c22">Currently unconfigured — Supabase URL is a placeholder.</p></div>`;
 }
 
+let ENQUIRIES=[];
+async function loadEnquiries(){
+  try{ const r=await sb('enquiries?select=*&order=created_at.desc'); if(r.ok){ ENQUIRIES=await r.json(); buildTabs(); if(activeTab==='__enquiries__') renderEnquiries(); } }catch(e){}
+}
+function renderEnquiries(){
+  const wrap=document.getElementById('enquiries-wrap');
+  document.getElementById('loading').style.display='none';
+  if(!ENQUIRIES.length){ wrap.innerHTML='<div class="empty">No enquiries yet. When someone submits the form on your build guide, it lands here.</div>'; return; }
+  wrap.innerHTML=`<div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Company</th><th>Message</th></tr></thead>
+    <tbody>${ENQUIRIES.map(e=>`<tr>
+      <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${fmtDate(e.created_at)}</td>
+      <td style="font-weight:600">${escapeHtml(e.name||'')}</td>
+      <td style="font-size:11px">${e.email?`<a href="mailto:${escapeHtml(e.email)}">${escapeHtml(e.email)}</a>`:''}</td>
+      <td style="font-size:12px">${escapeHtml(e.company||'')}</td>
+      <td style="max-width:440px;white-space:pre-wrap;font-size:12.5px;line-height:1.5">${escapeHtml(e.message||'')}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
 async function load(){
   document.getElementById('setup').style.display='none';
   document.getElementById('loading').style.display='flex';
@@ -520,7 +539,7 @@ async function load(){
     const r=await sb(`${TABLE}?select=*&order=replied.desc,company.asc`);
     if(!r.ok) throw new Error('HTTP '+r.status);
     ALL=await r.json();
-    buildTabs(); buildCatList(); render(); renderNudge(); loadTemplates();
+    buildTabs(); buildCatList(); render(); renderNudge(); loadTemplates(); loadEnquiries();
   }catch(e){
     document.getElementById('loading').innerHTML=`<span style="color:#b23c22">Couldn't load: ${e.message}</span>`;
   }
@@ -542,6 +561,7 @@ function buildTabs(){
     const n=ALL.filter(c=>c.category===cat).length;
     html+=`<button class="tab ${activeTab===cat?'active':''}" onclick="switchTab('${cat.replace(/'/g,"\\'")}',this)">${escapeHtml(cat)} <span class="badge">${n}</span></button>`;
   });
+  html+=`<button class="tab ${activeTab==='__enquiries__'?'active':''}" onclick="switchTab('__enquiries__',this)" style="margin-left:auto">✉ Enquiries <span class="badge">${ENQUIRIES.length}</span></button>`;
   bar.innerHTML=html;
 }
 function switchTab(tab,btn){
@@ -549,6 +569,16 @@ function switchTab(tab,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   const title=document.getElementById('page-title'), sub=document.getElementById('page-sub');
+  const isEnq=tab==='__enquiries__';
+  document.getElementById('contact-controls').style.display=isEnq?'none':'';
+  document.getElementById('enquiries-wrap').style.display=isEnq?'block':'none';
+  if(isEnq){
+    document.getElementById('table-wrap').style.display='none';
+    document.getElementById('setup').style.display='none';
+    title.textContent='Enquiries'; sub.textContent='Messages from your build guide';
+    renderEnquiries();
+    return;
+  }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts across every source'; }
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
   else{ title.textContent=tab; sub.textContent='Category'; }
