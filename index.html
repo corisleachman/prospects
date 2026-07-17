@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 :root{
   --cream:#F5F0E8; --cream-soft:#EFE9DF; --black:#0E0E0E; --green:#87FB66;
@@ -521,27 +522,46 @@ function sb(path,opts={}){
   return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}});
 }
 
-/* ── Google OAuth (implicit, gmail.send) ── */
-let gToken=localStorage.getItem('g_token')||'';
-let gExpiry=parseInt(localStorage.getItem('g_expiry')||'0');
-function gConnected(){ return gToken && Date.now()<gExpiry; }
-function googleSignIn(){
-  if(!googleReady()){ alert('Google client ID not set yet in CONFIG.'); return; }
-  const redirect=encodeURIComponent(location.href.split('?')[0].split('#')[0]);
-  const scope='https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly';
-  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${CONFIG.GOOGLE_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${encodeURIComponent(scope)}&include_granted_scopes=true&prompt=consent%20select_account`;
+/* ── Google auth (Google Identity Services — silent renewal, no reconnect) ── */
+const GSCOPE='https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly';
+let tokenClient=null, gToken='', gExpiry=0, _gResolve=null;
+function gConnected(){ return !!gToken && Date.now()<gExpiry-60000; }
+function gHasGrant(){ return localStorage.getItem('g_granted')==='1'; }
+function gInit(){
+  if(tokenClient) return true;
+  if(!(window.google&&google.accounts&&google.accounts.oauth2)) return false;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CONFIG.GOOGLE_CLIENT_ID, scope:GSCOPE,
+    callback:(resp)=>{
+      if(resp&&resp.access_token){ gToken=resp.access_token; gExpiry=Date.now()+((resp.expires_in||3600)*1000); localStorage.setItem('g_granted','1'); }
+      updateGoogleBtn(); if(_gResolve){ _gResolve(resp&&resp.access_token?gToken:null); _gResolve=null; }
+    },
+    error_callback:()=>{ updateGoogleBtn(); if(_gResolve){ _gResolve(null); _gResolve=null; } }
+  });
+  return true;
 }
-function googleSignOut(){ gToken='';gExpiry=0;localStorage.removeItem('g_token');localStorage.removeItem('g_expiry');updateGoogleBtn(); }
+function whenGis(cb,tries){ tries=tries||0; if(gInit()){ cb(); } else if(tries<40){ setTimeout(()=>whenGis(cb,tries+1),150); } }
+// Get a valid access token, renewing silently when possible. interactive=true shows the consent popup.
+function getGoogleToken(interactive){
+  return new Promise((resolve)=>{
+    if(gConnected()){ resolve(gToken); return; }
+    if(!gInit()){ resolve(null); return; }
+    _gResolve=resolve;
+    try{ tokenClient.requestAccessToken({prompt: interactive?'consent':''}); }
+    catch(e){ _gResolve=null; resolve(null); }
+  });
+}
+function googleSignIn(){ getGoogleToken(true); }
+function googleSignOut(){
+  const t=gToken; gToken='';gExpiry=0; localStorage.removeItem('g_granted');
+  try{ if(t&&window.google&&google.accounts&&google.accounts.oauth2) google.accounts.oauth2.revoke(t,()=>{}); }catch(e){}
+  updateGoogleBtn();
+}
 function toggleGoogle(){ gConnected()?googleSignOut():googleSignIn(); }
-function handleGoogleCallback(){
-  const h=location.hash.substring(1); if(!h) return;
-  const p=Object.fromEntries(new URLSearchParams(h));
-  if(p.access_token){ gToken=p.access_token; gExpiry=Date.now()+(parseInt(p.expires_in||'3600')*1000);
-    localStorage.setItem('g_token',gToken); localStorage.setItem('g_expiry',String(gExpiry));
-    history.replaceState(null,'',location.pathname); }
-}
+function handleGoogleCallback(){ /* GIS uses no redirect; kept as a no-op */ }
 function updateGoogleBtn(){
   const b=document.getElementById('gbtn'),l=document.getElementById('gbtn-label');
+  if(!b) return;
   if(gConnected()){ b.classList.add('gconn'); l.textContent='Google connected'; }
   else{ b.classList.remove('gconn'); l.textContent='Connect Google'; }
 }
@@ -553,7 +573,8 @@ let repliedOnly=false, hideBounced=false;
 const SELECTED=new Set();
 
 async function startApp(){
-  handleGoogleCallback(); updateGoogleBtn();
+  updateGoogleBtn();
+  whenGis(()=>{ if(gHasGrant()) getGoogleToken(false).then(()=>updateGoogleBtn()); });
   renderTemplatePills();
   if(!isConfigured()){ showSetup(); return; }
   await load();
@@ -1150,7 +1171,7 @@ async function sendEmail(){
   const subject=document.getElementById('e-subject').value.trim();
   const bodyRaw=document.getElementById('e-body').value.trim();
   if(!to||!subject||!bodyRaw){ alert('Fill in all fields.'); return; }
-  if(!gConnected()){ refreshSendState(); return; }
+  if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ refreshSendState(); return; } }
   const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
   try{
     const attachments=await collectAttachments();
@@ -1207,7 +1228,7 @@ async function openConversation(c){
   document.getElementById('convo-pane').classList.add('open');
   const body=document.getElementById('cv-body');
   if(!c.email){ body.innerHTML='<div class="cv-empty">No email address on file for this contact.</div>'; return; }
-  if(!gConnected()){ body.innerHTML='<div class="cv-empty">Connect Google to read the conversation here.<br><button class="cv-connect" onclick="googleSignIn()">Connect Google</button></div>'; return; }
+  if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ body.innerHTML='<div class="cv-empty">Connect Google to read the conversation here.<br><button class="cv-connect" onclick="googleSignIn()">Connect Google</button></div>'; return; } }
   body.innerHTML='<div class="cv-empty">Loading conversation…</div>';
   try{
     const me=await ensureMyEmail();
