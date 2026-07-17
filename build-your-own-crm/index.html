@@ -301,6 +301,42 @@ footer a{color:rgba(255,255,255,0.72);text-decoration:none;border-bottom:1px sol
   </div>
 </section>
 
+<!-- 04 SECURITY -->
+<section id="security">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="snum">( 04 )</span>
+      <div>
+        <h2 class="serif">Keep your keys safe</h2>
+        <p>Two minutes here saves a world of pain. The short version: some keys are meant to be public, and some are passwords you must never expose.</p>
+      </div>
+    </div>
+    <div class="extras" style="margin-bottom:26px">
+      <div class="extra">
+        <h4 class="serif">Public keys — fine in your code</h4>
+        <p>The Supabase <em>anon</em> key and the Google <em>Client ID</em> are built to sit in your page. Seeing them does nothing on its own — your database rules decide what they're allowed to do.</p>
+      </div>
+      <div class="extra">
+        <h4 class="serif">Secret tokens — treat as passwords</h4>
+        <p>Database admin tokens, GitHub tokens, deploy keys. These grant real power. Never paste them into your page or commit them to your repository — both are public.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <div class="eyebrow">The five rules</div>
+      <h3 class="serif">Share access without exposing it</h3>
+      <p class="sub">Follow these every time you hand a service over to an AI — or to anyone.</p>
+      <ol class="gsteps">
+        <li><span><b>Only public keys go in the code.</b> Secret tokens never touch the page or the repository.</span></li>
+        <li><span><b>Prefer a "Connect" button over a raw token.</b> A sign-in (OAuth) connection can be revoked in one click and no password is ever handed over.</span></li>
+        <li><span><b>If you must share a token, scope it small and give it an expiry.</b> Grant only the one repo or permission it needs, and a short lifespan.</span></li>
+        <li><span><b>Rotate or delete when the job's done.</b> "Rotate" means regenerate it (the old one instantly stops working); "revoke" means kill it entirely. Do this for anything one-off.</span></li>
+        <li><span><b>Protect data with a login, not by hiding the key.</b> A public key only lets people do what your database rules allow — so lock sensitive data behind proper access rules.</span></li>
+      </ol>
+      <p class="gnote">If a secret ever lands somewhere public — a repo, a screenshot, a page — rotate it immediately and assume it's compromised.</p>
+    </div>
+  </div>
+</section>
+
 <!-- CLOSER -->
 <div class="closer">
   <div class="wrap">
