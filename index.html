@@ -199,8 +199,16 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 <div id="gate-overlay">
   <div class="gate-box">
     <span class="gate-wm">prospects<span>.</span></span>
-    <input id="gate-input" class="gate-input" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkGate()">
-    <button class="gate-btn" onclick="checkGate()">Enter</button>
+    <div id="gate-signin">
+      <input id="au-email" class="gate-input" type="email" placeholder="you@email.com" autocomplete="username">
+      <input id="au-pass" class="gate-input" type="password" placeholder="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSignIn()">
+      <button class="gate-btn" onclick="authSignIn()">Sign in</button>
+    </div>
+    <div id="gate-setpw" style="display:none">
+      <div style="color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:14px;font-family:'DM Mono',monospace;letter-spacing:.02em">Welcome — set a password for your account.</div>
+      <input id="au-newpass" class="gate-input" type="password" placeholder="new password (min 8)" autocomplete="new-password" onkeydown="if(event.key==='Enter')authSetPassword()">
+      <button class="gate-btn" onclick="authSetPassword()">Save &amp; enter</button>
+    </div>
     <div class="gate-error" id="gate-error"></div>
   </div>
 </div>
@@ -222,6 +230,9 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     <button class="tbtn" id="refresh-btn" onclick="refresh()">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>
       Refresh
+    </button>
+    <button class="tbtn" id="signout-btn" onclick="authSignOut()" title="Sign out">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
     </button>
   </div>
 </div>
@@ -450,21 +461,64 @@ const TABLE = "contacts";
 function isConfigured(){ return CONFIG.SUPABASE_URL && !CONFIG.SUPABASE_URL.includes("__"); }
 function googleReady(){ return CONFIG.GOOGLE_CLIENT_ID && !CONFIG.GOOGLE_CLIENT_ID.includes("__"); }
 
-/* ── Gate ── */
-function checkGate(){
-  if(!CONFIG.GATE_PASSWORD){ startApp(); return; }
-  const v=document.getElementById('gate-input').value.trim();
-  if(v===CONFIG.GATE_PASSWORD){ sessionStorage.setItem('prsp_auth','1'); document.getElementById('gate-overlay').remove(); startApp(); }
-  else{ document.getElementById('gate-error').textContent='Wrong password.'; document.getElementById('gate-input').value=''; }
+/* ── Auth (Supabase email + password) ── */
+const AUTH={token:localStorage.getItem('sb_at')||'',refresh:localStorage.getItem('sb_rt')||'',exp:parseInt(localStorage.getItem('sb_exp')||'0'),email:localStorage.getItem('sb_em')||''};
+function authSave(s){
+  if(s.access_token){ AUTH.token=s.access_token; localStorage.setItem('sb_at',AUTH.token); }
+  if(s.refresh_token){ AUTH.refresh=s.refresh_token; localStorage.setItem('sb_rt',AUTH.refresh); }
+  AUTH.exp=Date.now()+((parseInt(s.expires_in)||3600)*1000); localStorage.setItem('sb_exp',String(AUTH.exp));
+  const em=(s.user&&s.user.email)||AUTH.email; if(em){ AUTH.email=em; localStorage.setItem('sb_em',em); }
 }
-if(!CONFIG.GATE_PASSWORD || sessionStorage.getItem('prsp_auth')==='1'){
-  const g=document.getElementById('gate-overlay'); if(g) g.remove();
+function authClear(){ AUTH.token='';AUTH.refresh='';AUTH.exp=0;AUTH.email=''; ['sb_at','sb_rt','sb_exp','sb_em'].forEach(k=>localStorage.removeItem(k)); }
+function authValid(){ return AUTH.token && Date.now()<AUTH.exp-60000; }
+async function authRefresh(){
+  if(!AUTH.refresh) return false;
+  try{ const r=await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:AUTH.refresh})});
+    if(!r.ok) return false; authSave(await r.json()); return true; }catch(e){ return false; }
 }
-document.addEventListener('DOMContentLoaded',()=>{ if(!CONFIG.GATE_PASSWORD||sessionStorage.getItem('prsp_auth')==='1') startApp(); });
+async function authSignIn(){
+  const email=document.getElementById('au-email').value.trim(), pass=document.getElementById('au-pass').value;
+  const err=document.getElementById('gate-error'); err.textContent='';
+  if(!email||!pass){ err.textContent='Enter your email and password.'; return; }
+  try{
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const d=await r.json(); if(!r.ok){ err.textContent=d.error_description||d.msg||d.error||'Sign in failed.'; return; }
+    authSave(d); enterApp();
+  }catch(e){ err.textContent='Network error — try again.'; }
+}
+async function authSetPassword(){
+  const np=document.getElementById('au-newpass').value; const err=document.getElementById('gate-error'); err.textContent='';
+  if(!np||np.length<8){ err.textContent='Use at least 8 characters.'; return; }
+  try{
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/user`,{method:'PUT',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+AUTH.token,'Content-Type':'application/json'},body:JSON.stringify({password:np})});
+    const d=await r.json(); if(!r.ok){ err.textContent=d.error_description||d.msg||'Could not set password.'; return; }
+    enterApp();
+  }catch(e){ err.textContent='Network error — try again.'; }
+}
+function authSignOut(){ authClear(); location.reload(); }
+let _refreshTimer=null;
+function enterApp(){ const g=document.getElementById('gate-overlay'); if(g) g.remove(); if(!_refreshTimer) _refreshTimer=setInterval(authRefresh,45*60*1000); startApp(); }
+async function authInit(){
+  const hash=location.hash.substring(1);
+  // Supabase recovery / magic redirect carries BOTH access_token and refresh_token (Google's does not)
+  if(hash.includes('access_token') && hash.includes('refresh_token')){
+    const p=Object.fromEntries(new URLSearchParams(hash));
+    authSave({access_token:p.access_token,refresh_token:p.refresh_token,expires_in:parseInt(p.expires_in||'3600')});
+    history.replaceState(null,'',location.pathname);
+    if(p.type==='recovery'){ document.getElementById('gate-signin').style.display='none'; document.getElementById('gate-setpw').style.display='block'; setTimeout(()=>document.getElementById('au-newpass').focus(),60); return; }
+    enterApp(); return;
+  }
+  if(authValid()){ enterApp(); return; }
+  if(AUTH.refresh && await authRefresh()){ enterApp(); return; }
+  // otherwise leave the sign-in overlay showing
+  const em=document.getElementById('au-email'); if(em){ if(AUTH.email) em.value=AUTH.email; setTimeout(()=>em.focus(),60); }
+}
+document.addEventListener('DOMContentLoaded', authInit);
 
 /* ── Supabase REST ── */
 function sb(path,opts={}){
-  return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${CONFIG.SUPABASE_ANON}`,'Content-Type':'application/json',...(opts.headers||{})}});
+  const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
+  return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}});
 }
 
 /* ── Google OAuth (implicit, gmail.send) ── */
