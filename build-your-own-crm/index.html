@@ -122,6 +122,10 @@ section{padding:64px 0;border-top:1px solid var(--line)}
 .btn-light:hover{opacity:.85}
 .btn-light:disabled{opacity:.5;cursor:default}
 .enq-status{font-size:15px;color:rgba(255,255,255,0.8);min-height:22px;margin-top:2px}
+.enq-success{display:none;align-items:center;gap:18px;max-width:640px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:26px 28px}
+.enq-check{flex-shrink:0;width:46px;height:46px;border-radius:50%;background:#fff;color:var(--black);font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.enq-thanks{font-size:24px;font-weight:700;color:#fff;margin-bottom:4px}
+.enq-success p{color:rgba(255,255,255,0.68);font-size:15px}
 
 footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.1);padding:34px 0;color:rgba(255,255,255,0.5);font-size:13px}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
@@ -322,6 +326,13 @@ footer a{color:rgba(255,255,255,0.72);text-decoration:none;border-bottom:1px sol
       <button type="submit" class="btn-light" id="enq-btn">Send it over →</button>
       <div class="enq-status" id="enq-status"></div>
     </form>
+    <div id="enq-success" class="enq-success">
+      <div class="enq-check">✓</div>
+      <div>
+        <div class="enq-thanks serif">Thanks — your message has been sent.</div>
+        <p>I'll be in touch shortly. Speak soon.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -335,6 +346,8 @@ footer a{color:rgba(255,255,255,0.72);text-decoration:none;border-bottom:1px sol
 <script>
 const ENQ_URL="https://paprxejgeepvtbqmfgvt.supabase.co/rest/v1/enquiries";
 const ENQ_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhcHJ4ZWpnZWVwdnRicW1mZ3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTI2MTcsImV4cCI6MjA5OTY4ODYxN30.x5ruifLqBsRbtvSwb7-2HCAX6IOmkWpCAfP7LEEfijg";
+// Web3Forms access key — emails each enquiry to your inbox. Paste your key here to switch email on.
+const WEB3FORMS_KEY="__WEB3FORMS_KEY__";
 async function submitEnquiry(e){
   e.preventDefault();
   const f=e.target, btn=document.getElementById('enq-btn'), st=document.getElementById('enq-status');
@@ -342,11 +355,24 @@ async function submitEnquiry(e){
   if(!data.name||!data.email){ st.textContent='Please add your name and email.'; return false; }
   btn.disabled=true; const o=btn.textContent; btn.textContent='Sending…'; st.textContent='';
   try{
+    // 1) save to Supabase (feeds the Enquiries tab)
     const r=await fetch(ENQ_URL,{method:'POST',headers:{apikey:ENQ_KEY,Authorization:'Bearer '+ENQ_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(data)});
     if(!r.ok) throw new Error('HTTP '+r.status);
+    // 2) email it to the inbox (if configured)
+    if(WEB3FORMS_KEY && !WEB3FORMS_KEY.includes('__')){
+      try{
+        await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({
+          access_key:WEB3FORMS_KEY,
+          subject:'New enquiry from your build guide',
+          from_name:'CRM-light guide',
+          name:data.name, email:data.email, company:data.company||'—', message:data.message||'—'
+        })});
+      }catch(_){ /* email is best-effort; the row is already saved */ }
+    }
+    // 3) show the success panel
     f.style.display='none';
-    st.style.color='#fff';
-    st.innerHTML='<span style="font-size:19px;font-family:\'Playfair Display\',serif">Thanks — got it. I\'ll be in touch shortly.</span>';
+    const ok=document.getElementById('enq-success'); ok.style.display='flex';
+    ok.scrollIntoView({behavior:'smooth',block:'center'});
   }catch(err){
     st.textContent='Something went wrong — please email me directly at coris.leachman@gmail.com';
     btn.disabled=false; btn.textContent=o;
