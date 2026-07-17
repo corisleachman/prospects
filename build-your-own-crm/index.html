@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build your own CRM-light page — a build-along guide | Coris Leachman</title>
+<meta name="description" content="The exact steps to go from nothing to a working web page that stores your contacts and sends emails — no code. A companion guide to the video by Coris Leachman.">
+<meta property="og:title" content="Build your own CRM-light page — without writing code">
+<meta property="og:description" content="Three free accounts, an AI assistant, and an afternoon. The exact build, step by step.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#FFFFFF; --black:#191917; --grey:#F3F3F3;
+  --muted:rgba(25,25,23,0.55); --faint:rgba(25,25,23,0.40); --line:rgba(25,25,23,0.14);
+  --maxw:1080px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--white);color:var(--black);font-family:'Satoshi',Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;font-size:17px}
+.serif{font-family:'Playfair Display',Georgia,serif}
+a{color:inherit}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--faint)}
+.snum{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--faint)}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{font-weight:700;letter-spacing:-0.01em}
+.brand span{color:var(--faint);font-weight:500;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-left:10px}
+.nav-cta{font-size:13px;font-weight:700;text-decoration:none;border-bottom:1.5px solid var(--black);padding-bottom:2px}
+
+/* HERO */
+header{padding:88px 0 64px}
+header .eyebrow{margin-bottom:22px}
+h1{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(38px,6vw,72px);line-height:1.04;letter-spacing:-0.015em;max-width:16ch}
+h1 em{font-style:italic;font-weight:500}
+.lede{margin-top:26px;font-size:clamp(17px,1.7vw,21px);color:var(--muted);max-width:60ch}
+.hero-actions{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--black);color:var(--white);text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:100px;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn.ghost{background:none;color:var(--black);border:1.5px solid var(--black);padding:12px 24px}
+.hero-note{font-size:13px;color:var(--faint);letter-spacing:0.02em}
+
+/* SECTIONS */
+section{padding:64px 0;border-top:1px solid var(--line)}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:36px;flex-wrap:wrap}
+.sec-head h2{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(28px,3.6vw,42px);letter-spacing:-0.01em;line-height:1.1}
+.sec-head p{color:var(--muted);max-width:52ch;margin-top:2px}
+
+/* STACK BOXES */
+.stack{display:grid;gap:18px}
+.stack-ai{background:var(--black);color:var(--white);border-radius:18px;padding:28px 30px;display:flex;align-items:center;gap:20px}
+.stack-ai .k{font-family:'Playfair Display',serif;font-size:26px;font-weight:700}
+.stack-ai .d{color:rgba(255,255,255,0.7);font-size:15px;margin-top:3px}
+.spark{width:44px;height:44px;flex-shrink:0}
+.stack-row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.scard{background:var(--grey);border-radius:18px;padding:26px 24px;border:1px solid transparent}
+.scard .ico{width:34px;height:34px;margin-bottom:16px;stroke:var(--black);fill:none;stroke-width:1.8}
+.scard h3{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:6px}
+.scard p{font-size:14.5px;color:var(--muted);line-height:1.5}
+.tag{display:inline-block;margin-top:14px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:4px 11px;border-radius:100px;background:var(--black);color:var(--white)}
+.tag.free{background:none;color:var(--black);border:1.3px solid var(--black)}
+
+/* STEPS */
+.steps{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:64px 1fr;gap:26px;padding:28px 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:none}
+.step .no{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;line-height:1;color:var(--black)}
+.step h3{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:10px;letter-spacing:-0.01em}
+.step p{color:var(--muted);max-width:64ch;margin-bottom:8px}
+.step .keys{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.step .keys li{padding-left:20px;position:relative;color:var(--muted);max-width:64ch}
+.step .keys li::before{content:"";position:absolute;left:0;top:11px;width:7px;height:7px;border-radius:50%;background:var(--black)}
+.step .keys b{color:var(--black);font-weight:700}
+
+/* GOOGLE DEEP-DIVE */
+.callout{background:var(--grey);border-radius:22px;padding:36px 34px;margin-top:14px}
+.callout .eyebrow{margin-bottom:8px}
+.callout h3{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:6px}
+.callout .sub{color:var(--muted);margin-bottom:24px;max-width:60ch}
+.gsteps{list-style:none;counter-reset:g;display:grid;gap:2px}
+.gsteps li{counter-increment:g;display:grid;grid-template-columns:38px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.gsteps li::before{content:counter(g);font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:var(--faint)}
+.gsteps b{font-weight:700}
+.gsteps code{font-family:'Satoshi',monospace;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:13.5px;font-weight:500}
+.gnote{margin-top:20px;font-size:14px;color:var(--muted);border-left:2px solid var(--black);padding-left:16px}
+
+/* EXTRAS */
+.extras{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.extra{padding:22px 24px;border:1px solid var(--line);border-radius:16px}
+.extra h4{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin-bottom:5px}
+.extra p{font-size:14.5px;color:var(--muted)}
+
+/* CLOSER */
+.closer{text-align:center;padding:84px 0}
+.closer h2{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(30px,4.5vw,52px);line-height:1.08;letter-spacing:-0.015em;max-width:20ch;margin:0 auto}
+.closer h2 em{font-style:italic;font-weight:500}
+.closer p{color:var(--muted);margin:22px auto 32px;max-width:52ch}
+
+footer{border-top:1px solid var(--line);padding:34px 0;color:var(--faint);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+
+@media(max-width:760px){
+  .stack-row{grid-template-columns:1fr}
+  .extras{grid-template-columns:1fr}
+  .step{grid-template-columns:44px 1fr;gap:16px}
+  .step .no{font-size:30px}
+  header{padding:56px 0 44px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">Coris Leachman <span>Build Notes</span></div>
+    <a class="nav-cta" href="https://corisleachman.github.io/">Back to site →</a>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">A build-along guide</div>
+    <h1 class="serif">Build your own <em>CRM-light</em> page — without writing code.</h1>
+    <p class="lede">The exact steps I took to go from nothing to a working page that stores my contacts and sends emails straight from the browser. Three free accounts, an AI assistant, and about an afternoon.</p>
+    <div class="hero-actions">
+      <a class="btn" href="#video">Watch the video ↗</a>
+      <a class="btn ghost" href="#steps">Jump to the steps</a>
+    </div>
+    <p class="hero-note" style="margin-top:20px">Companion guide to the video — keep it open on a second screen and follow along.</p>
+  </div>
+</header>
+
+<!-- 01 THE STACK -->
+<section id="stack">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="snum">( 01 )</span>
+      <div>
+        <h2 class="serif">The four pieces</h2>
+        <p>You don't build it — you connect it. Three free accounts, plus one AI assistant that does the actual work.</p>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="stack-ai">
+        <svg class="spark" viewBox="0 0 44 44" aria-hidden="true"><path d="M22 4 L26 18 L40 22 L26 26 L22 40 L18 26 L4 22 L18 18 Z" fill="#F3F3F3"/></svg>
+        <div>
+          <div class="k serif">The AI assistant</div>
+          <div class="d">Does all the building — you just describe what you want.</div>
+        </div>
+      </div>
+      <div class="stack-row">
+        <div class="scard">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="9" r="3"/><path d="M6 9v6M18 12v0c0 3-6 1-6 6" stroke-linecap="round"/></svg>
+          <h3 class="serif">GitHub</h3>
+          <p>Hosts your page — puts it on the internet at a real web address.</p>
+          <span class="tag free">Free</span>
+        </div>
+        <div class="scard">
+          <svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+          <h3 class="serif">Supabase</h3>
+          <p>Stores your contacts and templates — the page's memory.</p>
+          <span class="tag free">Free</span>
+        </div>
+        <div class="scard">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+          <h3 class="serif">Google Cloud</h3>
+          <p>The permission slip that lets your page send from your Gmail.</p>
+          <span class="tag">Your Gmail</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 THE STEPS -->
+<section id="steps">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="snum">( 02 )</span>
+      <div>
+        <h2 class="serif">The build, step by step</h2>
+        <p>Five moves. The only mildly fiddly one is Google, so that gets its own walk-through below.</p>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="no serif">01</div>
+        <div>
+          <h3 class="serif">Open three free accounts</h3>
+          <p>Sign up for <b>GitHub</b> (hosting) and <b>Supabase</b> (database), and have your <b>Google</b> account ready. All free, a minute each, no card needed.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no serif">02</div>
+        <div>
+          <h3 class="serif">Describe the page to an AI</h3>
+          <p>Open your AI assistant and talk in outcomes, not tech: <em>"Build me a page that lists my prospects and lets me email them, one at a time or in bulk."</em> It asks a couple of questions, then writes the whole page and pulls your existing contacts in.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no serif">03</div>
+        <div>
+          <h3 class="serif">Hand over three keys</h3>
+          <p>A "key" is just a temporary password you can delete afterwards. You create one on each service and paste it to the AI — it does the rest.</p>
+          <ul class="keys">
+            <li><b>Supabase:</b> create an access token → the AI builds your database and loads your contacts.</li>
+            <li><b>GitHub:</b> create a repo and a token → the AI uploads the page.</li>
+            <li><b>Google:</b> set up the sign-in and copy the <b>Client ID</b> → this is what lets the page send email (walk-through below).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no serif">04</div>
+        <div>
+          <h3 class="serif">Turn the page on</h3>
+          <p>In your GitHub repository, flip on <b>Pages</b> (Settings → Pages → deploy from <code style="font-family:Satoshi">main</code> / root). That's the free "publish" button. Give it a minute and your page is live on the web.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="no serif">05</div>
+        <div>
+          <h3 class="serif">Connect Google and send</h3>
+          <p>Open your live page, click <b>Connect Google</b> once and approve it. Pick a contact, choose a template, and hit send — it goes out from your real Gmail. That's the whole loop.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOOGLE DEEP DIVE -->
+    <div class="callout" id="google">
+      <div class="eyebrow">The one fiddly bit</div>
+      <h3 class="serif">The Google permission screen, click by click</h3>
+      <p class="sub">All you're doing is telling Google "this page of mine is allowed to send email from my account." Go slowly and follow each click.</p>
+      <ol class="gsteps">
+        <li><span><b>Make a project.</b> Go to <code>console.cloud.google.com</code> → project dropdown → New Project → name it "Prospects" → select it.</span></li>
+        <li><span><b>Turn on the Gmail engine.</b> APIs &amp; Services → Library → search <b>Gmail API</b> → Enable.</span></li>
+        <li><span><b>Name your app.</b> OAuth consent screen (newer console: Google Auth Platform → Branding) → choose <b>External</b> → fill app name, support email, developer email.</span></li>
+        <li><span><b>Say who can use it — you.</b> Under Audience / Test users, add your own email, or click <b>Publish app</b> to skip the weekly re-login.</span></li>
+        <li><span><b>Create the key.</b> Credentials → Create credentials → <b>OAuth client ID</b> → type: <b>Web application</b> → name it.</span></li>
+        <li><span><b>Allow your page.</b> Authorised JavaScript origins: <code>https://yourname.github.io</code> — Authorised redirect URIs: <code>https://yourname.github.io/your-page/</code> → Create.</span></li>
+        <li><span><b>Copy the Client ID</b> (it ends in <code>apps.googleusercontent.com</code>) and paste it to the AI. Done.</span></li>
+      </ol>
+      <p class="gnote">First time you connect, Google shows an "unverified app" warning — that's normal for a personal tool you just made. Click <b>Advanced → continue</b>, then approve.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 03 EXTRAS -->
+<section id="extras">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="snum">( 03 )</span>
+      <div>
+        <h2 class="serif">Then make it yours</h2>
+        <p>Because it's your page, every new feature is just another sentence to the AI. Here's what I added to mine.</p>
+      </div>
+    </div>
+    <div class="extras">
+      <div class="extra"><h4 class="serif">Saveable templates</h4><p>Write a message once, save it as a pill, reuse it in a click — with names filled in per person.</p></div>
+      <div class="extra"><h4 class="serif">Follow-up nudges</h4><p>Email someone and a chase-up is scheduled automatically, stacking up in a side pane so nothing slips.</p></div>
+      <div class="extra"><h4 class="serif">Attachments</h4><p>Send files with your emails, individually or across a whole batch.</p></div>
+      <div class="extra"><h4 class="serif">Conversation view</h4><p>Read the full back-and-forth with a contact right on the page — no hopping back to Gmail.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSER -->
+<div class="closer">
+  <div class="wrap">
+    <h2 class="serif">Three sign-ups. Describe it. Paste three keys. <em>Hit send.</em></h2>
+    <p>That's the whole trick. The "developer" is a conversation, and the page grows with you.</p>
+    <a class="btn" href="#video">Watch the walk-through ↗</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>© 2025 Coris Leachman — Fractional New Business &amp; Marketing Consultant</div>
+    <div><a href="https://corisleachman.github.io/">corisleachman.github.io</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
