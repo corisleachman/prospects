@@ -181,6 +181,16 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .cv-close{position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:15px;cursor:pointer;padding:4px}
 .cv-close:hover{color:#fff}
 .cv-open-gmail{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--green);text-decoration:none;border:1px solid rgba(135,251,102,0.3);border-radius:100px;padding:4px 10px}
+.cv-suggest-btn{margin-top:8px;margin-left:8px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--black);background:var(--green);border:none;border-radius:100px;padding:5px 12px;cursor:pointer}
+.cv-suggest-btn:hover{opacity:.88}
+#cv-suggest{flex-shrink:0;margin:0 16px 4px;padding:14px 15px;background:rgba(135,251,102,0.08);border:1px solid rgba(135,251,102,0.22);border-radius:12px}
+.cv-sg-head{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+.cv-sg-body{font-size:13px;line-height:1.55;color:rgba(255,255,255,0.9);white-space:pre-wrap;max-height:230px;overflow-y:auto}
+.cv-sg-note{font-size:12px;color:rgba(255,255,255,0.6);font-style:italic}
+.cv-sg-actions{display:flex;gap:7px;margin-top:11px}
+.cv-sg-btn{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:7px 12px;cursor:pointer}
+.cv-sg-btn:hover{background:rgba(255,255,255,0.12)}
+.cv-sg-btn.primary{background:var(--green);color:var(--black);border-color:var(--green)}
 .cv-body{flex:1;overflow-y:auto;padding:16px}
 .cv-msg{margin-bottom:12px;max-width:88%}
 .cv-msg.me{margin-left:auto}
@@ -330,7 +340,9 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     <div class="cv-title" id="cv-title">Conversation</div>
     <div class="cv-sub" id="cv-sub"></div>
     <a class="cv-open-gmail" id="cv-gmail" href="#" target="_blank" rel="noopener" style="display:none">Open in Gmail ↗</a>
+    <button class="cv-suggest-btn" id="cv-suggest-btn" onclick="suggestReply()" style="display:none">✨ Suggest a reply</button>
   </div>
+  <div id="cv-suggest" style="display:none"></div>
   <div class="cv-body" id="cv-body"></div>
 </div>
 
@@ -1226,6 +1238,8 @@ async function openConversation(c){
   const gm=document.getElementById('cv-gmail');
   if(c.email){ gm.style.display='inline-block'; gm.href='https://mail.google.com/mail/u/0/#search/'+encodeURIComponent(c.email); } else gm.style.display='none';
   document.getElementById('convo-pane').classList.add('open');
+  document.getElementById('cv-suggest').style.display='none';
+  document.getElementById('cv-suggest-btn').style.display='none';
   const body=document.getElementById('cv-body');
   if(!c.email){ body.innerHTML='<div class="cv-empty">No email address on file for this contact.</div>'; return; }
   if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ body.innerHTML='<div class="cv-empty">Connect Google to read the conversation here.<br><button class="cv-connect" onclick="googleSignIn()">Connect Google</button></div>'; return; } }
@@ -1244,17 +1258,48 @@ async function openConversation(c){
     else{ body.innerHTML='<div class="cv-empty">Couldn\'t load the conversation'+(e&&e.code?` (${e.code})`:'')+'.</div>'; }
   }
 }
+let CONVO_LAST=[], CONVO_SUBJECT='', LAST_DRAFT='';
 function renderConversation(msgs,me){
   const body=document.getElementById('cv-body');
+  CONVO_LAST=[];
   body.innerHTML=msgs.map(m=>{
     const from=(hdr(m,'from')||'').toLowerCase();
     const mine=!!(me && from.includes(me));
     const d=new Date(Number(m.internalDate));
     const dl=d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     let text=trimQuoted(findBody(m.payload)||''); if(!text) text=(m.snippet||'').trim();
+    CONVO_LAST.push({who:mine?'You':'Them',text});
     return `<div class="cv-msg ${mine?'me':''}"><div class="cv-mh"><span class="cv-who">${mine?'You':'Them'}</span><span class="cv-date">${dl}</span></div><div class="cv-text">${escapeHtml(text||'(no text)')}</div></div>`;
   }).join('');
+  CONVO_SUBJECT=msgs.length?hdr(msgs[msgs.length-1],'subject'):'';
+  document.getElementById('cv-suggest-btn').style.display=CONVO_LAST.length?'inline-block':'none';
   body.scrollTop=body.scrollHeight;
+}
+/* ── Suggest a reply (via the secure Edge Function) ── */
+async function suggestReply(){
+  const box=document.getElementById('cv-suggest'); box.style.display='block';
+  if(!CONVO_LAST.length){ box.innerHTML='<div class="cv-sg-note">Open a conversation first.</div>'; return; }
+  box.innerHTML='<div class="cv-sg-note">✨ Drafting a reply…</div>';
+  try{
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:CONVO_LAST,contactName:(convoContact&&convoContact.name)||'',company:(convoContact&&convoContact.company)||''})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ box.innerHTML=`<div class="cv-sg-note">${escapeHtml(d.error||('Error '+r.status))}</div>`; return; }
+    LAST_DRAFT=d.reply||'';
+    box.innerHTML=`<div class="cv-sg-head">✨ Suggested reply</div><div class="cv-sg-body">${escapeHtml(LAST_DRAFT)}</div>
+      <div class="cv-sg-actions">
+        <button class="cv-sg-btn primary" onclick="useSuggestedReply()">Use in a reply →</button>
+        <button class="cv-sg-btn" onclick="copySuggested()">Copy</button>
+        <button class="cv-sg-btn" onclick="suggestReply()">Redo</button>
+      </div>`;
+  }catch(e){ box.innerHTML='<div class="cv-sg-note">Network error — try again.</div>'; }
+}
+function copySuggested(){ navigator.clipboard.writeText(LAST_DRAFT).then(()=>toast('Draft copied')); }
+function useSuggestedReply(){
+  if(!convoContact||!LAST_DRAFT) return;
+  const c=convoContact; closeConvo(); openEmailModal(c);
+  activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active'));
+  document.getElementById('e-body').value=LAST_DRAFT;
+  let subj=CONVO_SUBJECT||''; if(subj && !/^\s*re:/i.test(subj)) subj='Re: '+subj; if(subj) document.getElementById('e-subject').value=subj;
 }
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
