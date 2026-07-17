@@ -102,15 +102,37 @@ section{padding:64px 0;border-top:1px solid var(--line)}
 .closer h2 em{font-style:italic;font-weight:500}
 .closer p{color:var(--muted);margin:22px auto 32px;max-width:52ch}
 
-footer{border-top:1px solid var(--line);padding:34px 0;color:var(--faint);font-size:13px}
+/* inline content links */
+.lnk{color:inherit;text-decoration:none;border-bottom:1.5px solid rgba(25,25,23,0.28);transition:border-color .15s,opacity .15s}
+.lnk:hover{border-color:var(--black)}
+
+/* DARK CTA */
+.cta-dark{background:var(--black);color:#fff;padding:90px 0 78px;border:none}
+.cta-dark .eyebrow{color:rgba(255,255,255,0.45);margin-bottom:20px}
+.cta-dark h2{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(30px,4.8vw,54px);line-height:1.07;letter-spacing:-0.015em;max-width:20ch;margin-bottom:22px}
+.cta-dark h2 em{font-style:italic;font-weight:500}
+.cta-dark .cta-lede{color:rgba(255,255,255,0.72);max-width:58ch;font-size:clamp(16px,1.6vw,19px);margin-bottom:36px}
+.cta-form{max-width:640px;display:flex;flex-direction:column;gap:14px}
+.cta-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cta-form input,.cta-form textarea{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:14px 16px;color:#fff;font-family:'Satoshi',Arial,sans-serif;font-size:16px;outline:none;transition:border-color .15s}
+.cta-form input::placeholder,.cta-form textarea::placeholder{color:rgba(255,255,255,0.42)}
+.cta-form input:focus,.cta-form textarea:focus{border-color:#fff}
+.cta-form textarea{resize:vertical;min-height:110px}
+.btn-light{align-self:flex-start;background:#fff;color:var(--black);border:none;border-radius:100px;font-family:'Satoshi',Arial,sans-serif;font-weight:700;font-size:16px;padding:15px 32px;cursor:pointer;transition:opacity .15s}
+.btn-light:hover{opacity:.85}
+.btn-light:disabled{opacity:.5;cursor:default}
+.enq-status{font-size:15px;color:rgba(255,255,255,0.8);min-height:22px;margin-top:2px}
+
+footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.1);padding:34px 0;color:rgba(255,255,255,0.5);font-size:13px}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+footer a{color:rgba(255,255,255,0.72);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.22)}
 
 @media(max-width:760px){
   .stack-row{grid-template-columns:1fr}
   .extras{grid-template-columns:1fr}
   .step{grid-template-columns:44px 1fr;gap:16px}
   .step .no{font-size:30px}
+  .cta-form .row2{grid-template-columns:1fr}
   header{padding:56px 0 44px}
 }
 </style>
@@ -158,19 +180,19 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--l
       <div class="stack-row">
         <div class="scard">
           <svg class="ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="9" r="3"/><path d="M6 9v6M18 12v0c0 3-6 1-6 6" stroke-linecap="round"/></svg>
-          <h3 class="serif">GitHub</h3>
+          <h3 class="serif"><a class="lnk" href="https://github.com" target="_blank" rel="noopener">GitHub</a></h3>
           <p>Hosts your page — puts it on the internet at a real web address.</p>
           <span class="tag free">Free</span>
         </div>
         <div class="scard">
           <svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-          <h3 class="serif">Supabase</h3>
+          <h3 class="serif"><a class="lnk" href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></h3>
           <p>Stores your contacts and templates — the page's memory.</p>
           <span class="tag free">Free</span>
         </div>
         <div class="scard">
           <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
-          <h3 class="serif">Google Cloud</h3>
+          <h3 class="serif"><a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud</a></h3>
           <p>The permission slip that lets your page send from your Gmail.</p>
           <span class="tag">Your Gmail</span>
         </div>
@@ -195,7 +217,7 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--l
         <div class="no serif">01</div>
         <div>
           <h3 class="serif">Open three free accounts</h3>
-          <p>Sign up for <b>GitHub</b> (hosting) and <b>Supabase</b> (database), and have your <b>Google</b> account ready. All free, a minute each, no card needed.</p>
+          <p>Sign up for <a class="lnk" href="https://github.com" target="_blank" rel="noopener"><b>GitHub</b></a> (hosting) and <a class="lnk" href="https://supabase.com" target="_blank" rel="noopener"><b>Supabase</b></a> (database), and have your <a class="lnk" href="https://accounts.google.com" target="_blank" rel="noopener"><b>Google</b></a> account ready. All free, a minute each, no card needed.</p>
         </div>
       </div>
 
@@ -213,9 +235,9 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--l
           <h3 class="serif">Hand over three keys</h3>
           <p>A "key" is just a temporary password you can delete afterwards. You create one on each service and paste it to the AI — it does the rest.</p>
           <ul class="keys">
-            <li><b>Supabase:</b> create an access token → the AI builds your database and loads your contacts.</li>
-            <li><b>GitHub:</b> create a repo and a token → the AI uploads the page.</li>
-            <li><b>Google:</b> set up the sign-in and copy the <b>Client ID</b> → this is what lets the page send email (walk-through below).</li>
+            <li><a class="lnk" href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener"><b>Supabase:</b></a> create an <a class="lnk" href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener">access token</a> → the AI builds your database and loads your contacts.</li>
+            <li><a class="lnk" href="https://github.com/new" target="_blank" rel="noopener"><b>GitHub:</b></a> create a <a class="lnk" href="https://github.com/new" target="_blank" rel="noopener">repo</a> and a <a class="lnk" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">token</a> → the AI uploads the page.</li>
+            <li><a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener"><b>Google:</b></a> set up the sign-in and copy the <b>Client ID</b> → this is what lets the page send email (walk-through below).</li>
           </ul>
         </div>
       </div>
@@ -243,7 +265,7 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--l
       <h3 class="serif">The Google permission screen, click by click</h3>
       <p class="sub">All you're doing is telling Google "this page of mine is allowed to send email from my account." Go slowly and follow each click.</p>
       <ol class="gsteps">
-        <li><span><b>Make a project.</b> Go to <code>console.cloud.google.com</code> → project dropdown → New Project → name it "Prospects" → select it.</span></li>
+        <li><span><b>Make a project.</b> Go to <a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener"><code>console.cloud.google.com</code></a> → project dropdown → New Project → name it "Prospects" → select it.</span></li>
         <li><span><b>Turn on the Gmail engine.</b> APIs &amp; Services → Library → search <b>Gmail API</b> → Enable.</span></li>
         <li><span><b>Name your app.</b> OAuth consent screen (newer console: Google Auth Platform → Branding) → choose <b>External</b> → fill app name, support email, developer email.</span></li>
         <li><span><b>Say who can use it — you.</b> Under Audience / Test users, add your own email, or click <b>Publish app</b> to skip the weekly re-login.</span></li>
@@ -284,12 +306,54 @@ footer a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--l
   </div>
 </div>
 
+<!-- DARK CTA + CONTACT FORM -->
+<section class="cta-dark" id="get-in-touch">
+  <div class="wrap">
+    <div class="eyebrow">Prefer to skip the DIY?</div>
+    <h2 class="serif">Still want someone else to do it for you? <em>Get in touch.</em></h2>
+    <p class="cta-lede">If you're still unsure, or you'd simply rather someone else handled it, I'm available for consultancy and build support — I can set this up for you, or help with the wider new-business machine behind it. Fill in the details below and I'll get in touch.</p>
+    <form id="enquiry-form" class="cta-form" onsubmit="return submitEnquiry(event)">
+      <div class="row2">
+        <input name="name" placeholder="Your name" autocomplete="name" required>
+        <input name="email" type="email" placeholder="Email" autocomplete="email" required>
+      </div>
+      <input name="company" placeholder="Company / agency (optional)" autocomplete="organization">
+      <textarea name="message" rows="4" placeholder="What would you like help with?"></textarea>
+      <button type="submit" class="btn-light" id="enq-btn">Send it over →</button>
+      <div class="enq-status" id="enq-status"></div>
+    </form>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div>© 2025 Coris Leachman — Fractional New Business &amp; Marketing Consultant</div>
-    <div><a href="https://corisleachman.github.io/">corisleachman.github.io</a></div>
+    <div><a href="https://corisleachman.github.io/" target="_blank" rel="noopener">corisleachman.github.io</a></div>
   </div>
 </footer>
+
+<script>
+const ENQ_URL="https://paprxejgeepvtbqmfgvt.supabase.co/rest/v1/enquiries";
+const ENQ_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhcHJ4ZWpnZWVwdnRicW1mZ3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTI2MTcsImV4cCI6MjA5OTY4ODYxN30.x5ruifLqBsRbtvSwb7-2HCAX6IOmkWpCAfP7LEEfijg";
+async function submitEnquiry(e){
+  e.preventDefault();
+  const f=e.target, btn=document.getElementById('enq-btn'), st=document.getElementById('enq-status');
+  const data={name:f.name.value.trim(),email:f.email.value.trim(),company:f.company.value.trim()||null,message:f.message.value.trim()||null,source:'guide'};
+  if(!data.name||!data.email){ st.textContent='Please add your name and email.'; return false; }
+  btn.disabled=true; const o=btn.textContent; btn.textContent='Sending…'; st.textContent='';
+  try{
+    const r=await fetch(ENQ_URL,{method:'POST',headers:{apikey:ENQ_KEY,Authorization:'Bearer '+ENQ_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(data)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    f.style.display='none';
+    st.style.color='#fff';
+    st.innerHTML='<span style="font-size:19px;font-family:\'Playfair Display\',serif">Thanks — got it. I\'ll be in touch shortly.</span>';
+  }catch(err){
+    st.textContent='Something went wrong — please email me directly at coris.leachman@gmail.com';
+    btn.disabled=false; btn.textContent=o;
+  }
+  return false;
+}
+</script>
 
 </body>
 </html>
