@@ -81,6 +81,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .tbl tbody tr:last-child td{border-bottom:none}
 .tbl tbody tr:hover td{background:rgba(0,0,0,0.018)}
 .tbl td a{color:var(--black)}
+.rowlink{color:inherit;text-decoration:none;border-bottom:1px solid var(--grey);transition:border-color .12s}
+.rowlink:hover{border-bottom-color:var(--black)}
+.rowlink .lnkicon{display:none;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle}
+.rowlink:hover .lnkicon{display:inline}
 .pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .p-replied{background:rgba(135,251,102,0.18);color:#2a6600}
 .p-contacted{background:rgba(74,191,255,0.12);color:#1a5a8a}
@@ -376,6 +380,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
         </div>
         <div class="fld"><label>LinkedIn URL</label><input id="f-linkedin" type="url" placeholder="https://linkedin.com/in/…"></div>
       </div>
+      <div class="fld"><label>Company website</label><input id="f-website" placeholder="e.g. acme.com — leave blank to use the email domain"></div>
       <div class="row2">
         <div class="fld"><label>Last emailed / contacted</label><input id="f-last-emailed" type="date"></div>
         <div class="fld"><label>Follow-up on</label><input id="f-followup" type="date"></div>
@@ -679,6 +684,18 @@ function buildCatList(){
 /* ── Render ── */
 function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtDate(v){ if(!v) return '—'; const d=new Date(v); if(isNaN(d)) return '—'; return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}); }
+/* Row links: name → LinkedIn, company → website (falls back to the email domain) */
+const FREEMAIL=new Set(['gmail.com','googlemail.com','hotmail.com','hotmail.co.uk','outlook.com','yahoo.com','yahoo.co.uk','icloud.com','me.com','mac.com','aol.com','live.com','live.co.uk','msn.com','protonmail.com','proton.me','btinternet.com','sky.com','virginmedia.com']);
+function withScheme(u){ u=String(u||'').trim(); if(!u) return ''; return /^https?:\/\//i.test(u)?u:'https://'+u.replace(/^\/+/,''); }
+function linkedinUrl(c){ return withScheme(c.linkedin_url); }
+function companyUrl(c){
+  if(c.website) return withScheme(c.website);
+  if(c.email && c.email.includes('@')){
+    const d=c.email.split('@')[1].toLowerCase().trim();
+    if(d && !FREEMAIL.has(d)) return 'https://'+d;
+  }
+  return '';
+}
 function toDateInput(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function statusClass(c){ if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
 function visibleRows(){
@@ -709,10 +726,11 @@ function render(){
     const mailable=c.email && !c.bounced;
     const sel=SELECTED.has(c.id);
     const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
+    const liUrl=linkedinUrl(c), coUrl=companyUrl(c);
     return `<tr style="${sel?'background:rgba(135,251,102,0.06)':''}">
       <td><input type="checkbox" ${sel?'checked':''} ${mailable?'':'disabled'} onchange="toggleSel('${c.id}',this)" style="cursor:${mailable?'pointer':'not-allowed'};opacity:${mailable?1:.35}"></td>
-      <td><div style="font-weight:600">${escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
-      <td>${escapeHtml(c.company||'')}</td>
+      <td><div style="font-weight:600">${liUrl?`<a class="rowlink" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}<span class="lnkicon">in</span></a>`:escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
+      <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
       <td style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
       <td style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
       <td><span class="pill p-cat">${escapeHtml(c.category||'—')}</span></td>
@@ -758,7 +776,7 @@ function openAddModal(){
   editingId=null;
   document.getElementById('edit-title').textContent='Add contact';
   document.getElementById('del-btn').style.display='none';
-  ['f-name','f-email','f-company','f-title','f-linkedin','f-notes','f-last-emailed','f-followup'].forEach(i=>document.getElementById(i).value='');
+  ['f-name','f-email','f-company','f-title','f-linkedin','f-website','f-notes','f-last-emailed','f-followup'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('f-category').value=(activeTab!=='all'&&activeTab!=='__replied__')?activeTab:'';
   document.getElementById('f-status').value='Not contacted';
   document.getElementById('f-replied').value='false';
@@ -780,6 +798,7 @@ function openEditModal(c){
   document.getElementById('f-status').value=full.status||'Not contacted';
   document.getElementById('f-replied').value=String(!!full.replied);
   document.getElementById('f-linkedin').value=full.linkedin_url||'';
+  document.getElementById('f-website').value=full.website||'';
   document.getElementById('f-notes').value=full.notes||'';
   document.getElementById('f-last-emailed').value=toDateInput(full.last_emailed_at);
   document.getElementById('f-followup').value=full.follow_up_at?toDateInput(full.follow_up_at):'';
@@ -800,6 +819,7 @@ async function saveContact(){
     status:document.getElementById('f-status').value,
     replied:document.getElementById('f-replied').value==='true',
     linkedin_url:document.getElementById('f-linkedin').value.trim()||null,
+    website:document.getElementById('f-website').value.trim()||null,
     notes:document.getElementById('f-notes').value.trim()||null,
     updated_at:new Date().toISOString()
   };
@@ -858,7 +878,7 @@ function parseCsv(text){
   if(lines.length<2) return [];
   const split=l=>{ const out=[];let cur='',q=false; for(let i=0;i<l.length;i++){const ch=l[i]; if(ch==='"'){ if(q&&l[i+1]==='"'){cur+='"';i++;} else q=!q; } else if(ch===','&&!q){ out.push(cur);cur=''; } else cur+=ch;} out.push(cur); return out.map(s=>s.trim()); };
   const heads=split(lines[0]).map(h=>h.toLowerCase().replace(/[^a-z]/g,''));
-  const map={name:['name','fullname','contact'],email:['email','emailaddress','mail'],company:['company','organisation','organization','org','agency'],title:['title','jobtitle','role','position'],linkedin:['linkedin','linkedinurl','li'],notes:['notes','note','comment']};
+  const map={name:['name','fullname','contact'],email:['email','emailaddress','mail'],company:['company','organisation','organization','org','agency'],title:['title','jobtitle','role','position'],linkedin:['linkedin','linkedinurl','li'],website:['website','url','site','web','domain','companywebsite'],notes:['notes','note','comment']};
   const idx={};
   Object.keys(map).forEach(k=>{ idx[k]=heads.findIndex(h=>map[k].includes(h)); });
   const rows=[];
@@ -867,7 +887,7 @@ function parseCsv(text){
     const g=k=>idx[k]>=0?(cells[idx[k]]||'').trim():'';
     const name=g('name'), email=g('email').toLowerCase();
     if(!name&&!email) continue;
-    rows.push({name:name||email.split('@')[0], email:email||null, company:g('company')||null, title:g('title')||null, linkedin_url:g('linkedin')||null, notes:g('notes')||null});
+    rows.push({name:name||email.split('@')[0], email:email||null, company:g('company')||null, title:g('title')||null, linkedin_url:g('linkedin')||null, website:g('website')||null, notes:g('notes')||null});
   }
   return rows;
 }
