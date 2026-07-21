@@ -158,6 +158,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .np-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:13px 14px;margin-bottom:10px}
 .np-card.overdue{border-color:rgba(255,107,74,0.32)}
 .np-name{font-size:14px;font-weight:700;color:#fff;line-height:1.3}
+.np-link{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.28);transition:border-color .12s,color .12s}
+.np-link:hover{border-bottom-color:#fff}
+.np-link.dim{font-weight:400;color:rgba(255,255,255,0.55)}
+.np-link.dim:hover{color:rgba(255,255,255,0.9)}
 .np-meta{display:flex;align-items:center;gap:8px;margin-top:6px}
 .np-warm{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6)}
 .np-since{font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.42)}
@@ -1148,8 +1152,11 @@ function renderNudge(){
       const sinceLabel=since==null?'':(since<=0?'sent today':since===1?'1d since contact':`${since}d since contact`);
       const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
       const pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>`;
+      const nLi=linkedinUrl(c), nCo=companyUrl(c);
+      const nameHtml=nLi?`<a class="np-link" href="${escapeHtml(nLi)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}</a>`:escapeHtml(c.name);
+      const coHtml=!c.company?'':(nCo?`<a class="np-link dim" href="${escapeHtml(nCo)}" target="_blank" rel="noopener" title="${escapeHtml(nCo)}">${escapeHtml(c.company)}</a>`:`<span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`);
       return `<div class="np-card ${g.key==='overdue'?'overdue':''}">
-        <div class="np-name">${escapeHtml(c.name)}${c.company?` · <span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`:''}</div>
+        <div class="np-name">${nameHtml}${coHtml?` · ${coHtml}`:''}</div>
         <div class="np-meta">${pill}<span class="np-since">${sinceLabel}</span></div>
         <div class="np-actions">
           ${c.email&&!c.bounced?`<button class="np-btn email" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
