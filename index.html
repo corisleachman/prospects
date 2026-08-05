@@ -195,6 +195,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .cv-sg-head{font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
 .cv-sg-body{font-size:13px;line-height:1.55;color:rgba(255,255,255,0.9);white-space:pre-wrap;max-height:230px;overflow-y:auto}
 .cv-sg-note{font-size:12px;color:rgba(255,255,255,0.6);font-style:italic}
+.cv-sg-angles{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px}
+.cv-sg-alabel{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.42);margin-right:2px}
+.cv-sg-chip{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.03em;color:rgba(255,255,255,0.88);background:rgba(135,251,102,0.1);border:1px solid rgba(135,251,102,0.28);border-radius:100px;padding:5px 11px;cursor:pointer}
+.cv-sg-chip:hover{background:rgba(135,251,102,0.2)}
 .cv-sg-actions{display:flex;gap:7px;margin-top:11px}
 .cv-sg-btn{font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:7px 12px;cursor:pointer}
 .cv-sg-btn:hover{background:rgba(255,255,255,0.12)}
@@ -1303,16 +1307,24 @@ function renderConversation(msgs,me){
   body.scrollTop=body.scrollHeight;
 }
 /* ── Suggest a reply (via the secure Edge Function) ── */
-async function suggestReply(){
+async function suggestReply(angle){
   const box=document.getElementById('cv-suggest'); box.style.display='block';
   if(!CONVO_LAST.length){ box.innerHTML='<div class="cv-sg-note">Open a conversation first.</div>'; return; }
-  box.innerHTML='<div class="cv-sg-note">✨ Drafting a reply…</div>';
+  const angleLabels={warmer:'warmer',shorter:'shorter',direct:'more direct',formal:'more formal'};
+  box.innerHTML='<div class="cv-sg-note">✨ '+(angle?`Rewriting (${angleLabels[angle]||angle})…`:'Drafting a reply…')+'</div>';
   try{
-    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:CONVO_LAST,contactName:(convoContact&&convoContact.name)||'',company:(convoContact&&convoContact.company)||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})})});
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:CONVO_LAST,contactName:(convoContact&&convoContact.name)||'',company:(convoContact&&convoContact.company)||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),angle:angle||''})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok){ box.innerHTML=`<div class="cv-sg-note">${escapeHtml(d.error||('Error '+r.status))}</div>`; return; }
     LAST_DRAFT=d.reply||'';
     box.innerHTML=`<div class="cv-sg-head">✨ Suggested reply</div><div class="cv-sg-body">${escapeHtml(LAST_DRAFT)}</div>
+      <div class="cv-sg-angles">
+        <span class="cv-sg-alabel">Adjust</span>
+        <button class="cv-sg-chip" onclick="suggestReply('warmer')">Warmer</button>
+        <button class="cv-sg-chip" onclick="suggestReply('shorter')">Shorter</button>
+        <button class="cv-sg-chip" onclick="suggestReply('direct')">More direct</button>
+        <button class="cv-sg-chip" onclick="suggestReply('formal')">More formal</button>
+      </div>
       <div class="cv-sg-actions">
         <button class="cv-sg-btn primary" onclick="useSuggestedReply()">Use in a reply →</button>
         <button class="cv-sg-btn" onclick="copySuggested()">Copy</button>
