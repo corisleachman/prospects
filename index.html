@@ -1295,7 +1295,7 @@ function renderConversation(msgs,me){
     const d=new Date(Number(m.internalDate));
     const dl=d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
     let text=trimQuoted(findBody(m.payload)||''); if(!text) text=(m.snippet||'').trim();
-    CONVO_LAST.push({who:mine?'You':'Them',text});
+    CONVO_LAST.push({who:mine?'You':'Them',date:dl,text});
     return `<div class="cv-msg ${mine?'me':''}"><div class="cv-mh"><span class="cv-who">${mine?'You':'Them'}</span><span class="cv-date">${dl}</span></div><div class="cv-text">${escapeHtml(text||'(no text)')}</div></div>`;
   }).join('');
   CONVO_SUBJECT=msgs.length?hdr(msgs[msgs.length-1],'subject'):'';
@@ -1308,7 +1308,7 @@ async function suggestReply(){
   if(!CONVO_LAST.length){ box.innerHTML='<div class="cv-sg-note">Open a conversation first.</div>'; return; }
   box.innerHTML='<div class="cv-sg-note">✨ Drafting a reply…</div>';
   try{
-    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:CONVO_LAST,contactName:(convoContact&&convoContact.name)||'',company:(convoContact&&convoContact.company)||''})});
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:CONVO_LAST,contactName:(convoContact&&convoContact.name)||'',company:(convoContact&&convoContact.company)||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok){ box.innerHTML=`<div class="cv-sg-note">${escapeHtml(d.error||('Error '+r.status))}</div>`; return; }
     LAST_DRAFT=d.reply||'';
