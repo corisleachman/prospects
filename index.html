@@ -214,6 +214,79 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .cv-msg.me .cv-text{background:rgba(135,251,102,0.09);border-color:rgba(135,251,102,0.18)}
 .cv-empty{color:rgba(255,255,255,0.4);font-size:12px;line-height:1.6;text-align:center;padding:48px 20px}
 .cv-connect{background:var(--green);color:var(--black);border:none;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 18px;cursor:pointer;margin-top:12px}
+
+/* ================= ENHANCEMENTS ================= */
+:root{ --ease-out:cubic-bezier(0.23,1,0.32,1); --ease-in-out:cubic-bezier(0.77,0,0.175,1); }
+.pill{transition:background-color .28s var(--ease-out),color .28s var(--ease-out)}
+
+/* Inline editing */
+td[data-f]{cursor:text}
+td[data-f="status"],td[data-f="category"]{cursor:pointer}
+td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inset 0 -1px 0 var(--grey)}
+.pill.pill-btn{cursor:pointer}
+.pill.pill-btn:hover{box-shadow:0 0 0 1.5px rgba(0,0,0,.14)}
+.inline-input{width:100%;min-width:80px;border:1.5px solid var(--black);border-radius:6px;padding:5px 7px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--black);background:var(--white);outline:none}
+select.inline-input{cursor:pointer}
+
+/* Keyboard focus + drag */
+tr.rowfocus td{background:rgba(135,251,102,0.10)!important}
+tr.rowfocus td:first-child{box-shadow:inset 3px 0 0 var(--black)}
+tr.dragging{opacity:.4}
+.tab.dragover{background:rgba(135,251,102,0.2);border-bottom-color:var(--green)!important}
+
+/* Skeleton */
+.skel-cell{height:11px;border-radius:5px;background:linear-gradient(90deg,var(--grey-light) 25%,#efe9df 37%,var(--grey-light) 63%);background-size:400% 100%;animation:skelsheen 1.2s ease infinite}
+@keyframes skelsheen{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+/* Bulk controls */
+.bulk-ctl{display:inline-flex;align-items:center;height:34px;padding:0 12px;border:1.5px solid var(--grey-light);border-radius:100px;background:var(--white);font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;gap:5px}
+.bulk-ctl:hover{border-color:var(--black);color:var(--black)}
+.bulk-ctl select{border:none;background:none;font:inherit;color:inherit;outline:none;cursor:pointer;text-transform:uppercase}
+.bulk-ctl.danger:hover{border-color:var(--coral);color:#b23c22}
+
+/* Toast undo */
+#toast{display:flex;align-items:center;gap:12px}
+#toast .toast-undo{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--black);background:var(--green);border:none;border-radius:100px;padding:5px 12px;cursor:pointer}
+
+/* Views bar */
+#views-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:1320px;margin:0 auto;width:100%;padding:12px 32px 0}
+.view-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);margin-right:2px}
+.view-pill{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;background:var(--white);border:1.5px solid var(--grey-light);border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--black);cursor:pointer;transition:border-color .12s}
+.view-pill:hover{border-color:var(--black)}
+.view-pill .vx{opacity:.4;font-size:11px}
+.view-pill .vx:hover{opacity:1;color:#b23c22}
+.view-pill.add{background:none;border-style:dashed;color:var(--grey-mid)}
+.view-pill.add:hover{color:var(--black);border-color:var(--black)}
+
+/* Command palette */
+#cmdk{position:fixed;inset:0;z-index:800;background:rgba(14,14,14,0.55);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding-top:14vh;opacity:0;pointer-events:none;transition:opacity .16s var(--ease-out)}
+#cmdk.open{opacity:1;pointer-events:all}
+.cmdk-box{width:min(560px,92vw);background:var(--cream);border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.34);overflow:hidden;transform:translateY(-8px);transition:transform .16s var(--ease-out)}
+#cmdk.open .cmdk-box{transform:translateY(0)}
+.cmdk-input{width:100%;border:none;border-bottom:1.5px solid var(--grey-light);padding:16px 18px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:none;outline:none}
+.cmdk-list{max-height:44vh;overflow-y:auto;padding:6px}
+.cmdk-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13px;color:var(--black)}
+.cmdk-item .cmdk-hint{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-mid)}
+.cmdk-item.active{background:var(--black);color:var(--white)}
+.cmdk-item.active .cmdk-hint{color:rgba(255,255,255,0.6)}
+.cmdk-empty{padding:20px;text-align:center;color:var(--grey-mid);font-size:13px}
+.cmdk-group{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);padding:10px 12px 4px}
+
+/* Up-next pane extras */
+.np-card{transition:opacity .2s var(--ease-out),transform .2s var(--ease-out);animation:npIn .26s var(--ease-out) both}
+.np-card.removing{opacity:0;transform:translateX(16px)}
+.np-card.cold{border-color:rgba(240,180,41,0.4)}
+.np-park{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.04em;color:var(--amber);margin-left:6px}
+.np-btn.ai{border-color:rgba(135,251,102,0.35);color:var(--green)}
+.np-sect-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin:4px 4px 10px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07)}
+@keyframes npIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* AI draft button in compose */
+.ai-draft-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 12px;background:rgba(135,251,102,0.14);border:1px solid rgba(135,251,102,0.4);border-radius:100px;color:#2a6600;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.ai-draft-btn:hover{background:rgba(135,251,102,0.24)}
+.ai-draft-btn:disabled{opacity:.5;cursor:wait}
+
+@media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
 </style>
 </head>
 <body>
@@ -244,9 +317,13 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
       <svg viewBox="0 0 24 24"><path d="M22 6l-10 7L2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
       <span id="gbtn-label">Connect Google</span>
     </button>
+    <button class="tbtn" id="cmdk-btn" onclick="openCmdk()" title="Command palette (⌘K)">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      ⌘K
+    </button>
     <button class="tbtn" id="nudge-toggle" onclick="toggleNudge()">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
-      Needs a nudge <span class="ncount" id="nudge-count" style="display:none">0</span>
+      Up next <span class="ncount" id="nudge-count" style="display:none">0</span>
     </button>
     <button class="tbtn solid" onclick="openImportModal()">Import list</button>
     <button class="tbtn solid" onclick="openAddModal()">+ Add</button>
@@ -269,6 +346,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     </div>
   </div>
   <div class="tabs-bar" id="tabs-bar"></div>
+  <div id="views-bar"></div>
   <div class="body">
     <div class="inner">
       <div class="controls" id="contact-controls">
@@ -287,6 +365,19 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
         <div class="spacer">
           <span id="sel-count" class="count" style="display:none"></span>
           <button class="abtn" id="send-selected" style="display:none" onclick="sendToSelected()">✉ Send to selected</button>
+          <label class="bulk-ctl" id="bulk-status" style="display:none">Status
+            <select id="bulk-status-sel" onchange="bulkSetStatus(this.value);this.selectedIndex=0">
+              <option value="">Set…</option>
+              <option value="Not contacted">Not contacted</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Replied">Replied</option>
+              <option value="Bounced">Bounced</option>
+            </select>
+          </label>
+          <label class="bulk-ctl" id="bulk-cat" style="display:none">Category
+            <select id="bulk-cat-sel" onchange="bulkSetCategory(this.value);this.selectedIndex=0"></select>
+          </label>
+          <button class="bulk-ctl danger" id="bulk-del" style="display:none" onclick="bulkDelete()">Delete</button>
           <button class="abtn ghost" id="clear-sel" style="display:none" onclick="clearSelection()">Clear</button>
           <button class="abtn ghost" onclick="selectAllMailable()">Select all mailable</button>
         </div>
@@ -335,11 +426,19 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 <input type="date" id="quick-date" onchange="onQuickDate()" style="position:fixed;top:8px;right:8px;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none">
 <div id="toast"></div>
 
+<!-- COMMAND PALETTE -->
+<div id="cmdk" onclick="if(event.target===this)closeCmdk()">
+  <div class="cmdk-box">
+    <input id="cmdk-input" class="cmdk-input" placeholder="Type a command or search contacts…" oninput="renderCmdk()" autocomplete="off">
+    <div class="cmdk-list" id="cmdk-list"></div>
+  </div>
+</div>
+
 <!-- NUDGE PANE -->
 <div id="nudge-pane">
   <div class="np-head">
     <button class="np-close" onclick="toggleNudge()">✕</button>
-    <div class="np-title">Needs a nudge</div>
+    <div class="np-title">Up next</div>
     <div class="np-sub" id="np-sub">0 to action</div>
   </div>
   <div class="np-body" id="np-body"></div>
@@ -442,7 +541,10 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
     <div class="mhead"><div class="mtitle" id="email-title">Email</div><button class="mclose" onclick="closeEmailModal()">✕</button></div>
     <div class="mbody">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:8px">Templates</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid)">Templates</div>
+          <button class="ai-draft-btn" id="ai-draft" onclick="aiDraftCompose()" title="Draft a follow-up with AI">✨ Draft with AI</button>
+        </div>
         <div class="tpills" id="tpills"></div>
       </div>
       <div class="fld"><label>To</label><input id="e-to" type="email"></div>
@@ -601,6 +703,7 @@ async function startApp(){
   updateGoogleBtn();
   whenGis(()=>{ if(gHasGrant()) getGoogleToken(false).then(()=>updateGoogleBtn()); });
   renderTemplatePills();
+  initEnhancements();
   if(!isConfigured()){ showSetup(); return; }
   await load();
 }
@@ -632,8 +735,8 @@ function renderEnquiries(){
 }
 async function load(){
   document.getElementById('setup').style.display='none';
-  document.getElementById('loading').style.display='flex';
-  document.getElementById('table-wrap').style.display='none';
+  document.getElementById('loading').style.display='none';
+  renderSkeleton();
   const rb=document.getElementById('refresh-btn'); rb.classList.add('spinning');
   try{
     const r=await sb(`${TABLE}?select=*&order=replied.desc,company.asc`);
@@ -659,7 +762,8 @@ function buildTabs(){
   html+=`<button class="tab ${activeTab==='__replied__'?'active':''}" onclick="switchTab('__replied__',this)">Replied <span class="badge">${ALL.filter(c=>c.replied).length}</span></button>`;
   cats.forEach(cat=>{
     const n=ALL.filter(c=>c.category===cat).length;
-    html+=`<button class="tab ${activeTab===cat?'active':''}" onclick="switchTab('${cat.replace(/'/g,"\\'")}',this)">${escapeHtml(cat)} <span class="badge">${n}</span></button>`;
+    const esc=cat.replace(/'/g,"\\'");
+    html+=`<button class="tab ${activeTab===cat?'active':''}" onclick="switchTab('${esc}',this)" ondragover="tabDragOver(event,this)" ondragleave="this.classList.remove('dragover')" ondrop="tabDrop(event,'${esc}',this)">${escapeHtml(cat)} <span class="badge">${n}</span></button>`;
   });
   html+=`<button class="tab ${activeTab==='__enquiries__'?'active':''}" onclick="switchTab('__enquiries__',this)" style="margin-left:auto">✉ Enquiries <span class="badge">${ENQUIRIES.length}</span></button>`;
   bar.innerHTML=html;
@@ -668,10 +772,14 @@ function switchTab(tab,btn){
   activeTab=tab;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
+  applyTabView(tab);
+}
+function applyTabView(tab){
   const title=document.getElementById('page-title'), sub=document.getElementById('page-sub');
   const isEnq=tab==='__enquiries__';
   document.getElementById('contact-controls').style.display=isEnq?'none':'';
   document.getElementById('enquiries-wrap').style.display=isEnq?'block':'none';
+  const vb=document.getElementById('views-bar'); if(vb) vb.style.display=isEnq?'none':'';
   if(isEnq){
     document.getElementById('table-wrap').style.display='none';
     document.getElementById('setup').style.display='none';
@@ -735,14 +843,14 @@ function render(){
     const sel=SELECTED.has(c.id);
     const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
     const liUrl=linkedinUrl(c), coUrl=companyUrl(c);
-    return `<tr style="${sel?'background:rgba(135,251,102,0.06)':''}">
+    return `<tr data-id="${c.id}" draggable="true" style="${sel?'background:rgba(135,251,102,0.06)':''}">
       <td><input type="checkbox" ${sel?'checked':''} ${mailable?'':'disabled'} onchange="toggleSel('${c.id}',this)" style="cursor:${mailable?'pointer':'not-allowed'};opacity:${mailable?1:.35}"></td>
       <td><div style="font-weight:600">${liUrl?`<a class="rowlink" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}<span class="lnkicon">in</span></a>`:escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
       <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
-      <td style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
-      <td style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
-      <td><span class="pill p-cat">${escapeHtml(c.category||'—')}</span></td>
-      <td><span class="pill ${statusClass(c)}">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
+      <td data-f="title" title="Double-click to edit" style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
+      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
+      <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
+      <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         ${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
@@ -755,6 +863,7 @@ function render(){
   // select-all checkbox state
   const mailableRows=rows.filter(c=>c.email&&!c.bounced);
   document.getElementById('select-all').checked=mailableRows.length>0&&mailableRows.every(c=>SELECTED.has(c.id));
+  if(typeof activeRowId!=='undefined' && activeRowId){ const fr=tb.querySelector('tr[data-id="'+activeRowId+'"]'); if(fr) fr.classList.add('rowfocus'); else activeRowId=null; }
   updateSelBar();
   updateNudgeCount();
 }
@@ -772,10 +881,11 @@ function selectAllMailable(){ visibleRows().filter(c=>c.email&&!c.bounced).forEa
 function clearSelection(){ SELECTED.clear(); render(); }
 function updateSelBar(){
   const n=SELECTED.size;
-  document.getElementById('sel-count').style.display=n?'inline':'none';
-  document.getElementById('sel-count').textContent=`${n} selected`;
-  document.getElementById('send-selected').style.display=n?'flex':'none';
-  document.getElementById('clear-sel').style.display=n?'flex':'none';
+  const show=(id,disp)=>{ const el=document.getElementById(id); if(el) el.style.display=n?disp:'none'; };
+  const sc=document.getElementById('sel-count'); if(sc){ sc.style.display=n?'inline':'none'; sc.textContent=`${n} selected`; }
+  show('send-selected','flex'); show('clear-sel','flex');
+  show('bulk-status','inline-flex'); show('bulk-cat','inline-flex'); show('bulk-del','inline-flex');
+  if(n && typeof populateBulkCatOptions==='function') populateBulkCatOptions();
 }
 
 /* ── Add / Edit / Delete ── */
@@ -854,14 +964,17 @@ async function saveContact(){
   }catch(e){ setEditStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
   btn.disabled=false;
 }
-async function deleteContact(){
-  if(!editingId||!confirm('Delete this contact permanently?')) return;
-  try{
-    const r=await sb(`${TABLE}?id=eq.${editingId}`,{method:'DELETE'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    ALL=ALL.filter(x=>x.id!==editingId); SELECTED.delete(editingId);
-    buildTabs(); render(); closeEditModal();
-  }catch(e){ setEditStatus('Delete failed: '+e.message,'#b23c22'); }
+function deleteContact(){
+  if(!editingId) return;
+  const id=editingId; const idx=ALL.findIndex(x=>x.id===id); if(idx<0){ closeEditModal(); return; }
+  const snap=ALL[idx];
+  ALL.splice(idx,1); SELECTED.delete(id);
+  buildTabs(); render(); renderNudge(); closeEditModal();
+  scheduleUndoable(
+    async ()=>{ try{ await sb(`${TABLE}?id=eq.${id}`,{method:'DELETE'}); }catch(e){} },
+    ()=>{ ALL.splice(Math.min(idx,ALL.length),0,snap); buildTabs(); render(); renderNudge(); },
+    `Deleted ${(snap.name||'contact').split(' ')[0]}`
+  );
 }
 function setEditStatus(m,c){ const e=document.getElementById('edit-status'); e.textContent=m; e.style.color=c||'var(--grey-mid)'; }
 
@@ -951,17 +1064,18 @@ function renderTemplatePills(){
   if(activeTemplate) markPill(activeTemplate);
 }
 let emailContact=null;
-function openEmailModal(c){
+function openEmailModal(c, tplKey){
   BATCH=false; batchQueue=[]; batchSent=0;
   emailContact=typeof c==='string'?JSON.parse(c):c;
   document.getElementById('email-title').textContent='Email '+emailContact.name;
   document.getElementById('e-to').value=emailContact.email||'';
   document.getElementById('e-skip').style.display='none';
   clearAttachments();
-  // Default template: Check-in, pre-filled with this contact's name
-  activeTemplate='checkin';
-  fillTemplate('checkin',emailContact);
-  markPill('checkin');
+  // Pre-fill the given template (default Check-in), personalised to this contact
+  const key=(tplKey&&getTemplate(tplKey))?tplKey:'checkin';
+  activeTemplate=key;
+  fillTemplate(key,emailContact);
+  markPill(key);
   refreshSendState();
   document.getElementById('email-modal').classList.add('open');
 }
@@ -1025,12 +1139,17 @@ async function saveTemplate(){
   }catch(e){ setTplStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
   btn.disabled=false;
 }
-async function deleteTemplate(){
-  if(!editingTemplateId||!confirm('Delete this template?')) return;
-  try{ const r=await sb(`email_templates?id=eq.${editingTemplateId}`,{method:'DELETE'}); if(!r.ok) throw new Error('HTTP '+r.status);
-    SAVED_TEMPLATES=SAVED_TEMPLATES.filter(x=>x.id!==editingTemplateId); if(activeTemplate==='db:'+editingTemplateId) activeTemplate=null;
-    renderTemplatePills(); closeTemplateModal();
-  }catch(e){ setTplStatus('Delete failed: '+e.message,'#b23c22'); }
+function deleteTemplate(){
+  if(!editingTemplateId) return; const id=editingTemplateId;
+  const idx=SAVED_TEMPLATES.findIndex(x=>String(x.id)===String(id)); if(idx<0){ closeTemplateModal(); return; }
+  const snap=SAVED_TEMPLATES[idx];
+  SAVED_TEMPLATES.splice(idx,1); if(activeTemplate==='db:'+id) activeTemplate=null;
+  renderTemplatePills(); closeTemplateModal();
+  scheduleUndoable(
+    async ()=>{ try{ await sb(`email_templates?id=eq.${id}`,{method:'DELETE'}); }catch(e){} },
+    ()=>{ SAVED_TEMPLATES.splice(Math.min(idx,SAVED_TEMPLATES.length),0,snap); renderTemplatePills(); },
+    `Deleted "${snap.name}"`
+  );
 }
 function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
 function refreshSendState(){
@@ -1097,10 +1216,13 @@ async function markContactedOn(id, whenIso){
   const followUp=followUpFrom(nowIso);
   const c=ALL.find(x=>x.id===id);
   const newStatus=(c&&c.replied)?c.status:'Contacted';
-  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; }
+  let newTouches=null;
+  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; c.touches=(c.touches||0)+1; newTouches=c.touches; }
   renderNudge(); render();
   if(c) toast(`Logged ${(c.name||'').split(' ')[0]} · follow-up ${fmtDate(followUp)}`);
   try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso})}); }catch(e){}
+  // Touch count is best-effort: works once a `touches` column exists, silently ignored otherwise.
+  if(newTouches!=null){ try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({touches:newTouches})}); }catch(e){} }
 }
 function markContacted(id){ return markContactedOn(id, new Date().toISOString()); }
 /* Row calendar icon → pick a date, then log it */
@@ -1121,10 +1243,13 @@ function onQuickDate(){
 }
 /* Toast */
 let toastTimer=null;
-function toast(msg){
+function toast(msg, onUndo){
   const el=document.getElementById('toast'); if(!el) return;
-  el.textContent=msg; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2600);
+  el.innerHTML='';
+  const s=document.createElement('span'); s.textContent=msg; el.appendChild(s);
+  if(onUndo){ const b=document.createElement('button'); b.className='toast-undo'; b.textContent='Undo'; b.onclick=()=>{ el.classList.remove('show'); try{onUndo();}catch(e){} }; el.appendChild(b); }
+  el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'), onUndo?6000:2600);
 }
 
 /* ── Follow-up nudges ── */
@@ -1133,55 +1258,106 @@ function addDaysStr(days){ const d=new Date(); d.setDate(d.getDate()+days); retu
 function daysSinceContact(c){ if(!c.last_emailed_at) return null; return Math.floor((Date.now()-new Date(c.last_emailed_at).getTime())/86400000); }
 function nudgeList(){ return ALL.filter(c=>c.follow_up_at && !c.replied && !(c.bounced||c.status==='Bounced')); }
 function toggleNudge(){ const p=document.getElementById('nudge-pane'); p.classList.toggle('open'); if(p.classList.contains('open')) renderNudge(); }
+/* Reply triage + gone-quiet helpers (client-side dismissal, no schema change) */
+function handledReplies(){ try{ return new Set(JSON.parse(localStorage.getItem('replies_handled')||'[]').map(String)); }catch(e){ return new Set(); } }
+function saveHandledReplies(set){ localStorage.setItem('replies_handled', JSON.stringify([...set])); }
+function parkedQuiet(){ try{ return new Set(JSON.parse(localStorage.getItem('quiet_parked')||'[]').map(String)); }catch(e){ return new Set(); } }
+function saveParkedQuiet(set){ localStorage.setItem('quiet_parked', JSON.stringify([...set])); }
+function repliesToHandle(){ const h=handledReplies(); return ALL.filter(c=>c.replied && !(c.bounced) && !h.has(String(c.id))); }
+function goneQuiet(){ const cutoff=addDaysStr(-30); const h=parkedQuiet(); return ALL.filter(c=>!c.replied && !(c.bounced||c.status==='Bounced') && c.status==='Contacted' && c.last_emailed_at && !c.follow_up_at && toDateInput(c.last_emailed_at)<=cutoff && !h.has(String(c.id))); }
+function nudgeCardEl(id){ return document.querySelector('.np-card[data-id="'+id+'"]'); }
+
 function updateNudgeCount(){
-  const due=nudgeList().filter(c=>c.follow_up_at<=todayStr()).length;
+  const due=nudgeList().filter(c=>c.follow_up_at<=todayStr()).length + repliesToHandle().length;
   const el=document.getElementById('nudge-count');
   if(el){ if(due>0){ el.style.display='inline-block'; el.textContent=due; } else el.style.display='none'; }
+}
+function upCard(c, kind, groupKey){
+  const since=daysSinceContact(c);
+  const sinceLabel=since==null?'':(since<=0?'sent today':since===1?'1d ago':`${since}d ago`);
+  const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
+  const nLi=linkedinUrl(c), nCo=companyUrl(c);
+  const nameHtml=nLi?`<a class="np-link" href="${escapeHtml(nLi)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}</a>`:escapeHtml(c.name);
+  const coHtml=!c.company?'':(nCo?`<a class="np-link dim" href="${escapeHtml(nCo)}" target="_blank" rel="noopener" title="${escapeHtml(nCo)}">${escapeHtml(c.company)}</a>`:`<span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`);
+  const touches=c.touches||0;
+  const cold = kind==='followup' && groupKey==='overdue' && (touches>=3 || (since!=null && since>=21));
+  let pill, actions;
+  if(kind==='reply'){
+    pill='<span class="np-warm" style="background:rgba(135,251,102,0.18);color:#87FB66">Replied</span>';
+    actions=`${c.email?`<button class="np-btn ai" onclick='openConversation(${cdata})'>Open thread</button>`:''}<button class="np-btn" onclick="dismissReply('${c.id}')">✓ Handled</button>`;
+  } else if(kind==='quiet'){
+    pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>`;
+    actions=`${c.email&&!c.bounced?`<button class="np-btn email" onclick='draftFollowup(${cdata})'>✉ Re-open</button>`:''}<button class="np-btn" onclick="parkQuiet('${c.id}')">Park</button>`;
+  } else {
+    const parkNote = touches>=3?`chased ${touches}× · park?`:'gone cold · park?';
+    pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>${cold?`<span class="np-park">${parkNote}</span>`:''}`;
+    actions=`${c.email&&!c.bounced?`<button class="np-btn email" onclick='draftFollowup(${cdata})'>✉ Draft follow-up</button>`:''}<button class="np-btn" onclick="snoozeFollowup('${c.id}')">Snooze 3d</button><button class="np-btn" onclick="doneFollowup('${c.id}')">✓ Done</button>`;
+  }
+  return `<div class="np-card ${groupKey==='overdue'?'overdue':''} ${cold?'cold':''}" data-id="${c.id}">
+    <div class="np-name">${nameHtml}${coHtml?` · ${coHtml}`:''}</div>
+    <div class="np-meta">${pill}<span class="np-since">${sinceLabel}</span></div>
+    <div class="np-actions">${actions}</div>
+  </div>`;
 }
 function renderNudge(){
   updateNudgeCount();
   const body=document.getElementById('np-body'); if(!body) return;
+  const replies=repliesToHandle();
   const list=nudgeList().sort((a,b)=>a.follow_up_at<b.follow_up_at?-1:(a.follow_up_at>b.follow_up_at?1:0));
-  document.getElementById('np-sub').textContent=`${list.length} to action`;
-  if(!list.length){ body.innerHTML='<div class="np-empty">Nothing to chase yet.<br>When you email someone through the page, they\'ll appear here '+(CONFIG.FOLLOWUP_DAYS||4)+' days later for a follow-up.</div>'; return; }
+  const quiet=goneQuiet();
   const t=todayStr();
+  const actionable=replies.length + list.filter(c=>c.follow_up_at<=t).length;
+  document.getElementById('np-sub').textContent=(replies.length+list.length+quiet.length)?`${actionable} to action now`:'all clear';
+  if(!replies.length && !list.length && !quiet.length){ body.innerHTML='<div class="np-empty">Nothing needs you right now.<br>Replies, follow-ups and threads that go quiet will surface here.</div>'; return; }
+  let html='';
+  if(replies.length){
+    html+='<div class="np-sect-lbl" style="border-top:none;padding-top:0">✦ New replies — respond</div>';
+    html+=replies.map(c=>upCard(c,'reply')).join('');
+  }
   const groups=[
     {key:'overdue',label:'Overdue',color:'#FF6B4A',items:list.filter(c=>c.follow_up_at<t)},
     {key:'today',label:'Due today',color:'#F0B429',items:list.filter(c=>c.follow_up_at===t)},
     {key:'soon',label:'Upcoming',color:'#3ECF8E',items:list.filter(c=>c.follow_up_at>t)},
   ];
-  body.innerHTML=groups.filter(g=>g.items.length).map(g=>{
-    const cards=g.items.map(c=>{
-      const since=daysSinceContact(c);
-      const sinceLabel=since==null?'':(since<=0?'sent today':since===1?'1d since contact':`${since}d since contact`);
-      const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
-      const pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>`;
-      const nLi=linkedinUrl(c), nCo=companyUrl(c);
-      const nameHtml=nLi?`<a class="np-link" href="${escapeHtml(nLi)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}</a>`:escapeHtml(c.name);
-      const coHtml=!c.company?'':(nCo?`<a class="np-link dim" href="${escapeHtml(nCo)}" target="_blank" rel="noopener" title="${escapeHtml(nCo)}">${escapeHtml(c.company)}</a>`:`<span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`);
-      return `<div class="np-card ${g.key==='overdue'?'overdue':''}">
-        <div class="np-name">${nameHtml}${coHtml?` · ${coHtml}`:''}</div>
-        <div class="np-meta">${pill}<span class="np-since">${sinceLabel}</span></div>
-        <div class="np-actions">
-          ${c.email&&!c.bounced?`<button class="np-btn email" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
-          <button class="np-btn" onclick="snoozeFollowup('${c.id}')">Snooze 3d</button>
-          <button class="np-btn" onclick="doneFollowup('${c.id}')">✓ Done</button>
-        </div>
-      </div>`;
+  if(list.length){
+    html+='<div class="np-sect-lbl">⏱ Follow-ups</div>';
+    html+=groups.filter(g=>g.items.length).map(g=>{
+      const cards=g.items.map(c=>upCard(c,'followup',g.key)).join('');
+      return `<div class="np-group"><div class="np-glabel"><span><span class="np-dot" style="background:${g.color}"></span>${g.label}</span><span>${g.items.length}</span></div>${cards}</div>`;
     }).join('');
-    return `<div class="np-group"><div class="np-glabel"><span><span class="np-dot" style="background:${g.color}"></span>${g.label}</span><span>${g.items.length}</span></div>${cards}</div>`;
-  }).join('');
+  }
+  if(quiet.length){
+    html+='<div class="np-sect-lbl">❄ Gone quiet — re-open?</div>';
+    html+=quiet.map(c=>upCard(c,'quiet')).join('');
+  }
+  body.innerHTML=html;
 }
+function animateCardOut(id, after){
+  const el=nudgeCardEl(id);
+  if(el){ el.classList.add('removing'); setTimeout(after,200); } else after();
+}
+function dismissReply(id){
+  const s=handledReplies(); s.add(String(id)); saveHandledReplies(s);
+  animateCardOut(id, ()=>renderNudge());
+  toast('Marked handled', ()=>{ const s2=handledReplies(); s2.delete(String(id)); saveHandledReplies(s2); renderNudge(); });
+}
+function parkQuiet(id){
+  const s=parkedQuiet(); s.add(String(id)); saveParkedQuiet(s);
+  animateCardOut(id, ()=>renderNudge());
+  toast('Parked', ()=>{ const s2=parkedQuiet(); s2.delete(String(id)); saveParkedQuiet(s2); renderNudge(); });
+}
+function draftFollowup(c){ openEmailModal(c,'chaser'); }
 async function snoozeFollowup(id){
-  const nd=addDaysStr(3);
-  const c=ALL.find(x=>x.id===id); if(c) c.follow_up_at=nd;
-  renderNudge();
-  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:nd,updated_at:new Date().toISOString()})}); }catch(e){}
+  const nd=addDaysStr(3); const c=ALL.find(x=>x.id===id); if(!c) return; const prev=c.follow_up_at;
+  animateCardOut(id, ()=>{ c.follow_up_at=nd; renderNudge(); });
+  sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:nd,updated_at:new Date().toISOString()})}).catch(()=>{});
+  toast('Snoozed 3 days', ()=>{ c.follow_up_at=prev; renderNudge(); sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:prev,updated_at:new Date().toISOString()})}).catch(()=>{}); });
 }
 async function doneFollowup(id){
-  const c=ALL.find(x=>x.id===id); if(c) c.follow_up_at=null;
-  renderNudge();
-  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:null,updated_at:new Date().toISOString()})}); }catch(e){}
+  const c=ALL.find(x=>x.id===id); if(!c) return; const prev=c.follow_up_at;
+  animateCardOut(id, ()=>{ c.follow_up_at=null; renderNudge(); });
+  sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:null,updated_at:new Date().toISOString()})}).catch(()=>{});
+  toast('Marked done', ()=>{ c.follow_up_at=prev; renderNudge(); sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:prev,updated_at:new Date().toISOString()})}).catch(()=>{}); });
 }
 /* single + batch send */
 let BATCH=false, batchQueue=[], batchSent=0, batchCurrent=null;
@@ -1341,7 +1517,278 @@ function useSuggestedReply(){
   let subj=CONVO_SUBJECT||''; if(subj && !/^\s*re:/i.test(subj)) subj='Re: '+subj; if(subj) document.getElementById('e-subject').value=subj;
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); closeCmdk(); } });
+
+/* ==================================================================
+   ENHANCEMENTS  —  undo, skeleton, inline edit, bulk actions,
+   command palette, saved views, keyboard nav, drag-to-recategorise,
+   AI compose draft. Kept in one block, wired via initEnhancements().
+   ================================================================== */
+
+/* ── Undo engine (delayed commit) ── */
+let _undo=null;
+function commitUndoNow(){ if(_undo){ clearTimeout(_undo.t); const f=_undo.commit; _undo=null; try{ f&&f(); }catch(e){} } }
+function scheduleUndoable(commitFn, undoFn, msg){
+  commitUndoNow();
+  const t=setTimeout(()=>{ if(_undo){ const f=_undo.commit; _undo=null; try{ f&&f(); }catch(e){} } }, 5800);
+  _undo={t, commit:commitFn};
+  toast(msg, ()=>{ if(_undo){ clearTimeout(_undo.t); _undo=null; } try{ undoFn&&undoFn(); }catch(e){} });
+}
+
+/* ── Skeleton rows ── */
+function renderSkeleton(){
+  if(activeTab==='__enquiries__') return;
+  const wrap=document.getElementById('table-wrap'), tb=document.getElementById('tbody');
+  if(!wrap||!tb) return;
+  document.getElementById('setup').style.display='none';
+  wrap.style.display='';
+  const w=['46%','62%','40%','70%','52%','58%','44%','66%'];
+  let rows='';
+  for(let i=0;i<8;i++){ rows+=`<tr>
+    <td><div class="skel-cell" style="width:16px"></div></td>
+    <td><div class="skel-cell" style="width:${w[i]}"></div></td>
+    <td><div class="skel-cell" style="width:50%"></div></td>
+    <td><div class="skel-cell" style="width:60%"></div></td>
+    <td><div class="skel-cell" style="width:72%"></div></td>
+    <td><div class="skel-cell" style="width:56px"></div></td>
+    <td><div class="skel-cell" style="width:60px"></div></td>
+    <td><div class="skel-cell" style="width:48px"></div></td>
+    <td></td></tr>`; }
+  tb.innerHTML=rows;
+}
+
+/* ── Inline editing ── */
+function startInlineEdit(td, id, field){
+  if(!td || td.querySelector('.inline-input')) return;
+  const c=ALL.find(x=>x.id===id); if(!c) return;
+  const cur = field==='status' ? (c.replied?'Replied':(c.bounced?'Bounced':(c.status||'Not contacted'))) : (c[field]||'');
+  let el;
+  if(field==='status'){
+    el=document.createElement('select'); el.className='inline-input';
+    ['Not contacted','Contacted','Replied','Bounced'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if(o===cur) op.selected=true; el.appendChild(op); });
+  } else if(field==='category'){
+    el=document.createElement('input'); el.className='inline-input'; el.setAttribute('list','cat-list'); el.value=cur;
+  } else {
+    el=document.createElement('input'); el.className='inline-input'; el.value=cur; if(field==='email') el.type='email';
+  }
+  td.innerHTML=''; td.appendChild(el); el.focus(); if(el.select) el.select();
+  let done=false;
+  const commit=()=>{ if(done) return; done=true; applyInlineEdit(c, field, (el.value||'').trim()); };
+  const cancel=()=>{ if(done) return; done=true; render(); };
+  el.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); commit(); } else if(ev.key==='Escape'){ ev.preventDefault(); cancel(); } });
+  el.addEventListener('blur', commit);
+  if(field==='status') el.addEventListener('change', commit);
+}
+async function applyInlineEdit(c, field, val){
+  const patch={updated_at:new Date().toISOString()};
+  if(field==='status'){
+    c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced');
+    patch.status=val; patch.replied=c.replied; patch.bounced=c.bounced;
+  } else if(field==='email'){
+    const v=val?val.toLowerCase():'';
+    if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Invalid email — not saved'); render(); return; }
+    if((c.email||'')===(v||'')){ render(); return; }
+    c.email=v||null; patch.email=c.email;
+  } else {
+    if((c[field]||'')===(val||'')){ render(); return; }
+    c[field]=val||null; patch[field]=c[field];
+  }
+  render(); buildTabs(); buildCatList(); renderNudge();
+  try{ await sb(`${TABLE}?id=eq.${c.id}`,{method:'PATCH',body:JSON.stringify(patch)}); }catch(e){ toast('Save failed'); }
+}
+
+/* ── Bulk actions ── */
+function selectedContacts(){ return ALL.filter(c=>SELECTED.has(c.id)); }
+async function bulkSetStatus(val){
+  if(!val) return; const list=selectedContacts(); if(!list.length) return;
+  list.forEach(c=>{ c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced'); });
+  render(); buildTabs(); renderNudge();
+  const ids=list.map(c=>c.id);
+  try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'PATCH',body:JSON.stringify({status:val,replied:val==='Replied',bounced:val==='Bounced',updated_at:new Date().toISOString()})}); }catch(e){ toast('Bulk update failed'); }
+  toast(`${list.length} set to ${val}`);
+}
+function populateBulkCatOptions(){
+  const sel=document.getElementById('bulk-cat-sel'); if(!sel) return;
+  sel.innerHTML='<option value="">Move to…</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')+'<option value="__new__">＋ New category…</option>';
+}
+async function bulkSetCategory(val){
+  if(!val) return; if(val==='__new__'){ val=(window.prompt('New category name')||'').trim(); if(!val) return; }
+  const list=selectedContacts(); if(!list.length) return;
+  list.forEach(c=>{ c.category=val; });
+  render(); buildTabs(); buildCatList();
+  const ids=list.map(c=>c.id);
+  try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'PATCH',body:JSON.stringify({category:val,updated_at:new Date().toISOString()})}); }catch(e){ toast('Bulk move failed'); }
+  toast(`${list.length} moved to ${val}`);
+}
+function bulkDelete(){
+  const list=selectedContacts(); if(!list.length) return;
+  const ids=list.map(c=>c.id); const snapshot=list.slice();
+  ALL=ALL.filter(c=>!SELECTED.has(c.id)); SELECTED.clear();
+  buildTabs(); render(); renderNudge();
+  scheduleUndoable(
+    async ()=>{ try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'DELETE'}); }catch(e){} },
+    ()=>{ ALL.push(...snapshot); buildTabs(); render(); renderNudge(); },
+    `Deleted ${list.length} contact${list.length!==1?'s':''}`
+  );
+}
+
+/* ── AI draft inside compose (reuses suggest-reply edge function) ── */
+async function aiDraftCompose(){
+  const btn=document.getElementById('ai-draft'); if(!btn) return;
+  const c=emailContact||{}; const orig=btn.textContent;
+  btn.disabled=true; btn.textContent='✨ Drafting…';
+  try{
+    const priorBody=(document.getElementById('e-body').value||'').trim();
+    const convo=[{who:'You',date:'',text: priorBody ? ('Earlier note I sent:\n'+priorBody) : 'I previously reached out to introduce fractional new business support and have not heard back yet.'}];
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||CONFIG.SUPABASE_ANON),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:convo,contactName:c.name||'',company:c.company||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),angle:'a brief, warm follow-up chaser that gently reopens the conversation'})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ toast(d && d.error ? ('AI: '+d.error) : 'AI draft failed'); }
+    else if(d && d.reply){ document.getElementById('e-body').value=d.reply; if(typeof templateEdited==='function') templateEdited(); toast('AI draft ready'); }
+    else toast('No draft returned');
+  }catch(e){ toast('AI draft — network error'); }
+  btn.disabled=false; btn.textContent=orig;
+}
+
+/* ── Command palette ── */
+let cmdkItems=[], cmdkActive=0;
+function openCmdk(){ const o=document.getElementById('cmdk'); if(!o) return; o.classList.add('open'); const i=document.getElementById('cmdk-input'); i.value=''; cmdkActive=0; renderCmdk(); setTimeout(()=>i.focus(),40); }
+function closeCmdk(){ const o=document.getElementById('cmdk'); if(o) o.classList.remove('open'); }
+function cmdkGoto(tab){ closeCmdk(); activeTab=tab; buildTabs(); applyTabView(tab); }
+function cmdkCommands(){
+  const cmds=[
+    {label:'Add contact', run:()=>{ closeCmdk(); openAddModal(); }},
+    {label:'Import a list', run:()=>{ closeCmdk(); openImportModal(); }},
+    {label:'Refresh', run:()=>{ closeCmdk(); refresh(); }},
+    {label:'Open Up next', run:()=>{ closeCmdk(); toggleNudge(); }},
+    {label:'Select all mailable', run:()=>{ closeCmdk(); selectAllMailable(); }},
+    {label:'Clear selection', run:()=>{ closeCmdk(); clearSelection(); }},
+    {label: gConnected()?'Disconnect Google':'Connect Google', run:()=>{ closeCmdk(); toggleGoogle(); }},
+    {label:'Go to: All contacts', hint:'view', run:()=>cmdkGoto('all')},
+    {label:'Go to: Replied', hint:'view', run:()=>cmdkGoto('__replied__')},
+  ];
+  categories().forEach(cat=>cmds.push({label:'Go to: '+cat, hint:'category', run:()=>cmdkGoto(cat)}));
+  return cmds;
+}
+function renderCmdk(){
+  const q=(document.getElementById('cmdk-input').value||'').toLowerCase().trim();
+  const list=document.getElementById('cmdk-list');
+  const items=[];
+  cmdkCommands().filter(c=>!q||c.label.toLowerCase().includes(q)).forEach(c=>items.push({type:'cmd', ...c}));
+  if(q){
+    ALL.filter(c=>`${c.name} ${c.company||''} ${c.email||''}`.toLowerCase().includes(q)).slice(0,6)
+      .forEach(c=>items.push({type:'contact', label:c.name+(c.company?` · ${c.company}`:''), hint:'edit', run:()=>{ closeCmdk(); openEditModal(c); }}));
+  }
+  cmdkItems=items; if(cmdkActive>=items.length) cmdkActive=Math.max(0,items.length-1);
+  if(!items.length){ list.innerHTML='<div class="cmdk-empty">No matches</div>'; return; }
+  let lastType=null, html='';
+  items.forEach((it,idx)=>{
+    if(it.type!==lastType){ html+=`<div class="cmdk-group">${it.type==='contact'?'Contacts':'Commands'}</div>`; lastType=it.type; }
+    html+=`<div class="cmdk-item ${idx===cmdkActive?'active':''}" data-idx="${idx}" onmousemove="cmdkSetActive(${idx})" onclick="cmdkRun(${idx})">${escapeHtml(it.label)}${it.hint?`<span class="cmdk-hint">${it.hint}</span>`:''}</div>`;
+  });
+  list.innerHTML=html;
+  const act=list.querySelector('.cmdk-item.active'); if(act) act.scrollIntoView({block:'nearest'});
+}
+function cmdkSetActive(i){ cmdkActive=i; const list=document.getElementById('cmdk-list'); if(list) list.querySelectorAll('.cmdk-item').forEach(el=>el.classList.toggle('active', +el.dataset.idx===i)); }
+function cmdkRun(i){ const it=cmdkItems[i]; if(it&&it.run) it.run(); }
+function cmdkKey(e){
+  if(e.key==='ArrowDown'){ e.preventDefault(); cmdkActive=Math.min(cmdkActive+1,cmdkItems.length-1); renderCmdk(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); cmdkActive=Math.max(cmdkActive-1,0); renderCmdk(); }
+  else if(e.key==='Enter'){ e.preventDefault(); cmdkRun(cmdkActive); }
+  else if(e.key==='Escape'){ e.preventDefault(); closeCmdk(); }
+}
+
+/* ── Saved views ── */
+function loadViews(){ try{ return JSON.parse(localStorage.getItem('prospect_views')||'[]'); }catch(e){ return []; } }
+function saveViews(v){ localStorage.setItem('prospect_views', JSON.stringify(v)); }
+function renderViews(){
+  const bar=document.getElementById('views-bar'); if(!bar) return;
+  const views=loadViews();
+  let html='<span class="view-lbl">Views</span>';
+  html+=views.map((v,i)=>`<span class="view-pill" onclick="applyView(${i})">${escapeHtml(v.name)}<span class="vx" onclick="event.stopPropagation();deleteView(${i})" title="Delete view">✕</span></span>`).join('');
+  html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
+  bar.innerHTML=html;
+}
+function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced }; }
+function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
+function applyView(i){
+  const v=loadViews()[i]; if(!v) return;
+  activeTab=v.tab||'all';
+  document.getElementById('search').value=v.search||'';
+  document.getElementById('status-filter').value=v.status||'';
+  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced;
+  const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
+  const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
+  buildTabs(); applyTabView(activeTab);
+}
+function deleteView(i){
+  const views=loadViews(); const removed=views.splice(i,1); saveViews(views); renderViews();
+  toast('View deleted', ()=>{ const v2=loadViews(); v2.splice(i,0,removed[0]); saveViews(v2); renderViews(); });
+}
+
+/* ── Keyboard navigation ── */
+let activeRowId=null;
+function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable); }
+function anyOverlayOpen(){ return !!(document.querySelector('.modal.open') || (document.getElementById('cmdk')&&document.getElementById('cmdk').classList.contains('open')) || (document.getElementById('nudge-pane')&&document.getElementById('nudge-pane').classList.contains('open')) || (document.getElementById('convo-pane')&&document.getElementById('convo-pane').classList.contains('open'))); }
+function moveRowFocus(delta){
+  const rows=visibleRows(); if(!rows.length) return;
+  let idx=rows.findIndex(c=>c.id===activeRowId);
+  idx = idx<0 ? (delta>0?0:rows.length-1) : Math.max(0,Math.min(rows.length-1, idx+delta));
+  activeRowId=rows[idx].id;
+  const tb=document.getElementById('tbody');
+  tb.querySelectorAll('tr.rowfocus').forEach(r=>r.classList.remove('rowfocus'));
+  const r=tb.querySelector('tr[data-id="'+activeRowId+'"]'); if(r){ r.classList.add('rowfocus'); r.scrollIntoView({block:'nearest'}); }
+}
+function activeContact(){ return ALL.find(c=>c.id===activeRowId); }
+function globalKey(e){
+  if((e.metaKey||e.ctrlKey) && (e.key==='k'||e.key==='K')){ e.preventDefault(); openCmdk(); return; }
+  if(isTyping()||anyOverlayOpen()) return;
+  if(activeTab==='__enquiries__') return;
+  if(e.key==='j'||e.key==='ArrowDown'){ e.preventDefault(); moveRowFocus(1); }
+  else if(e.key==='k'||e.key==='ArrowUp'){ e.preventDefault(); moveRowFocus(-1); }
+  else if(e.key==='e'){ const c=activeContact(); if(c){ e.preventDefault(); openEditModal(c); } }
+  else if(e.key==='Enter'){ const c=activeContact(); if(c&&c.email){ e.preventDefault(); openConversation(c); } }
+  else if(e.key==='x'){ const c=activeContact(); if(c&&c.email&&!c.bounced){ e.preventDefault(); if(SELECTED.has(c.id)) SELECTED.delete(c.id); else SELECTED.add(c.id); render(); } }
+  else if(e.key==='/'){ e.preventDefault(); const s=document.getElementById('search'); if(s) s.focus(); }
+}
+
+/* ── Drag to recategorise ── */
+let dragIds=[];
+function rowDragStart(e){
+  const tr=e.target.closest && e.target.closest('tr[data-id]'); if(!tr) return;
+  if(e.target.closest('.inline-input')){ e.preventDefault(); return; }
+  const id=tr.dataset.id;
+  dragIds = (SELECTED.has(id) && SELECTED.size>1) ? [...SELECTED] : [id];
+  tr.classList.add('dragging');
+  try{ e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed='move'; }catch(_){}
+}
+function rowDragEnd(e){ const tr=e.target.closest && e.target.closest('tr'); if(tr) tr.classList.remove('dragging'); }
+function tabDragOver(e, el){ if(!dragIds.length) return; e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} el.classList.add('dragover'); }
+function tabDrop(e, cat, el){ e.preventDefault(); el.classList.remove('dragover'); if(dragIds.length) dropOnCategory(cat); }
+async function dropOnCategory(cat){
+  const ids=dragIds.slice(); dragIds=[];
+  const list=ALL.filter(c=>ids.includes(c.id)); if(!list.length) return;
+  const prev=list.map(c=>({id:c.id, category:c.category}));
+  list.forEach(c=>c.category=cat); render(); buildTabs(); buildCatList();
+  try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'PATCH',body:JSON.stringify({category:cat,updated_at:new Date().toISOString()})}); }catch(e){}
+  toast(`${list.length} moved to ${cat}`, ()=>{
+    prev.forEach(p=>{ const c=ALL.find(x=>x.id===p.id); if(c) c.category=p.category; });
+    render(); buildTabs(); buildCatList();
+    prev.forEach(p=>{ sb(`${TABLE}?id=eq.${p.id}`,{method:'PATCH',body:JSON.stringify({category:p.category,updated_at:new Date().toISOString()})}).catch(()=>{}); });
+  });
+}
+
+/* ── Wire everything up (idempotent) ── */
+function initEnhancements(){
+  const tb=document.getElementById('tbody');
+  if(tb && !tb._enh){ tb._enh=true;
+    tb.addEventListener('dblclick', e=>{ const td=e.target.closest('td[data-f]'); if(!td) return; const tr=td.closest('tr[data-id]'); if(!tr) return; startInlineEdit(td, tr.dataset.id, td.dataset.f); });
+    tb.addEventListener('dragstart', rowDragStart);
+    tb.addEventListener('dragend', rowDragEnd);
+  }
+  const ci=document.getElementById('cmdk-input'); if(ci && !ci._enh){ ci._enh=true; ci.addEventListener('keydown', cmdkKey); }
+  if(!window._enhKeys){ window._enhKeys=true; document.addEventListener('keydown', globalKey); window.addEventListener('beforeunload', commitUndoNow); }
+  renderViews();
+}
 </script>
 </body>
 </html>
