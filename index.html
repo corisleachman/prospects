@@ -286,6 +286,16 @@ tr.dragging{opacity:.4}
 .ai-draft-btn:hover{background:rgba(135,251,102,0.24)}
 .ai-draft-btn:disabled{opacity:.5;cursor:wait}
 
+/* Import column mapping */
+.imp-map-head{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--grey-mid);margin:4px 0 10px}
+.imp-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+.imp-map-row{display:flex;align-items:center;gap:10px}
+.imp-map-row label{flex:0 0 92px;font-size:12px;color:var(--black)}
+.imp-map-row select{flex:1;min-width:0;border:1.5px solid var(--grey-light);border-radius:8px;padding:7px 8px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--white);color:var(--black);cursor:pointer}
+.imp-map-row select:focus{outline:none;border-color:var(--black)}
+.imp-map-note{font-size:11px;color:var(--grey-mid);margin-top:10px;font-style:italic}
+@media (max-width:640px){ .imp-map-grid{grid-template-columns:1fr} }
+
 @media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
 </style>
 </head>
@@ -517,11 +527,12 @@ tr.dragging{opacity:.4}
         <input id="imp-category" list="cat-list" placeholder="e.g. LinkedIn, Referrals, MAD Meets">
       </div>
       <div class="fld full">
-        <label>Paste CSV or upload a .csv file</label>
-        <p class="hint">First row must be headers. Recognised columns (any order, case-insensitive): <code>name</code>, <code>email</code>, <code>company</code>, <code>title</code>, <code>linkedin</code>, <code>notes</code>. A <code>name</code> or <code>email</code> column is required.</p>
-        <input type="file" id="imp-file" accept=".csv,text/csv" onchange="loadCsvFile(event)" style="margin:6px 0">
-        <textarea id="imp-text" rows="8" placeholder="name,email,company,title&#10;Jane Smith,jane@acme.com,Acme,MD" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
+        <label>Paste CSV / TSV or upload a file</label>
+        <p class="hint">First row should be headers. The delimiter (comma, semicolon or tab) and columns are detected automatically — you can remap any column below.</p>
+        <input type="file" id="imp-file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" onchange="loadCsvFile(event)" style="margin:6px 0">
+        <textarea id="imp-text" rows="7" oninput="prepareImport()" placeholder="name,email,company,title&#10;Jane Smith,jane@acme.com,Acme,MD" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
       </div>
+      <div id="imp-map" style="display:none"></div>
       <div class="notewarn" id="imp-preview" style="display:none"></div>
     </div>
     <div class="mfoot">
@@ -986,44 +997,128 @@ function openImportModal(){
   document.getElementById('imp-file').value='';
   document.getElementById('imp-preview').style.display='none';
   document.getElementById('imp-status').textContent='';
+  const map=document.getElementById('imp-map'); if(map){ map.style.display='none'; map.innerHTML=''; }
+  const btn=document.getElementById('imp-btn'); if(btn) btn.disabled=false;
+  RAW={headers:[],rows:[],delim:','};
   importedRows=[];
   document.getElementById('import-modal').classList.add('open');
 }
 function closeImportModal(){ document.getElementById('import-modal').classList.remove('open'); }
 function loadCsvFile(ev){
   const f=ev.target.files[0]; if(!f) return;
-  const r=new FileReader(); r.onload=e=>{ document.getElementById('imp-text').value=e.target.result; previewCsv(); }; r.readAsText(f);
+  const r=new FileReader(); r.onload=e=>{ document.getElementById('imp-text').value=e.target.result; prepareImport(); }; r.readAsText(f);
 }
-function parseCsv(text){
-  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
-  if(lines.length<2) return [];
-  const split=l=>{ const out=[];let cur='',q=false; for(let i=0;i<l.length;i++){const ch=l[i]; if(ch==='"'){ if(q&&l[i+1]==='"'){cur+='"';i++;} else q=!q; } else if(ch===','&&!q){ out.push(cur);cur=''; } else cur+=ch;} out.push(cur); return out.map(s=>s.trim()); };
-  const heads=split(lines[0]).map(h=>h.toLowerCase().replace(/[^a-z]/g,''));
-  const map={name:['name','fullname','contact'],email:['email','emailaddress','mail'],company:['company','organisation','organization','org','agency'],title:['title','jobtitle','role','position'],linkedin:['linkedin','linkedinurl','li'],website:['website','url','site','web','domain','companywebsite'],notes:['notes','note','comment']};
-  const idx={};
-  Object.keys(map).forEach(k=>{ idx[k]=heads.findIndex(h=>map[k].includes(h)); });
-  const rows=[];
-  for(let i=1;i<lines.length;i++){
-    const cells=split(lines[i]);
-    const g=k=>idx[k]>=0?(cells[idx[k]]||'').trim():'';
-    const name=g('name'), email=g('email').toLowerCase();
-    if(!name&&!email) continue;
-    rows.push({name:name||email.split('@')[0], email:email||null, company:g('company')||null, title:g('title')||null, linkedin_url:g('linkedin')||null, website:g('website')||null, notes:g('notes')||null});
+
+/* ── CSV/TSV parsing with delimiter detection + column mapping ── */
+let RAW={headers:[],rows:[],delim:','};
+const IMPORT_FIELDS=[
+  {key:'name',label:'Name'},
+  {key:'first_name',label:'First name'},
+  {key:'last_name',label:'Last name'},
+  {key:'email',label:'Email'},
+  {key:'company',label:'Company'},
+  {key:'title',label:'Title'},
+  {key:'linkedin_url',label:'LinkedIn URL'},
+  {key:'website',label:'Website'},
+  {key:'notes',label:'Notes'},
+];
+const IMPORT_SYNS={
+  name:['name','fullname','contactname','contact','person','prospect'],
+  first_name:['firstname','first','fname','givenname','forename'],
+  last_name:['lastname','last','lname','surname','familyname'],
+  email:['email','emailaddress','mail','workemail','emailid','primaryemail','emails','emailaddress1'],
+  company:['company','companyname','organisation','organization','org','agency','business','account','accountname','employer'],
+  title:['title','jobtitle','role','position','jobrole','designation'],
+  linkedin_url:['linkedin','linkedinurl','li','linkedinprofile','linkedinlink','profileurl'],
+  website:['website','websiteurl','url','site','web','domain','companywebsite','homepage'],
+  notes:['notes','note','comment','comments','description','remark','remarks','memo'],
+};
+function normHead(h){ return (h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function sniffDelimiter(headerLine){
+  let best=',', bestN=-1;
+  [',',';','\t','|'].forEach(d=>{ const n=headerLine.split(d).length-1; if(n>bestN){ bestN=n; best=d; } });
+  return best;
+}
+function splitLine(l, delim){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<l.length;i++){ const ch=l[i];
+    if(ch==='"'){ if(q&&l[i+1]==='"'){cur+='"';i++;} else q=!q; }
+    else if(ch===delim && !q){ out.push(cur); cur=''; }
+    else cur+=ch;
   }
-  return rows;
+  out.push(cur); return out.map(s=>s.trim().replace(/^"|"$/g,''));
 }
-function previewCsv(){
-  importedRows=parseCsv(document.getElementById('imp-text').value);
+function parseDelimited(text){
+  text=(text||'').replace(/^\uFEFF/,'');
+  const lines=text.replace(/\r\n?/g,'\n').split('\n').filter(l=>l.trim().length);
+  if(!lines.length){ RAW={headers:[],rows:[],delim:','}; return RAW; }
+  const delim=sniffDelimiter(lines[0]);
+  const headers=splitLine(lines[0], delim);
+  const rows=[]; for(let i=1;i<lines.length;i++) rows.push(splitLine(lines[i], delim));
+  RAW={headers,rows,delim}; return RAW;
+}
+function guessMapping(headers){
+  const norm=headers.map(normHead); const used=new Set(); const map={};
+  const order=['email','name','first_name','last_name','company','title','linkedin_url','website','notes'];
+  order.forEach(f=>{ map[f]=-1; const idx=norm.findIndex((h,i)=>!used.has(i)&&IMPORT_SYNS[f].includes(h)); if(idx>=0){ map[f]=idx; used.add(idx); } });
+  order.forEach(f=>{ if(map[f]>=0) return; const idx=norm.findIndex((h,i)=>!used.has(i)&&h&&IMPORT_SYNS[f].some(s=>h.includes(s))); if(idx>=0){ map[f]=idx; used.add(idx); } });
+  return map;
+}
+function currentMapping(){
+  const map={};
+  IMPORT_FIELDS.forEach(f=>{ const sel=document.querySelector('#imp-map select[data-tgt="'+f.key+'"]'); map[f.key]=sel?parseInt(sel.value,10):-1; });
+  return map;
+}
+function renderMapping(guess){
+  const box=document.getElementById('imp-map'); if(!box) return;
+  if(!RAW.headers.length){ box.style.display='none'; box.innerHTML=''; return; }
+  const opts=(sel)=>['<option value="-1">— none —</option>'].concat(RAW.headers.map((h,i)=>`<option value="${i}" ${sel===i?'selected':''}>${escapeHtml(h||('Column '+(i+1)))}</option>`)).join('');
+  const dn=RAW.delim===','?'comma':RAW.delim===';'?'semicolon':RAW.delim==='\t'?'tab':RAW.delim==='|'?'pipe':'delimiter';
+  let html=`<div class="imp-map-head">Detected ${RAW.headers.length} column${RAW.headers.length!==1?'s':''} · ${dn}-separated · ${RAW.rows.length} data row${RAW.rows.length!==1?'s':''} — map to fields:</div><div class="imp-map-grid">`;
+  html+=IMPORT_FIELDS.map(f=>`<div class="imp-map-row"><label>${f.label}</label><select data-tgt="${f.key}" onchange="updateImportPreview()">${opts(guess[f.key])}</select></div>`).join('');
+  html+='</div><div class="imp-map-note">No single Name column? Map First name + Last name and they\'ll be combined.</div>';
+  box.innerHTML=html; box.style.display='block';
+}
+function applyMapping(){
+  const map=currentMapping();
+  const get=(cells,k)=> map[k]>=0 ? (cells[map[k]]||'').trim() : '';
+  const rows=[];
+  RAW.rows.forEach(cells=>{
+    let name=get(cells,'name');
+    if(!name) name=[get(cells,'first_name'),get(cells,'last_name')].filter(Boolean).join(' ').trim();
+    const email=get(cells,'email').toLowerCase();
+    if(!name && !email) return;
+    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null });
+  });
+  importedRows=rows; return rows;
+}
+function updateImportPreview(){
+  applyMapping();
   const p=document.getElementById('imp-preview'); p.style.display='block';
-  if(!importedRows.length){ p.innerHTML='No valid rows found. Check that you have a header row with a <code>name</code> or <code>email</code> column.'; return; }
-  const withEmail=importedRows.filter(r=>r.email).length;
-  p.innerHTML=`Parsed <b>${importedRows.length}</b> row${importedRows.length!==1?'s':''} (${withEmail} with email). First: <b>${escapeHtml(importedRows[0].name)}</b>${importedRows[0].email?` &lt;${escapeHtml(importedRows[0].email)}&gt;`:''}. Set a category, then Import.`;
+  const btn=document.getElementById('imp-btn');
+  if(!RAW.headers.length){ p.innerHTML='Paste or upload a CSV to begin.'; if(btn)btn.disabled=true; return; }
+  if(!importedRows.length){
+    const m=currentMapping();
+    if(m.name<0&&m.first_name<0&&m.last_name<0&&m.email<0) p.innerHTML='<b>Map a Name or Email column</b> above — none is currently mapped.';
+    else p.innerHTML='No rows have a name or email once mapped. Check the mapping, or the file may have blank rows.';
+    if(btn)btn.disabled=true; return;
+  }
+  const withEmail=importedRows.filter(r=>r.email).length; const f=importedRows[0];
+  p.innerHTML=`Ready: <b>${importedRows.length}</b> row${importedRows.length!==1?'s':''} · ${withEmail} with email · ${importedRows.length-withEmail} without. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
+  if(btn)btn.disabled=false;
 }
+function prepareImport(){
+  parseDelimited(document.getElementById('imp-text').value);
+  renderMapping(guessMapping(RAW.headers));
+  updateImportPreview();
+}
+/* Back-compat: the Preview button now re-runs detection */
+function previewCsv(){ prepareImport(); }
 async function runImport(){
   const cat=document.getElementById('imp-category').value.trim();
   if(!cat){ setImpStatus('Set a category first.','#b23c22'); return; }
-  if(!importedRows.length) previewCsv();
-  if(!importedRows.length){ setImpStatus('Nothing to import.','#b23c22'); return; }
+  applyMapping();
+  if(!importedRows.length){ setImpStatus('Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
   const payload=importedRows.map(r=>({...r, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
   try{
