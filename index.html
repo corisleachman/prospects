@@ -614,6 +614,7 @@ tr.dragging{opacity:.4}
         </div>
         <textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea>
       </div>
+      <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
       <div class="fld">
         <label>Attachments</label>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -707,9 +708,12 @@ async function authInit(){
 document.addEventListener('DOMContentLoaded', authInit);
 
 /* ── Supabase REST ── */
-function sb(path,opts={}){
-  const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
-  return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}});
+async function sb(path,opts={}){
+  const doFetch=()=>{ const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
+    return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}}); };
+  let r=await doFetch();
+  if((r.status===401||r.status===403) && AUTH.refresh){ if(await authRefresh()) r=await doFetch(); }
+  return r;
 }
 
 /* ── Google auth (Google Identity Services — silent renewal, no reconnect) ── */
@@ -1372,13 +1376,20 @@ async function markContactedOn(id, whenIso){
   const followUp=followUpFrom(nowIso);
   const c=ALL.find(x=>x.id===id);
   const newStatus=(c&&c.replied)?c.status:'Contacted';
-  let newTouches=null;
-  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; c.touches=(c.touches||0)+1; newTouches=c.touches; }
+  const newTouches=c?((c.touches||0)+1):null;
+  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; c.touches=newTouches; }
   renderNudge(); render();
   if(c) toast(`Logged ${(c.name||'').split(' ')[0]} · follow-up ${fmtDate(followUp)}`);
-  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso})}); }catch(e){}
-  // Touch count is best-effort: works once a `touches` column exists, silently ignored otherwise.
-  if(newTouches!=null){ try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({touches:newTouches})}); }catch(e){} }
+  const payload={status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso};
+  if(newTouches!=null) payload.touches=newTouches;
+  try{
+    const r=await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return true;
+  }catch(e){
+    toast('⚠ Couldn’t save last-contacted — check connection & retry');
+    return false;
+  }
 }
 function markContacted(id){ return markContactedOn(id, new Date().toISOString()); }
 /* Row calendar icon → pick a date, then log it */
@@ -1556,7 +1567,7 @@ async function sendEmail(){
       const body=personalize(bodyRaw,emailContact||{});
       const subj=personalize(subject,emailContact||{});
       await gmailSend(to,subj,body,attachments);
-      if(emailContact&&emailContact.id) markContacted(emailContact.id);
+      if(emailContact&&emailContact.id) await markContacted(emailContact.id);
       lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch();
     }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
     return;
@@ -1571,7 +1582,7 @@ async function sendEmail(){
         const body=personalize(bodyRaw,contact||{});
         const subj=personalize(subject,contact||{});
         await gmailSend(to,subj,body,attachments);
-        if(contact&&contact.id) markContacted(contact.id);
+        if(contact&&contact.id) await markContacted(contact.id);
         btn.disabled=false; btn.textContent=orig;
         document.getElementById('email-modal').classList.remove('open'); render();
         toast('Sent to '+to+' ✓');
