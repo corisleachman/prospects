@@ -595,8 +595,10 @@ tr.dragging{opacity:.4}
         </div>
         <div class="tpills" id="tpills"></div>
       </div>
-      <div class="fld"><label>To</label><input id="e-to" type="email"></div>
-      <div class="fld"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div class="fld" style="flex:1 1 200px;min-width:0"><label>To</label><input id="e-to" type="email"></div>
+        <div class="fld" style="flex:1 1 240px;min-width:0"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
+      </div>
       <div class="fld"><label>Message</label><textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea></div>
       <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
       <div class="fld">
