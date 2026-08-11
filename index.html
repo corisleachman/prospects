@@ -108,7 +108,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 /* MODALS */
 .modal{position:fixed;inset:0;background:rgba(14,14,14,0.65);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal.open{opacity:1;pointer-events:all}
-.mbox{background:var(--cream);border-radius:16px;width:min(620px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);transform:translateY(16px);transition:transform .2s}
+.mbox{background:var(--cream);border-radius:16px;width:min(720px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);transform:translateY(16px);transition:transform .2s}
 .modal.open .mbox{transform:translateY(0)}
 .mhead{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--grey-light)}
 .mtitle{font-size:15px;font-weight:800;letter-spacing:-.02em}
@@ -131,8 +131,13 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .cancelbtn:hover{border-color:var(--black);color:var(--black)}
 .delbtn{height:38px;padding:0 16px;background:none;border:1.5px solid rgba(255,107,74,0.4);border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#b23c22;cursor:pointer}
 .delbtn:hover{background:rgba(255,107,74,0.1)}
-.tpills{display:flex;gap:6px;flex-wrap:wrap}
-.tpill{height:28px;padding:0 12px;background:var(--grey-light);border:1.5px solid transparent;border-radius:100px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
+.tpills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.tpills::-webkit-scrollbar{height:6px}
+.tpills::-webkit-scrollbar-thumb{background:var(--grey-light);border-radius:100px}
+.tpill{flex-shrink:0;height:28px;padding:0 12px;background:var(--grey-light);border:1.5px solid transparent;border-radius:100px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;display:inline-flex;align-items:center;white-space:nowrap}
+.ins-pills{display:flex;gap:6px}
+.ins-pill{border:1.5px solid var(--grey-light);background:var(--white);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;transition:all .15s}
+.ins-pill:hover{border-color:var(--black);color:var(--black);background:var(--grey-light)}
 .tpill:hover,.tpill.active{background:var(--black);color:var(--green)}
 .tp-edit{margin-left:6px;opacity:.55;font-size:10px}
 .tp-edit:hover{opacity:1}
@@ -599,7 +604,16 @@ tr.dragging{opacity:.4}
         <div class="fld" style="flex:1 1 200px;min-width:0"><label>To</label><input id="e-to" type="email"></div>
         <div class="fld" style="flex:1 1 240px;min-width:0"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
       </div>
-      <div class="fld"><label>Message</label><textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea></div>
+      <div class="fld">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <label style="margin:0">Message</label>
+          <div class="ins-pills">
+            <button type="button" class="ins-pill" onclick="insertToken('first')" title="Insert first name — replaced per recipient">+ First name</button>
+            <button type="button" class="ins-pill" onclick="insertToken('company')" title="Insert company — replaced per recipient">+ Company</button>
+          </div>
+        </div>
+        <textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea>
+      </div>
       <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
       <div class="fld">
         <label>Attachments</label>
@@ -1286,6 +1300,15 @@ function deleteTemplate(){
   );
 }
 function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
+function insertToken(kind){
+  const ta=document.getElementById('e-body'); if(!ta) return;
+  const token=kind==='company'?'{{company}}':'{{first_name}}';
+  const s=(ta.selectionStart!=null)?ta.selectionStart:ta.value.length;
+  const e=(ta.selectionEnd!=null)?ta.selectionEnd:ta.value.length;
+  ta.value=ta.value.slice(0,s)+token+ta.value.slice(e);
+  const pos=s+token.length; ta.focus(); try{ ta.setSelectionRange(pos,pos); }catch(_){}
+  templateEdited();
+}
 function refreshSendState(){
   const nt=document.getElementById('e-notoken'), sb=document.getElementById('e-send');
   if(gConnected()){ nt.style.display='none'; sb.style.display=''; } else { nt.style.display='block'; sb.style.display='none'; }
@@ -1525,16 +1548,39 @@ async function sendEmail(){
   const bodyRaw=document.getElementById('e-body').value.trim();
   if(!to||!subject||!bodyRaw){ alert('Fill in all fields.'); return; }
   if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ refreshSendState(); return; } }
-  const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
-  try{
-    const attachments=await collectAttachments();
-    const body=personalize(bodyRaw,emailContact||{});
-    const subj=personalize(subject,emailContact||{});
-    await gmailSend(to,subj,body,attachments);
-    if(emailContact&&emailContact.id) markContacted(emailContact.id);
-    if(BATCH){ lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch(); }
-    else{ btn.disabled=false; btn.textContent=orig; alert('Sent to '+to+' ✓'); document.getElementById('email-modal').classList.remove('open'); render(); }
-  }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
+  const btn=document.getElementById('e-send'); const orig=btn.textContent;
+  // Batch: send immediately (bulk flow, no per-email delay)
+  if(BATCH){
+    btn.disabled=true; btn.textContent='Sending…';
+    try{
+      const attachments=await collectAttachments();
+      const body=personalize(bodyRaw,emailContact||{});
+      const subj=personalize(subject,emailContact||{});
+      await gmailSend(to,subj,body,attachments);
+      if(emailContact&&emailContact.id) markContacted(emailContact.id);
+      lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch();
+    }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
+    return;
+  }
+  // Single send: 5s undo buffer. Nothing is sent until the window closes.
+  const contact=emailContact;
+  btn.disabled=true; btn.textContent='Sending…';
+  scheduleUndoable(
+    async ()=>{
+      try{
+        const attachments=await collectAttachments();
+        const body=personalize(bodyRaw,contact||{});
+        const subj=personalize(subject,contact||{});
+        await gmailSend(to,subj,body,attachments);
+        if(contact&&contact.id) markContacted(contact.id);
+        btn.disabled=false; btn.textContent=orig;
+        document.getElementById('email-modal').classList.remove('open'); render();
+        toast('Sent to '+to+' ✓');
+      }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
+    },
+    ()=>{ btn.disabled=false; btn.textContent=orig; },
+    'Sending to '+to+'…'
+  );
 }
 
 /* ── Conversation viewer (reads Gmail) ── */
