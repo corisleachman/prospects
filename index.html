@@ -297,6 +297,23 @@ tr.dragging{opacity:.4}
 @media (max-width:640px){ .imp-map-grid{grid-template-columns:1fr} }
 
 @media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
+
+/* ── Manage lists ── */
+.lm-list{display:flex;flex-direction:column;gap:8px}
+.lm-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--white);border:1.5px solid var(--grey-light);border-radius:10px;transition:border-color .15s}
+.lm-row:hover{border-color:var(--grey)}
+.lm-main{min-width:0}
+.lm-name{font-weight:700;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.lm-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);margin-top:2px;letter-spacing:.04em}
+.lm-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.lm-link{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);padding:6px 8px;border-radius:6px;transition:all .15s}
+.lm-link:hover{color:var(--black);background:var(--grey-light)}
+.lm-link.danger:hover{color:#b23c22;background:rgba(255,107,74,0.1)}
+.lm-merge{border:1.5px solid var(--grey-light);border-radius:100px;padding:5px 9px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);background:var(--white);cursor:pointer;outline:none}
+.lm-merge:hover{border-color:var(--black);color:var(--black)}
+.lm-empty{padding:24px;text-align:center;color:var(--grey-mid);font-size:13px}
+.sub-link{cursor:pointer;color:var(--grey-mid);text-decoration:underline;text-underline-offset:2px;transition:color .15s}
+.sub-link:hover{color:var(--black)}
 </style>
 </head>
 <body>
@@ -335,6 +352,7 @@ tr.dragging{opacity:.4}
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
       Up next <span class="ncount" id="nudge-count" style="display:none">0</span>
     </button>
+    <button class="tbtn" onclick="openListsModal()">Lists</button>
     <button class="tbtn solid" onclick="openImportModal()">Import list</button>
     <button class="tbtn solid" onclick="openAddModal()">+ Add</button>
     <button class="tbtn" id="refresh-btn" onclick="refresh()">
@@ -541,6 +559,25 @@ tr.dragging{opacity:.4}
         <button class="cancelbtn" onclick="closeImportModal()">Cancel</button>
         <button class="cancelbtn" onclick="previewCsv()">Preview</button>
         <button class="savebtn" id="imp-btn" onclick="runImport()">Import →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE LISTS MODAL -->
+<div id="lists-modal" class="modal" onclick="if(event.target===this)closeListsModal()">
+  <div class="mbox">
+    <div class="mhead"><div class="mtitle">Manage lists</div><button class="mclose" onclick="closeListsModal()">✕</button></div>
+    <div class="mbody">
+      <p class="hint" id="lm-sub"></p>
+      <div id="lm-body" class="lm-list"></div>
+      <div class="notewarn">Deleting a list removes every contact in it. You get a few seconds to undo before anything is written — nothing hits the database until the undo window closes. To clear a poor import, delete the whole list here instead of going row by row.</div>
+    </div>
+    <div class="mfoot">
+      <span class="mstatus"></span>
+      <div style="display:flex;gap:8px">
+        <button class="cancelbtn" onclick="closeListsModal()">Close</button>
+        <button class="savebtn" onclick="closeListsModal();openImportModal();">Import a list →</button>
       </div>
     </div>
   </div>
@@ -800,7 +837,7 @@ function applyTabView(tab){
   }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts across every source'; }
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
-  else{ title.textContent=tab; sub.textContent='Category'; }
+  else{ const cn=ALL.filter(c=>c.category===tab).length; title.textContent=tab; sub.innerHTML=`Category · ${cn} contact${cn!==1?'s':''} · <span class="sub-link" onclick="openListsModal()">Manage lists</span>`; }
   render();
 }
 function buildCatList(){
@@ -1727,6 +1764,73 @@ function bulkDelete(){
   );
 }
 
+/* ── Manage lists (categories) ── */
+function openListsModal(){ renderListsManager(); document.getElementById('lists-modal').classList.add('open'); }
+function closeListsModal(){ document.getElementById('lists-modal').classList.remove('open'); }
+function renderListsManager(){
+  const box=document.getElementById('lm-body'); if(!box) return;
+  const cats=categories();
+  const sub=document.getElementById('lm-sub');
+  if(!cats.length){ box.innerHTML='<div class="lm-empty">No lists yet. Import a list to get started.</div>'; if(sub) sub.textContent=''; return; }
+  if(sub) sub.textContent=`${cats.length} list${cats.length!==1?'s':''} · ${ALL.length} contact${ALL.length!==1?'s':''} total`;
+  let html='';
+  cats.forEach(cat=>{
+    const n=ALL.filter(c=>c.category===cat).length;
+    const esc=escapeHtml(cat);
+    const arg=cat.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const others=cats.filter(x=>x!==cat);
+    const mergeSel=others.length?`<select class="lm-merge" onchange="lmMerge('${arg}',this.value);this.value='';"><option value="">Merge into…</option>${others.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`:'';
+    html+=`<div class="lm-row">
+      <div class="lm-main">
+        <div class="lm-name" title="${esc}">${esc}</div>
+        <div class="lm-count">${n} contact${n!==1?'s':''}</div>
+      </div>
+      <div class="lm-actions">
+        <button class="lm-link" onclick="lmRename('${arg}')">Rename</button>
+        ${mergeSel}
+        <button class="lm-link danger" onclick="lmDeleteList('${arg}')">Delete list</button>
+      </div>
+    </div>`;
+  });
+  box.innerHTML=html;
+}
+async function _chunkIds(ids,size,fn){ for(let i=0;i<ids.length;i+=size){ await fn(ids.slice(i,i+size)); } }
+async function deleteByIds(ids){ await _chunkIds(ids,80, async b=>{ try{ await sb(`${TABLE}?id=in.(${b.join(',')})`,{method:'DELETE'}); }catch(e){} }); }
+async function patchCategoryByIds(ids,newCat){ await _chunkIds(ids,80, async b=>{ try{ await sb(`${TABLE}?id=in.(${b.join(',')})`,{method:'PATCH',body:JSON.stringify({category:newCat,updated_at:new Date().toISOString()})}); }catch(e){} }); }
+function lmRename(cat){
+  const next=(window.prompt('Rename list "'+cat+'" to:', cat)||'').trim();
+  if(!next||next===cat) return;
+  const merging=categories().includes(next);
+  const list=ALL.filter(c=>c.category===cat); const ids=list.map(c=>c.id);
+  list.forEach(c=>{ c.category=next; });
+  if(activeTab===cat) activeTab=next;
+  buildTabs(); buildCatList(); applyTabView(activeTab); renderListsManager();
+  patchCategoryByIds(ids,next);
+  toast(merging?`Merged into ${next}`:`Renamed to ${next}`);
+}
+function lmMerge(cat,target){
+  if(!target||target===cat) return;
+  const list=ALL.filter(c=>c.category===cat); const ids=list.map(c=>c.id); const n=ids.length;
+  list.forEach(c=>{ c.category=target; });
+  if(activeTab===cat) activeTab=target;
+  buildTabs(); buildCatList(); applyTabView(activeTab); renderListsManager();
+  patchCategoryByIds(ids,target);
+  toast(`${n} moved into ${target}`);
+}
+function lmDeleteList(cat){
+  const list=ALL.filter(c=>c.category===cat); if(!list.length) return;
+  const n=list.length; const ids=list.map(c=>c.id); const snapshot=list.slice();
+  ALL=ALL.filter(c=>c.category!==cat);
+  snapshot.forEach(c=>SELECTED.delete(c.id));
+  if(activeTab===cat) activeTab='all';
+  buildTabs(); buildCatList(); applyTabView(activeTab); renderNudge(); renderListsManager();
+  scheduleUndoable(
+    async ()=>{ await deleteByIds(ids); },
+    ()=>{ ALL.push(...snapshot); buildTabs(); buildCatList(); applyTabView(activeTab); renderNudge(); renderListsManager(); },
+    `Deleted "${cat}" — ${n} contact${n!==1?'s':''}`
+  );
+}
+
 /* ── AI draft inside compose (reuses suggest-reply edge function) ── */
 async function aiDraftCompose(){
   const btn=document.getElementById('ai-draft'); if(!btn) return;
@@ -1753,6 +1857,7 @@ function cmdkCommands(){
   const cmds=[
     {label:'Add contact', run:()=>{ closeCmdk(); openAddModal(); }},
     {label:'Import a list', run:()=>{ closeCmdk(); openImportModal(); }},
+    {label:'Manage lists', run:()=>{ closeCmdk(); openListsModal(); }},
     {label:'Refresh', run:()=>{ closeCmdk(); refresh(); }},
     {label:'Open Up next', run:()=>{ closeCmdk(); toggleNudge(); }},
     {label:'Select all mailable', run:()=>{ closeCmdk(); selectAllMailable(); }},
