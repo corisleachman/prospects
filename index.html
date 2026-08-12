@@ -398,6 +398,8 @@ tr.dragging{opacity:.4}
         </label>
         <button class="toggle" id="replied-toggle" onclick="toggleReplied()">Replied only</button>
         <button class="toggle" id="hidebounced-toggle" onclick="toggleHideBounced()">Hide bounced</button>
+        <button class="toggle" id="needs-toggle" onclick="toggleNeedsAttention()" title="Missing, guessed, or bounced emails">Needs attention</button>
+        <button class="toggle" id="export-btn" onclick="exportCsv()" title="Download the current view as a CSV">⭳ Export</button>
         <div class="count" id="count"></div>
         <div class="spacer">
           <span id="sel-count" class="count" style="display:none"></span>
@@ -561,6 +563,18 @@ tr.dragging{opacity:.4}
       </div>
       <div id="imp-map" style="display:none"></div>
       <label class="imp-guess-row"><input type="checkbox" id="imp-guess" checked onchange="updateImportPreview()"> Guess missing emails from the website domain <span class="imp-guess-eg">first name @ domain</span></label>
+      <label class="imp-guess-row" style="margin-top:-2px">Default format when unknown:
+        <select id="imp-pattern" onchange="updateImportPreview()" style="border:1.5px solid var(--grey-light);border-radius:100px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:10px;background:var(--white);cursor:pointer">
+          <option value="{first}">first@</option>
+          <option value="{first}.{last}">first.last@</option>
+          <option value="{f}{last}">flast@</option>
+          <option value="{f}.{last}">f.last@</option>
+          <option value="{first}{last}">firstlast@</option>
+          <option value="{first}_{last}">first_last@</option>
+        </select>
+        <span class="imp-guess-eg" title="If some rows in the file already have real emails at a domain, that domain's actual format is detected and used automatically — this default only applies to domains with no example.">auto-detected per domain when possible</span>
+      </label>
+      <label class="imp-guess-row" style="margin-top:-2px"><input type="checkbox" id="imp-skipdup" checked onchange="updateImportPreview()"> Skip duplicates already in your contacts</label>
       <div class="notewarn" id="imp-preview" style="display:none"></div>
     </div>
     <div class="mfoot">
@@ -768,7 +782,7 @@ function updateGoogleBtn(){
 /* ── State ── */
 let ALL=[];
 let activeTab='all';
-let repliedOnly=false, hideBounced=false;
+let repliedOnly=false, hideBounced=false, needsAttention=false;
 const SELECTED=new Set();
 
 async function startApp(){
@@ -889,11 +903,13 @@ function statusClass(c){ if(c.replied)return'p-replied'; if(c.bounced||c.status=
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const sf=document.getElementById('status-filter').value;
+  const gset=needsAttention?guessedEmails():null;
   return ALL.filter(c=>{
     if(activeTab==='__replied__' && !c.replied) return false;
     if(activeTab!=='all' && activeTab!=='__replied__' && c.category!==activeTab) return false;
     if(repliedOnly && !c.replied) return false;
     if(hideBounced && (c.bounced||c.status==='Bounced')) return false;
+    if(needsAttention && !(!c.email || c.bounced || c.status==='Bounced' || gset.has(String(c.id)))) return false;
     if(sf){ if(sf==='Replied'&&!c.replied) return false; if(sf==='Bounced'&&!(c.bounced||c.status==='Bounced')) return false; if(sf==='Contacted'&&!(c.status==='Contacted'&&!c.replied)) return false; }
     if(q){ const hay=`${c.name} ${c.company} ${c.email} ${c.title} ${c.category}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
@@ -942,6 +958,26 @@ function render(){
 }
 function toggleReplied(){ repliedOnly=!repliedOnly; document.getElementById('replied-toggle').classList.toggle('on',repliedOnly); render(); }
 function toggleHideBounced(){ hideBounced=!hideBounced; document.getElementById('hidebounced-toggle').classList.toggle('on',hideBounced); render(); }
+function toggleNeedsAttention(){ needsAttention=!needsAttention; document.getElementById('needs-toggle').classList.toggle('on',needsAttention); render(); }
+function csvCell(v){ v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function exportCsv(){
+  const rows=visibleRows();
+  if(!rows.length){ toast('Nothing to export in this view'); return; }
+  const cols=[['name','Name'],['email','Email'],['company','Company'],['title','Title'],['category','Category'],['status','Status'],['linkedin_url','LinkedIn'],['website','Website'],['last_emailed_at','Last contacted'],['follow_up_at','Follow-up'],['notes','Notes']];
+  const head=cols.map(c=>c[1]).join(',');
+  const body=rows.map(c=>cols.map(([k])=>{
+    let v=c[k];
+    if(k==='status') v=c.replied?'Replied':(c.bounced?'Bounced':(c.status||''));
+    if(k==='last_emailed_at'||k==='follow_up_at') v=v?String(v).slice(0,10):'';
+    return csvCell(v);
+  }).join(',')).join('\n');
+  const label=(activeTab==='all'?'all':activeTab==='__replied__'?'replied':activeTab).replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+  const stamp=new Date().toISOString().slice(0,10);
+  const blob=new Blob(['\uFEFF'+head+'\n'+body],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`prospects-${label}-${stamp}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },100);
+  toast(`Exported ${rows.length} row${rows.length!==1?'s':''}`);
+}
 
 /* ── Selection ── */
 function toggleSel(id,cb){ cb.checked?SELECTED.add(id):SELECTED.delete(id); render(); }
@@ -1155,9 +1191,36 @@ function firstNameSlug(name){
   const first=(name||'').trim().split(/\s+/)[0]||'';
   return first.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 }
-function guessEmail(name, website){
-  const dom=extractDomain(website), fn=firstNameSlug(name);
-  return (dom && fn) ? `${fn}@${dom}` : '';
+function lastNameSlug(name){
+  const parts=(name||'').trim().split(/\s+/);
+  const last=parts.length>1?parts[parts.length-1]:'';
+  return last.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+}
+const EMAIL_PATTERNS=['{first}','{first}.{last}','{first}{last}','{f}{last}','{f}.{last}','{first}_{last}','{first}{l}','{last}'];
+function buildLocal(pattern, first, last){
+  first=first||''; last=last||''; const f=first.charAt(0), l=last.charAt(0);
+  if(!last){ return (pattern==='{last}')?'':first; }  // no surname → fall back to first
+  switch(pattern){
+    case '{first}': return first;
+    case '{last}': return last;
+    case '{first}.{last}': return `${first}.${last}`;
+    case '{first}{last}': return `${first}${last}`;
+    case '{f}{last}': return `${f}${last}`;
+    case '{f}.{last}': return `${f}.${last}`;
+    case '{first}_{last}': return `${first}_${last}`;
+    case '{first}{l}': return `${first}${l}`;
+    default: return first;
+  }
+}
+function detectPattern(localpart, first, last){
+  if(!first||!last) return '';
+  for(const p of EMAIL_PATTERNS){ if(buildLocal(p, first, last)===localpart) return p; }
+  return '';
+}
+function guessEmail(name, website, pattern){
+  const dom=extractDomain(website), first=firstNameSlug(name); if(!dom||!first) return '';
+  const local=buildLocal(pattern||'{first}', first, lastNameSlug(name));
+  return local?`${local}@${dom}`:'';
 }
 function guessedEmails(){ try{ return new Set(JSON.parse(localStorage.getItem('email_guessed')||'[]').map(String)); }catch(e){ return new Set(); } }
 function saveGuessedEmails(s){ try{ localStorage.setItem('email_guessed', JSON.stringify([...s])); }catch(e){} }
@@ -1166,15 +1229,29 @@ function applyMapping(){
   const map=currentMapping();
   const get=(cells,k)=> map[k]>=0 ? (cells[map[k]]||'').trim() : '';
   const gcb=document.getElementById('imp-guess'); const wantGuess = gcb ? gcb.checked : true;
+  const patSel=document.getElementById('imp-pattern'); const manualPattern = patSel ? patSel.value : '{first}';
   const rows=[];
   RAW.rows.forEach(cells=>{
     let name=get(cells,'name');
     if(!name) name=[get(cells,'first_name'),get(cells,'last_name')].filter(Boolean).join(' ').trim();
     const email=get(cells,'email').toLowerCase();
     if(!name && !email) return;
-    const row={ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null };
-    if(!row.email && wantGuess){ const g=guessEmail(row.name, row.website); if(g){ row.email=g; row.emailGuessed=true; } }
-    rows.push(row);
+    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null });
+  });
+  // Learn each domain's real pattern from rows that already have a valid email
+  const votes={};
+  rows.forEach(r=>{ if(r.email && r.email.includes('@')){ const [lp,dm]=r.email.split('@'); const p=detectPattern(lp, firstNameSlug(r.name), lastNameSlug(r.name)); if(p){ votes[dm]=votes[dm]||{}; votes[dm][p]=(votes[dm][p]||0)+1; } } });
+  const bestPat={}; Object.keys(votes).forEach(d=>{ bestPat[d]=Object.entries(votes[d]).sort((a,b)=>b[1]-a[1])[0][0]; });
+  // Guess missing emails using the domain's learned pattern, else the chosen default
+  if(wantGuess){ rows.forEach(r=>{ if(!r.email){ const dom=extractDomain(r.website); const pat=(dom&&bestPat[dom])||manualPattern; const g=guessEmail(r.name, r.website, pat); if(g){ r.email=g; r.emailGuessed=true; r.emailInferred=!!(dom&&bestPat[dom]); } } }); }
+  // Flag duplicates (against existing contacts and within the file)
+  const existEmail=new Set(ALL.filter(c=>c.email).map(c=>c.email.toLowerCase()));
+  const existNC=new Set(ALL.map(c=>`${(c.name||'').toLowerCase().trim()}|${(c.company||'').toLowerCase().trim()}`));
+  const seenEmail=new Set(), seenNC=new Set();
+  rows.forEach(r=>{
+    const em=r.email?r.email.toLowerCase():''; const nc=`${(r.name||'').toLowerCase().trim()}|${(r.company||'').toLowerCase().trim()}`;
+    r.dup = em ? (existEmail.has(em)||seenEmail.has(em)) : (existNC.has(nc)||seenNC.has(nc));
+    if(em) seenEmail.add(em); seenNC.add(nc);
   });
   importedRows=rows; return rows;
 }
@@ -1189,9 +1266,12 @@ function updateImportPreview(){
     else p.innerHTML='No rows have a name or email once mapped. Check the mapping, or the file may have blank rows.';
     if(btn)btn.disabled=true; return;
   }
-  const withEmail=importedRows.filter(r=>r.email).length; const guessed=importedRows.filter(r=>r.emailGuessed).length; const f=importedRows[0];
+  const withEmail=importedRows.filter(r=>r.email).length; const guessed=importedRows.filter(r=>r.emailGuessed).length; const dups=importedRows.filter(r=>r.dup).length; const f=importedRows[0];
+  const skipDup=(document.getElementById('imp-skipdup')||{}).checked!==false;
+  const net=importedRows.length-(skipDup?dups:0);
   const guessTxt = guessed ? ` <span style="color:#8a6d00">(${guessed} guessed from domain — verify before sending)</span>` : '';
-  p.innerHTML=`Ready: <b>${importedRows.length}</b> row${importedRows.length!==1?'s':''} · ${withEmail} with email${guessTxt} · ${importedRows.length-withEmail} still without. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
+  const dupTxt = dups ? ` · <span style="color:#b23c22">${dups} duplicate${dups!==1?'s':''}${skipDup?' skipped':''}</span>` : '';
+  p.innerHTML=`Ready: <b>${net}</b> to import${dups&&skipDup?` (of ${importedRows.length})`:''} · ${withEmail} with email${guessTxt} · ${importedRows.length-withEmail} without${dupTxt}. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
   if(btn)btn.disabled=false;
 }
 function prepareImport(){
@@ -1205,18 +1285,21 @@ async function runImport(){
   const cat=document.getElementById('imp-category').value.trim();
   if(!cat){ setImpStatus('Set a category first.','#b23c22'); return; }
   applyMapping();
-  if(!importedRows.length){ setImpStatus('Nothing to import — check the column mapping above.','#b23c22'); return; }
+  const skipDup=(document.getElementById('imp-skipdup')||{}).checked!==false;
+  const toImport = skipDup ? importedRows.filter(r=>!r.dup) : importedRows.slice();
+  if(!toImport.length){ setImpStatus(importedRows.length?'Everything here is already in your contacts — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
-  const payload=importedRows.map(r=>({ name:r.name, email:r.email, company:r.company, title:r.title, linkedin_url:r.linkedin_url, website:r.website, notes:r.notes, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
+  const payload=toImport.map(r=>({ name:r.name, email:r.email, company:r.company, title:r.title, linkedin_url:r.linkedin_url, website:r.website, notes:r.notes, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
   try{
     const res=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,120));
     const saved=await res.json(); ALL.push(...saved);
     const gset=guessedEmails(); let gcount=0;
-    importedRows.forEach((r,i)=>{ if(r.emailGuessed && saved[i] && saved[i].id){ gset.add(String(saved[i].id)); gcount++; } });
+    toImport.forEach((r,i)=>{ if(r.emailGuessed && saved[i] && saved[i].id){ gset.add(String(saved[i].id)); gcount++; } });
     if(gcount) saveGuessedEmails(gset);
+    const skipped=importedRows.length-toImport.length;
     buildTabs(); buildCatList();
-    setImpStatus(`✓ Imported ${saved.length} into "${cat}"${gcount?` · ${gcount} email${gcount!==1?'s':''} guessed — verify before sending`:''}`, '#2a6600');
+    setImpStatus(`✓ Imported ${saved.length} into "${cat}"${skipped?` · ${skipped} duplicate${skipped!==1?'s':''} skipped`:''}${gcount?` · ${gcount} email${gcount!==1?'s':''} guessed`:''}`, '#2a6600');
     activeTab=cat; buildTabs(); render();
     setTimeout(closeImportModal,1200);
   }catch(e){ setImpStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
@@ -1808,6 +1891,7 @@ async function applyInlineEdit(c, field, val){
   if(field==='status'){
     c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced');
     patch.status=val; patch.replied=c.replied; patch.bounced=c.bounced;
+    if(val==='Bounced') clearGuessFlag(c.id);
   } else if(field==='email'){
     const v=val?val.toLowerCase():'';
     if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Invalid email — not saved'); render(); return; }
@@ -1826,6 +1910,7 @@ function selectedContacts(){ return ALL.filter(c=>SELECTED.has(c.id)); }
 async function bulkSetStatus(val){
   if(!val) return; const list=selectedContacts(); if(!list.length) return;
   list.forEach(c=>{ c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced'); });
+  if(val==='Bounced') list.forEach(c=>clearGuessFlag(c.id));
   render(); buildTabs(); renderNudge();
   const ids=list.map(c=>c.id);
   try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'PATCH',body:JSON.stringify({status:val,replied:val==='Replied',bounced:val==='Bounced',updated_at:new Date().toISOString()})}); }catch(e){ toast('Bulk update failed'); }
@@ -2000,16 +2085,17 @@ function renderViews(){
   html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
   bar.innerHTML=html;
 }
-function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced }; }
+function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced, needsAttention }; }
 function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
 function applyView(i){
   const v=loadViews()[i]; if(!v) return;
   activeTab=v.tab||'all';
   document.getElementById('search').value=v.search||'';
   document.getElementById('status-filter').value=v.status||'';
-  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced;
+  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced; needsAttention=!!v.needsAttention;
   const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
   const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
+  const na=document.getElementById('needs-toggle'); if(na) na.classList.toggle('on',needsAttention);
   buildTabs(); applyTabView(activeTab);
 }
 function deleteView(i){
