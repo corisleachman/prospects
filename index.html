@@ -319,6 +319,10 @@ tr.dragging{opacity:.4}
 .lm-empty{padding:24px;text-align:center;color:var(--grey-mid);font-size:13px}
 .sub-link{cursor:pointer;color:var(--grey-mid);text-decoration:underline;text-underline-offset:2px;transition:color .15s}
 .sub-link:hover{color:var(--black)}
+.guess-tag{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8a6d00;background:rgba(245,200,66,0.18);border:1px solid rgba(245,200,66,0.45);padding:1px 5px;border-radius:100px;margin-left:5px;vertical-align:middle;cursor:help}
+.imp-guess-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--grey-mid);margin:2px 0 4px;cursor:pointer;user-select:none}
+.imp-guess-row input{cursor:pointer}
+.imp-guess-eg{font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);background:var(--grey-light);padding:2px 7px;border-radius:100px}
 </style>
 </head>
 <body>
@@ -556,6 +560,7 @@ tr.dragging{opacity:.4}
         <textarea id="imp-text" rows="7" oninput="prepareImport()" placeholder="name,email,company,title&#10;Jane Smith,jane@acme.com,Acme,MD" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
       </div>
       <div id="imp-map" style="display:none"></div>
+      <label class="imp-guess-row"><input type="checkbox" id="imp-guess" checked onchange="updateImportPreview()"> Guess missing emails from the website domain <span class="imp-guess-eg">first name @ domain</span></label>
       <div class="notewarn" id="imp-preview" style="display:none"></div>
     </div>
     <div class="mfoot">
@@ -905,6 +910,7 @@ function render(){
   if(!rows.length){ wrap.style.display='none'; document.getElementById('setup').style.display='block'; document.getElementById('setup').innerHTML='<div class="empty">No contacts match.</div>'; updateSelBar(); return; }
   document.getElementById('setup').style.display='none';
   wrap.style.display='';
+  const guessedSet=guessedEmails();
   tb.innerHTML=rows.map(c=>{
     const mailable=c.email && !c.bounced;
     const sel=SELECTED.has(c.id);
@@ -915,7 +921,7 @@ function render(){
       <td><div style="font-weight:600">${liUrl?`<a class="rowlink" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}<span class="lnkicon">in</span></a>`:escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
       <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
       <td data-f="title" title="Double-click to edit" style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
-      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
+      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email)+(guessedSet.has(String(c.id))?' <span class="guess-tag" title="Auto-generated from the website domain — verify before sending">guessed</span>':''):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
       <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
@@ -1020,7 +1026,7 @@ async function saveContact(){
     if(editingId){
       const r=await sb(`${TABLE}?id=eq.${editingId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
       if(!r.ok) throw new Error('HTTP '+r.status);
-      const saved=(await r.json())[0]; const i=ALL.findIndex(x=>x.id===editingId); if(i>=0) ALL[i]=saved;
+      const saved=(await r.json())[0]; const i=ALL.findIndex(x=>x.id===editingId); if(i>=0) ALL[i]=saved; clearGuessFlag(editingId);
     }else{
       payload.source='manual';
       const r=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
@@ -1135,16 +1141,40 @@ function renderMapping(guess){
   html+='</div><div class="imp-map-note">No single Name column? Map First name + Last name and they\'ll be combined.</div>';
   box.innerHTML=html; box.style.display='block';
 }
+function extractDomain(website){
+  if(!website) return '';
+  let s=String(website).trim().toLowerCase();
+  if(!s) return '';
+  if(s.includes('@')) s=s.split('@').pop();            // if a full email slipped into the website column
+  s=s.replace(/^https?:\/\//,'').replace(/^www\./,'');
+  s=s.split(/[\/?#]/)[0].replace(/\s+/g,'');
+  if(!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(s)) return '';
+  return s;
+}
+function firstNameSlug(name){
+  const first=(name||'').trim().split(/\s+/)[0]||'';
+  return first.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+}
+function guessEmail(name, website){
+  const dom=extractDomain(website), fn=firstNameSlug(name);
+  return (dom && fn) ? `${fn}@${dom}` : '';
+}
+function guessedEmails(){ try{ return new Set(JSON.parse(localStorage.getItem('email_guessed')||'[]').map(String)); }catch(e){ return new Set(); } }
+function saveGuessedEmails(s){ try{ localStorage.setItem('email_guessed', JSON.stringify([...s])); }catch(e){} }
+function clearGuessFlag(id){ const s=guessedEmails(); if(s.delete(String(id))) saveGuessedEmails(s); }
 function applyMapping(){
   const map=currentMapping();
   const get=(cells,k)=> map[k]>=0 ? (cells[map[k]]||'').trim() : '';
+  const gcb=document.getElementById('imp-guess'); const wantGuess = gcb ? gcb.checked : true;
   const rows=[];
   RAW.rows.forEach(cells=>{
     let name=get(cells,'name');
     if(!name) name=[get(cells,'first_name'),get(cells,'last_name')].filter(Boolean).join(' ').trim();
     const email=get(cells,'email').toLowerCase();
     if(!name && !email) return;
-    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null });
+    const row={ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null };
+    if(!row.email && wantGuess){ const g=guessEmail(row.name, row.website); if(g){ row.email=g; row.emailGuessed=true; } }
+    rows.push(row);
   });
   importedRows=rows; return rows;
 }
@@ -1159,8 +1189,9 @@ function updateImportPreview(){
     else p.innerHTML='No rows have a name or email once mapped. Check the mapping, or the file may have blank rows.';
     if(btn)btn.disabled=true; return;
   }
-  const withEmail=importedRows.filter(r=>r.email).length; const f=importedRows[0];
-  p.innerHTML=`Ready: <b>${importedRows.length}</b> row${importedRows.length!==1?'s':''} · ${withEmail} with email · ${importedRows.length-withEmail} without. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
+  const withEmail=importedRows.filter(r=>r.email).length; const guessed=importedRows.filter(r=>r.emailGuessed).length; const f=importedRows[0];
+  const guessTxt = guessed ? ` <span style="color:#8a6d00">(${guessed} guessed from domain — verify before sending)</span>` : '';
+  p.innerHTML=`Ready: <b>${importedRows.length}</b> row${importedRows.length!==1?'s':''} · ${withEmail} with email${guessTxt} · ${importedRows.length-withEmail} still without. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
   if(btn)btn.disabled=false;
 }
 function prepareImport(){
@@ -1176,13 +1207,16 @@ async function runImport(){
   applyMapping();
   if(!importedRows.length){ setImpStatus('Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
-  const payload=importedRows.map(r=>({...r, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
+  const payload=importedRows.map(r=>({ name:r.name, email:r.email, company:r.company, title:r.title, linkedin_url:r.linkedin_url, website:r.website, notes:r.notes, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
   try{
     const res=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,120));
     const saved=await res.json(); ALL.push(...saved);
+    const gset=guessedEmails(); let gcount=0;
+    importedRows.forEach((r,i)=>{ if(r.emailGuessed && saved[i] && saved[i].id){ gset.add(String(saved[i].id)); gcount++; } });
+    if(gcount) saveGuessedEmails(gset);
     buildTabs(); buildCatList();
-    setImpStatus(`✓ Imported ${saved.length} into "${cat}"`, '#2a6600');
+    setImpStatus(`✓ Imported ${saved.length} into "${cat}"${gcount?` · ${gcount} email${gcount!==1?'s':''} guessed — verify before sending`:''}`, '#2a6600');
     activeTab=cat; buildTabs(); render();
     setTimeout(closeImportModal,1200);
   }catch(e){ setImpStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
@@ -1778,7 +1812,7 @@ async function applyInlineEdit(c, field, val){
     const v=val?val.toLowerCase():'';
     if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Invalid email — not saved'); render(); return; }
     if((c.email||'')===(v||'')){ render(); return; }
-    c.email=v||null; patch.email=c.email;
+    c.email=v||null; patch.email=c.email; clearGuessFlag(c.id);
   } else {
     if((c[field]||'')===(val||'')){ render(); return; }
     c[field]=val||null; patch[field]=c[field];
