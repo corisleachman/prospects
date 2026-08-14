@@ -108,7 +108,7 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 /* MODALS */
 .modal{position:fixed;inset:0;background:rgba(14,14,14,0.65);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal.open{opacity:1;pointer-events:all}
-.mbox{background:var(--cream);border-radius:16px;width:min(720px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);transform:translateY(16px);transition:transform .2s}
+.mbox{background:var(--cream);border-radius:16px;width:min(620px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);transform:translateY(16px);transition:transform .2s}
 .modal.open .mbox{transform:translateY(0)}
 .mhead{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--grey-light)}
 .mtitle{font-size:15px;font-weight:800;letter-spacing:-.02em}
@@ -131,13 +131,8 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .cancelbtn:hover{border-color:var(--black);color:var(--black)}
 .delbtn{height:38px;padding:0 16px;background:none;border:1.5px solid rgba(255,107,74,0.4);border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#b23c22;cursor:pointer}
 .delbtn:hover{background:rgba(255,107,74,0.1)}
-.tpills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding-bottom:2px}
-.tpills::-webkit-scrollbar{height:6px}
-.tpills::-webkit-scrollbar-thumb{background:var(--grey-light);border-radius:100px}
-.tpill{flex-shrink:0;height:28px;padding:0 12px;background:var(--grey-light);border:1.5px solid transparent;border-radius:100px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;display:inline-flex;align-items:center;white-space:nowrap}
-.ins-pills{display:flex;gap:6px}
-.ins-pill{border:1.5px solid var(--grey-light);background:var(--white);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;transition:all .15s}
-.ins-pill:hover{border-color:var(--black);color:var(--black);background:var(--grey-light)}
+.tpills{display:flex;gap:6px;flex-wrap:wrap}
+.tpill{height:28px;padding:0 12px;background:var(--grey-light);border:1.5px solid transparent;border-radius:100px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
 .tpill:hover,.tpill.active{background:var(--black);color:var(--green)}
 .tp-edit{margin-left:6px;opacity:.55;font-size:10px}
 .tp-edit:hover{opacity:1}
@@ -302,27 +297,6 @@ tr.dragging{opacity:.4}
 @media (max-width:640px){ .imp-map-grid{grid-template-columns:1fr} }
 
 @media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
-
-/* ── Manage lists ── */
-.lm-list{display:flex;flex-direction:column;gap:8px}
-.lm-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--white);border:1.5px solid var(--grey-light);border-radius:10px;transition:border-color .15s}
-.lm-row:hover{border-color:var(--grey)}
-.lm-main{min-width:0}
-.lm-name{font-weight:700;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
-.lm-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);margin-top:2px;letter-spacing:.04em}
-.lm-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.lm-link{background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);padding:6px 8px;border-radius:6px;transition:all .15s}
-.lm-link:hover{color:var(--black);background:var(--grey-light)}
-.lm-link.danger:hover{color:#b23c22;background:rgba(255,107,74,0.1)}
-.lm-merge{border:1.5px solid var(--grey-light);border-radius:100px;padding:5px 9px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);background:var(--white);cursor:pointer;outline:none}
-.lm-merge:hover{border-color:var(--black);color:var(--black)}
-.lm-empty{padding:24px;text-align:center;color:var(--grey-mid);font-size:13px}
-.sub-link{cursor:pointer;color:var(--grey-mid);text-decoration:underline;text-underline-offset:2px;transition:color .15s}
-.sub-link:hover{color:var(--black)}
-.guess-tag{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8a6d00;background:rgba(245,200,66,0.18);border:1px solid rgba(245,200,66,0.45);padding:1px 5px;border-radius:100px;margin-left:5px;vertical-align:middle;cursor:help}
-.imp-guess-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--grey-mid);margin:2px 0 4px;cursor:pointer;user-select:none}
-.imp-guess-row input{cursor:pointer}
-.imp-guess-eg{font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);background:var(--grey-light);padding:2px 7px;border-radius:100px}
 </style>
 </head>
 <body>
@@ -361,7 +335,6 @@ tr.dragging{opacity:.4}
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
       Up next <span class="ncount" id="nudge-count" style="display:none">0</span>
     </button>
-    <button class="tbtn" onclick="openListsModal()">Lists</button>
     <button class="tbtn solid" onclick="openImportModal()">Import list</button>
     <button class="tbtn solid" onclick="openAddModal()">+ Add</button>
     <button class="tbtn" id="refresh-btn" onclick="refresh()">
@@ -398,8 +371,6 @@ tr.dragging{opacity:.4}
         </label>
         <button class="toggle" id="replied-toggle" onclick="toggleReplied()">Replied only</button>
         <button class="toggle" id="hidebounced-toggle" onclick="toggleHideBounced()">Hide bounced</button>
-        <button class="toggle" id="needs-toggle" onclick="toggleNeedsAttention()" title="Missing, guessed, or bounced emails">Needs attention</button>
-        <button class="toggle" id="export-btn" onclick="exportCsv()" title="Download the current view as a CSV">⭳ Export</button>
         <div class="count" id="count"></div>
         <div class="spacer">
           <span id="sel-count" class="count" style="display:none"></span>
@@ -562,19 +533,10 @@ tr.dragging{opacity:.4}
         <textarea id="imp-text" rows="7" oninput="prepareImport()" placeholder="name,email,company,title&#10;Jane Smith,jane@acme.com,Acme,MD" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
       </div>
       <div id="imp-map" style="display:none"></div>
-      <label class="imp-guess-row"><input type="checkbox" id="imp-guess" checked onchange="updateImportPreview()"> Guess missing emails from the website domain <span class="imp-guess-eg">first name @ domain</span></label>
-      <label class="imp-guess-row" style="margin-top:-2px">Default format when unknown:
-        <select id="imp-pattern" onchange="updateImportPreview()" style="border:1.5px solid var(--grey-light);border-radius:100px;padding:4px 9px;font-family:'DM Mono',monospace;font-size:10px;background:var(--white);cursor:pointer">
-          <option value="{first}">first@</option>
-          <option value="{first}.{last}">first.last@</option>
-          <option value="{f}{last}">flast@</option>
-          <option value="{f}.{last}">f.last@</option>
-          <option value="{first}{last}">firstlast@</option>
-          <option value="{first}_{last}">first_last@</option>
-        </select>
-        <span class="imp-guess-eg" title="If some rows in the file already have real emails at a domain, that domain's actual format is detected and used automatically — this default only applies to domains with no example.">auto-detected per domain when possible</span>
+      <label id="imp-dupe-row" style="display:none;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="imp-skip-dupes" checked onchange="updateImportPreview()" style="width:auto;cursor:pointer">
+        Skip contacts already in my database
       </label>
-      <label class="imp-guess-row" style="margin-top:-2px"><input type="checkbox" id="imp-skipdup" checked onchange="updateImportPreview()"> Skip duplicates already in your contacts</label>
       <div class="notewarn" id="imp-preview" style="display:none"></div>
     </div>
     <div class="mfoot">
@@ -583,25 +545,6 @@ tr.dragging{opacity:.4}
         <button class="cancelbtn" onclick="closeImportModal()">Cancel</button>
         <button class="cancelbtn" onclick="previewCsv()">Preview</button>
         <button class="savebtn" id="imp-btn" onclick="runImport()">Import →</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MANAGE LISTS MODAL -->
-<div id="lists-modal" class="modal" onclick="if(event.target===this)closeListsModal()">
-  <div class="mbox">
-    <div class="mhead"><div class="mtitle">Manage lists</div><button class="mclose" onclick="closeListsModal()">✕</button></div>
-    <div class="mbody">
-      <p class="hint" id="lm-sub"></p>
-      <div id="lm-body" class="lm-list"></div>
-      <div class="notewarn">Deleting a list removes every contact in it. You get a few seconds to undo before anything is written — nothing hits the database until the undo window closes. To clear a poor import, delete the whole list here instead of going row by row.</div>
-    </div>
-    <div class="mfoot">
-      <span class="mstatus"></span>
-      <div style="display:flex;gap:8px">
-        <button class="cancelbtn" onclick="closeListsModal()">Close</button>
-        <button class="savebtn" onclick="closeListsModal();openImportModal();">Import a list →</button>
       </div>
     </div>
   </div>
@@ -619,20 +562,9 @@ tr.dragging{opacity:.4}
         </div>
         <div class="tpills" id="tpills"></div>
       </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        <div class="fld" style="flex:1 1 200px;min-width:0"><label>To</label><input id="e-to" type="email"></div>
-        <div class="fld" style="flex:1 1 240px;min-width:0"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
-      </div>
-      <div class="fld">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <label style="margin:0">Message</label>
-          <div class="ins-pills">
-            <button type="button" class="ins-pill" onclick="insertToken('first')" title="Insert first name — replaced per recipient">+ First name</button>
-            <button type="button" class="ins-pill" onclick="insertToken('company')" title="Insert company — replaced per recipient">+ Company</button>
-          </div>
-        </div>
-        <textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea>
-      </div>
+      <div class="fld"><label>To</label><input id="e-to" type="email"></div>
+      <div class="fld"><label>Subject</label><input id="e-subject" placeholder="Subject…"></div>
+      <div class="fld"><label>Message</label><textarea id="e-body" rows="11" oninput="templateEdited()" placeholder="Body…"></textarea></div>
       <p class="hint">Tip: <code>{{first_name}}</code> and <code>{{company}}</code> get replaced per recipient. Editing the message keeps your custom wording for the rest of a batch.</p>
       <div class="fld">
         <label>Attachments</label>
@@ -727,12 +659,9 @@ async function authInit(){
 document.addEventListener('DOMContentLoaded', authInit);
 
 /* ── Supabase REST ── */
-async function sb(path,opts={}){
-  const doFetch=()=>{ const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
-    return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}}); };
-  let r=await doFetch();
-  if((r.status===401||r.status===403) && AUTH.refresh){ if(await authRefresh()) r=await doFetch(); }
-  return r;
+function sb(path,opts={}){
+  const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
+  return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}});
 }
 
 /* ── Google auth (Google Identity Services — silent renewal, no reconnect) ── */
@@ -782,7 +711,7 @@ function updateGoogleBtn(){
 /* ── State ── */
 let ALL=[];
 let activeTab='all';
-let repliedOnly=false, hideBounced=false, needsAttention=false;
+let repliedOnly=false, hideBounced=false;
 const SELECTED=new Set();
 
 async function startApp(){
@@ -875,7 +804,7 @@ function applyTabView(tab){
   }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts across every source'; }
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
-  else{ const cn=ALL.filter(c=>c.category===tab).length; title.textContent=tab; sub.innerHTML=`Category · ${cn} contact${cn!==1?'s':''} · <span class="sub-link" onclick="openListsModal()">Manage lists</span>`; }
+  else{ title.textContent=tab; sub.textContent='Category'; }
   render();
 }
 function buildCatList(){
@@ -903,13 +832,11 @@ function statusClass(c){ if(c.replied)return'p-replied'; if(c.bounced||c.status=
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const sf=document.getElementById('status-filter').value;
-  const gset=needsAttention?guessedEmails():null;
   return ALL.filter(c=>{
     if(activeTab==='__replied__' && !c.replied) return false;
     if(activeTab!=='all' && activeTab!=='__replied__' && c.category!==activeTab) return false;
     if(repliedOnly && !c.replied) return false;
     if(hideBounced && (c.bounced||c.status==='Bounced')) return false;
-    if(needsAttention && !(!c.email || c.bounced || c.status==='Bounced' || gset.has(String(c.id)))) return false;
     if(sf){ if(sf==='Replied'&&!c.replied) return false; if(sf==='Bounced'&&!(c.bounced||c.status==='Bounced')) return false; if(sf==='Contacted'&&!(c.status==='Contacted'&&!c.replied)) return false; }
     if(q){ const hay=`${c.name} ${c.company} ${c.email} ${c.title} ${c.category}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
@@ -926,7 +853,6 @@ function render(){
   if(!rows.length){ wrap.style.display='none'; document.getElementById('setup').style.display='block'; document.getElementById('setup').innerHTML='<div class="empty">No contacts match.</div>'; updateSelBar(); return; }
   document.getElementById('setup').style.display='none';
   wrap.style.display='';
-  const guessedSet=guessedEmails();
   tb.innerHTML=rows.map(c=>{
     const mailable=c.email && !c.bounced;
     const sel=SELECTED.has(c.id);
@@ -937,7 +863,7 @@ function render(){
       <td><div style="font-weight:600">${liUrl?`<a class="rowlink" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}<span class="lnkicon">in</span></a>`:escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
       <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
       <td data-f="title" title="Double-click to edit" style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
-      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email)+(guessedSet.has(String(c.id))?' <span class="guess-tag" title="Auto-generated from the website domain — verify before sending">guessed</span>':''):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
+      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
       <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
@@ -958,26 +884,6 @@ function render(){
 }
 function toggleReplied(){ repliedOnly=!repliedOnly; document.getElementById('replied-toggle').classList.toggle('on',repliedOnly); render(); }
 function toggleHideBounced(){ hideBounced=!hideBounced; document.getElementById('hidebounced-toggle').classList.toggle('on',hideBounced); render(); }
-function toggleNeedsAttention(){ needsAttention=!needsAttention; document.getElementById('needs-toggle').classList.toggle('on',needsAttention); render(); }
-function csvCell(v){ v=(v==null?'':String(v)); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
-function exportCsv(){
-  const rows=visibleRows();
-  if(!rows.length){ toast('Nothing to export in this view'); return; }
-  const cols=[['name','Name'],['email','Email'],['company','Company'],['title','Title'],['category','Category'],['status','Status'],['linkedin_url','LinkedIn'],['website','Website'],['last_emailed_at','Last contacted'],['follow_up_at','Follow-up'],['notes','Notes']];
-  const head=cols.map(c=>c[1]).join(',');
-  const body=rows.map(c=>cols.map(([k])=>{
-    let v=c[k];
-    if(k==='status') v=c.replied?'Replied':(c.bounced?'Bounced':(c.status||''));
-    if(k==='last_emailed_at'||k==='follow_up_at') v=v?String(v).slice(0,10):'';
-    return csvCell(v);
-  }).join(',')).join('\n');
-  const label=(activeTab==='all'?'all':activeTab==='__replied__'?'replied':activeTab).replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-  const stamp=new Date().toISOString().slice(0,10);
-  const blob=new Blob(['\uFEFF'+head+'\n'+body],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`prospects-${label}-${stamp}.csv`;
-  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },100);
-  toast(`Exported ${rows.length} row${rows.length!==1?'s':''}`);
-}
 
 /* ── Selection ── */
 function toggleSel(id,cb){ cb.checked?SELECTED.add(id):SELECTED.delete(id); render(); }
@@ -1062,7 +968,7 @@ async function saveContact(){
     if(editingId){
       const r=await sb(`${TABLE}?id=eq.${editingId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
       if(!r.ok) throw new Error('HTTP '+r.status);
-      const saved=(await r.json())[0]; const i=ALL.findIndex(x=>x.id===editingId); if(i>=0) ALL[i]=saved; clearGuessFlag(editingId);
+      const saved=(await r.json())[0]; const i=ALL.findIndex(x=>x.id===editingId); if(i>=0) ALL[i]=saved;
     }else{
       payload.source='manual';
       const r=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
@@ -1096,6 +1002,8 @@ function openImportModal(){
   document.getElementById('imp-preview').style.display='none';
   document.getElementById('imp-status').textContent='';
   const map=document.getElementById('imp-map'); if(map){ map.style.display='none'; map.innerHTML=''; }
+  const dr=document.getElementById('imp-dupe-row'); if(dr) dr.style.display='none';
+  const sd=document.getElementById('imp-skip-dupes'); if(sd) sd.checked=true;
   const btn=document.getElementById('imp-btn'); if(btn) btn.disabled=false;
   RAW={headers:[],rows:[],delim:','};
   importedRows=[];
@@ -1177,59 +1085,19 @@ function renderMapping(guess){
   html+='</div><div class="imp-map-note">No single Name column? Map First name + Last name and they\'ll be combined.</div>';
   box.innerHTML=html; box.style.display='block';
 }
-function extractDomain(website){
-  if(!website) return '';
-  let s=String(website).trim().toLowerCase();
-  if(!s) return '';
-  if(s.includes('@')) s=s.split('@').pop();            // if a full email slipped into the website column
-  s=s.replace(/^https?:\/\//,'').replace(/^www\./,'');
-  s=s.split(/[\/?#]/)[0].replace(/\s+/g,'');
-  if(!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(s)) return '';
-  return s;
+function normLinkedin(u){ const m=(u||'').toLowerCase().match(/linkedin\.com\/in\/([^/?#]+)/); return m?m[1].replace(/\/+$/,''):''; }
+function existingIndex(){
+  const em=new Set(), li=new Set(), nc=new Set();
+  (typeof ALL!=='undefined'?ALL:[]).forEach(c=>{
+    if(c.email) em.add(String(c.email).toLowerCase().trim());
+    const l=normLinkedin(c.linkedin_url); if(l) li.add(l);
+    if(c.name) nc.add(normHead(c.name)+'|'+normHead(c.company||''));
+  });
+  return {em,li,nc};
 }
-function firstNameSlug(name){
-  const first=(name||'').trim().split(/\s+/)[0]||'';
-  return first.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-}
-function lastNameSlug(name){
-  const parts=(name||'').trim().split(/\s+/);
-  const last=parts.length>1?parts[parts.length-1]:'';
-  return last.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-}
-const EMAIL_PATTERNS=['{first}','{first}.{last}','{first}{last}','{f}{last}','{f}.{last}','{first}_{last}','{first}{l}','{last}'];
-function buildLocal(pattern, first, last){
-  first=first||''; last=last||''; const f=first.charAt(0), l=last.charAt(0);
-  if(!last){ return (pattern==='{last}')?'':first; }  // no surname → fall back to first
-  switch(pattern){
-    case '{first}': return first;
-    case '{last}': return last;
-    case '{first}.{last}': return `${first}.${last}`;
-    case '{first}{last}': return `${first}${last}`;
-    case '{f}{last}': return `${f}${last}`;
-    case '{f}.{last}': return `${f}.${last}`;
-    case '{first}_{last}': return `${first}_${last}`;
-    case '{first}{l}': return `${first}${l}`;
-    default: return first;
-  }
-}
-function detectPattern(localpart, first, last){
-  if(!first||!last) return '';
-  for(const p of EMAIL_PATTERNS){ if(buildLocal(p, first, last)===localpart) return p; }
-  return '';
-}
-function guessEmail(name, website, pattern){
-  const dom=extractDomain(website), first=firstNameSlug(name); if(!dom||!first) return '';
-  const local=buildLocal(pattern||'{first}', first, lastNameSlug(name));
-  return local?`${local}@${dom}`:'';
-}
-function guessedEmails(){ try{ return new Set(JSON.parse(localStorage.getItem('email_guessed')||'[]').map(String)); }catch(e){ return new Set(); } }
-function saveGuessedEmails(s){ try{ localStorage.setItem('email_guessed', JSON.stringify([...s])); }catch(e){} }
-function clearGuessFlag(id){ const s=guessedEmails(); if(s.delete(String(id))) saveGuessedEmails(s); }
 function applyMapping(){
   const map=currentMapping();
   const get=(cells,k)=> map[k]>=0 ? (cells[map[k]]||'').trim() : '';
-  const gcb=document.getElementById('imp-guess'); const wantGuess = gcb ? gcb.checked : true;
-  const patSel=document.getElementById('imp-pattern'); const manualPattern = patSel ? patSel.value : '{first}';
   const rows=[];
   RAW.rows.forEach(cells=>{
     let name=get(cells,'name');
@@ -1238,20 +1106,16 @@ function applyMapping(){
     if(!name && !email) return;
     rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null });
   });
-  // Learn each domain's real pattern from rows that already have a valid email
-  const votes={};
-  rows.forEach(r=>{ if(r.email && r.email.includes('@')){ const [lp,dm]=r.email.split('@'); const p=detectPattern(lp, firstNameSlug(r.name), lastNameSlug(r.name)); if(p){ votes[dm]=votes[dm]||{}; votes[dm][p]=(votes[dm][p]||0)+1; } } });
-  const bestPat={}; Object.keys(votes).forEach(d=>{ bestPat[d]=Object.entries(votes[d]).sort((a,b)=>b[1]-a[1])[0][0]; });
-  // Guess missing emails using the domain's learned pattern, else the chosen default
-  if(wantGuess){ rows.forEach(r=>{ if(!r.email){ const dom=extractDomain(r.website); const pat=(dom&&bestPat[dom])||manualPattern; const g=guessEmail(r.name, r.website, pat); if(g){ r.email=g; r.emailGuessed=true; r.emailInferred=!!(dom&&bestPat[dom]); } } }); }
-  // Flag duplicates (against existing contacts and within the file)
-  const existEmail=new Set(ALL.filter(c=>c.email).map(c=>c.email.toLowerCase()));
-  const existNC=new Set(ALL.map(c=>`${(c.name||'').toLowerCase().trim()}|${(c.company||'').toLowerCase().trim()}`));
-  const seenEmail=new Set(), seenNC=new Set();
+  // Flag rows already in the database, and duplicates within the file itself
+  const idx=existingIndex(); const seen=new Set();
   rows.forEach(r=>{
-    const em=r.email?r.email.toLowerCase():''; const nc=`${(r.name||'').toLowerCase().trim()}|${(r.company||'').toLowerCase().trim()}`;
-    r.dup = em ? (existEmail.has(em)||seenEmail.has(em)) : (existNC.has(nc)||seenNC.has(nc));
-    if(em) seenEmail.add(em); seenNC.add(nc);
+    const emk=r.email?r.email.toLowerCase():'';
+    const lik=normLinkedin(r.linkedin_url);
+    const nck=normHead(r.name)+'|'+normHead(r.company||'');
+    let dupe = (emk&&idx.em.has(emk)) || (lik&&idx.li.has(lik)) || (!emk&&idx.nc.has(nck));
+    const fkey = emk || (lik?'li:'+lik:'') || nck;
+    if(seen.has(fkey)) dupe=true; else if(fkey) seen.add(fkey);
+    r._dupe=dupe;
   });
   importedRows=rows; return rows;
 }
@@ -1259,20 +1123,24 @@ function updateImportPreview(){
   applyMapping();
   const p=document.getElementById('imp-preview'); p.style.display='block';
   const btn=document.getElementById('imp-btn');
-  if(!RAW.headers.length){ p.innerHTML='Paste or upload a CSV to begin.'; if(btn)btn.disabled=true; return; }
+  const dupeRow=document.getElementById('imp-dupe-row');
+  if(!RAW.headers.length){ p.innerHTML='Paste or upload a CSV to begin.'; if(btn)btn.disabled=true; if(dupeRow)dupeRow.style.display='none'; return; }
   if(!importedRows.length){
     const m=currentMapping();
     if(m.name<0&&m.first_name<0&&m.last_name<0&&m.email<0) p.innerHTML='<b>Map a Name or Email column</b> above — none is currently mapped.';
     else p.innerHTML='No rows have a name or email once mapped. Check the mapping, or the file may have blank rows.';
-    if(btn)btn.disabled=true; return;
+    if(btn)btn.disabled=true; if(dupeRow)dupeRow.style.display='none'; return;
   }
-  const withEmail=importedRows.filter(r=>r.email).length; const guessed=importedRows.filter(r=>r.emailGuessed).length; const dups=importedRows.filter(r=>r.dup).length; const f=importedRows[0];
-  const skipDup=(document.getElementById('imp-skipdup')||{}).checked!==false;
-  const net=importedRows.length-(skipDup?dups:0);
-  const guessTxt = guessed ? ` <span style="color:#8a6d00">(${guessed} guessed from domain — verify before sending)</span>` : '';
-  const dupTxt = dups ? ` · <span style="color:#b23c22">${dups} duplicate${dups!==1?'s':''}${skipDup?' skipped':''}</span>` : '';
-  p.innerHTML=`Ready: <b>${net}</b> to import${dups&&skipDup?` (of ${importedRows.length})`:''} · ${withEmail} with email${guessTxt} · ${importedRows.length-withEmail} without${dupTxt}. First: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
-  if(btn)btn.disabled=false;
+  const dupes=importedRows.filter(r=>r._dupe).length;
+  const news=importedRows.length-dupes;
+  if(dupeRow) dupeRow.style.display=dupes?'flex':'none';
+  const skip=document.getElementById('imp-skip-dupes'); const skipping=dupes && skip && skip.checked;
+  const willImport = skipping ? news : importedRows.length;
+  const withEmail=importedRows.filter(r=>r.email).length; const f=importedRows.find(r=>!r._dupe)||importedRows[0];
+  let dupNote='';
+  if(dupes) dupNote = ` · <b style="color:#b23c22">${dupes}</b> already in your CRM${skipping?' (skipped)':''}`;
+  p.innerHTML=`Ready: <b>${willImport}</b> to import · ${news} new${dupNote} · ${withEmail} with email. First new: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
+  if(btn)btn.disabled = willImport<=0;
 }
 function prepareImport(){
   parseDelimited(document.getElementById('imp-text').value);
@@ -1285,23 +1153,20 @@ async function runImport(){
   const cat=document.getElementById('imp-category').value.trim();
   if(!cat){ setImpStatus('Set a category first.','#b23c22'); return; }
   applyMapping();
-  const skipDup=(document.getElementById('imp-skipdup')||{}).checked!==false;
-  const toImport = skipDup ? importedRows.filter(r=>!r.dup) : importedRows.slice();
-  if(!toImport.length){ setImpStatus(importedRows.length?'Everything here is already in your contacts — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
+  const skip=document.getElementById('imp-skip-dupes'); const skipping=skip&&skip.checked;
+  const toImport = skipping ? importedRows.filter(r=>!r._dupe) : importedRows;
+  const skipped = importedRows.length - toImport.length;
+  if(!toImport.length){ setImpStatus(skipped?'All rows are already in your database — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
-  const payload=toImport.map(r=>({ name:r.name, email:r.email, company:r.company, title:r.title, linkedin_url:r.linkedin_url, website:r.website, notes:r.notes, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}));
+  const payload=toImport.map(r=>{ const {_dupe, ...rest}=r; return {...rest, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}; });
   try{
     const res=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,120));
     const saved=await res.json(); ALL.push(...saved);
-    const gset=guessedEmails(); let gcount=0;
-    toImport.forEach((r,i)=>{ if(r.emailGuessed && saved[i] && saved[i].id){ gset.add(String(saved[i].id)); gcount++; } });
-    if(gcount) saveGuessedEmails(gset);
-    const skipped=importedRows.length-toImport.length;
     buildTabs(); buildCatList();
-    setImpStatus(`✓ Imported ${saved.length} into "${cat}"${skipped?` · ${skipped} duplicate${skipped!==1?'s':''} skipped`:''}${gcount?` · ${gcount} email${gcount!==1?'s':''} guessed`:''}`, '#2a6600');
+    setImpStatus(`✓ Imported ${saved.length} into "${cat}"`+(skipped?` · skipped ${skipped} already in CRM`:''), '#2a6600');
     activeTab=cat; buildTabs(); render();
-    setTimeout(closeImportModal,1200);
+    setTimeout(closeImportModal,1400);
   }catch(e){ setImpStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
   btn.disabled=false;
 }
@@ -1420,15 +1285,6 @@ function deleteTemplate(){
   );
 }
 function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
-function insertToken(kind){
-  const ta=document.getElementById('e-body'); if(!ta) return;
-  const token=kind==='company'?'{{company}}':'{{first_name}}';
-  const s=(ta.selectionStart!=null)?ta.selectionStart:ta.value.length;
-  const e=(ta.selectionEnd!=null)?ta.selectionEnd:ta.value.length;
-  ta.value=ta.value.slice(0,s)+token+ta.value.slice(e);
-  const pos=s+token.length; ta.focus(); try{ ta.setSelectionRange(pos,pos); }catch(_){}
-  templateEdited();
-}
 function refreshSendState(){
   const nt=document.getElementById('e-notoken'), sb=document.getElementById('e-send');
   if(gConnected()){ nt.style.display='none'; sb.style.display=''; } else { nt.style.display='block'; sb.style.display='none'; }
@@ -1493,20 +1349,13 @@ async function markContactedOn(id, whenIso){
   const followUp=followUpFrom(nowIso);
   const c=ALL.find(x=>x.id===id);
   const newStatus=(c&&c.replied)?c.status:'Contacted';
-  const newTouches=c?((c.touches||0)+1):null;
-  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; c.touches=newTouches; }
+  let newTouches=null;
+  if(c){ if(!c.replied) c.status='Contacted'; c.last_emailed_at=nowIso; c.follow_up_at=followUp; c.touches=(c.touches||0)+1; newTouches=c.touches; }
   renderNudge(); render();
   if(c) toast(`Logged ${(c.name||'').split(' ')[0]} · follow-up ${fmtDate(followUp)}`);
-  const payload={status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso};
-  if(newTouches!=null) payload.touches=newTouches;
-  try{
-    const r=await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(payload)});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return true;
-  }catch(e){
-    toast('⚠ Couldn’t save last-contacted — check connection & retry');
-    return false;
-  }
+  try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({status:newStatus,last_emailed_at:nowIso,follow_up_at:followUp,updated_at:nowIso})}); }catch(e){}
+  // Touch count is best-effort: works once a `touches` column exists, silently ignored otherwise.
+  if(newTouches!=null){ try{ await sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({touches:newTouches})}); }catch(e){} }
 }
 function markContacted(id){ return markContactedOn(id, new Date().toISOString()); }
 /* Row calendar icon → pick a date, then log it */
@@ -1675,39 +1524,16 @@ async function sendEmail(){
   const bodyRaw=document.getElementById('e-body').value.trim();
   if(!to||!subject||!bodyRaw){ alert('Fill in all fields.'); return; }
   if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ refreshSendState(); return; } }
-  const btn=document.getElementById('e-send'); const orig=btn.textContent;
-  // Batch: send immediately (bulk flow, no per-email delay)
-  if(BATCH){
-    btn.disabled=true; btn.textContent='Sending…';
-    try{
-      const attachments=await collectAttachments();
-      const body=personalize(bodyRaw,emailContact||{});
-      const subj=personalize(subject,emailContact||{});
-      await gmailSend(to,subj,body,attachments);
-      if(emailContact&&emailContact.id) await markContacted(emailContact.id);
-      lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch();
-    }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
-    return;
-  }
-  // Single send: 5s undo buffer. Nothing is sent until the window closes.
-  const contact=emailContact;
-  btn.disabled=true; btn.textContent='Sending…';
-  scheduleUndoable(
-    async ()=>{
-      try{
-        const attachments=await collectAttachments();
-        const body=personalize(bodyRaw,contact||{});
-        const subj=personalize(subject,contact||{});
-        await gmailSend(to,subj,body,attachments);
-        if(contact&&contact.id) await markContacted(contact.id);
-        btn.disabled=false; btn.textContent=orig;
-        document.getElementById('email-modal').classList.remove('open'); render();
-        toast('Sent to '+to+' ✓');
-      }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
-    },
-    ()=>{ btn.disabled=false; btn.textContent=orig; },
-    'Sending to '+to+'…'
-  );
+  const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
+  try{
+    const attachments=await collectAttachments();
+    const body=personalize(bodyRaw,emailContact||{});
+    const subj=personalize(subject,emailContact||{});
+    await gmailSend(to,subj,body,attachments);
+    if(emailContact&&emailContact.id) markContacted(emailContact.id);
+    if(BATCH){ lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch(); }
+    else{ btn.disabled=false; btn.textContent=orig; alert('Sent to '+to+' ✓'); document.getElementById('email-modal').classList.remove('open'); render(); }
+  }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
 }
 
 /* ── Conversation viewer (reads Gmail) ── */
@@ -1891,12 +1717,11 @@ async function applyInlineEdit(c, field, val){
   if(field==='status'){
     c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced');
     patch.status=val; patch.replied=c.replied; patch.bounced=c.bounced;
-    if(val==='Bounced') clearGuessFlag(c.id);
   } else if(field==='email'){
     const v=val?val.toLowerCase():'';
     if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Invalid email — not saved'); render(); return; }
     if((c.email||'')===(v||'')){ render(); return; }
-    c.email=v||null; patch.email=c.email; clearGuessFlag(c.id);
+    c.email=v||null; patch.email=c.email;
   } else {
     if((c[field]||'')===(val||'')){ render(); return; }
     c[field]=val||null; patch[field]=c[field];
@@ -1910,7 +1735,6 @@ function selectedContacts(){ return ALL.filter(c=>SELECTED.has(c.id)); }
 async function bulkSetStatus(val){
   if(!val) return; const list=selectedContacts(); if(!list.length) return;
   list.forEach(c=>{ c.status=val; c.replied=(val==='Replied'); c.bounced=(val==='Bounced'); });
-  if(val==='Bounced') list.forEach(c=>clearGuessFlag(c.id));
   render(); buildTabs(); renderNudge();
   const ids=list.map(c=>c.id);
   try{ await sb(`${TABLE}?id=in.(${ids.join(',')})`,{method:'PATCH',body:JSON.stringify({status:val,replied:val==='Replied',bounced:val==='Bounced',updated_at:new Date().toISOString()})}); }catch(e){ toast('Bulk update failed'); }
@@ -1941,73 +1765,6 @@ function bulkDelete(){
   );
 }
 
-/* ── Manage lists (categories) ── */
-function openListsModal(){ renderListsManager(); document.getElementById('lists-modal').classList.add('open'); }
-function closeListsModal(){ document.getElementById('lists-modal').classList.remove('open'); }
-function renderListsManager(){
-  const box=document.getElementById('lm-body'); if(!box) return;
-  const cats=categories();
-  const sub=document.getElementById('lm-sub');
-  if(!cats.length){ box.innerHTML='<div class="lm-empty">No lists yet. Import a list to get started.</div>'; if(sub) sub.textContent=''; return; }
-  if(sub) sub.textContent=`${cats.length} list${cats.length!==1?'s':''} · ${ALL.length} contact${ALL.length!==1?'s':''} total`;
-  let html='';
-  cats.forEach(cat=>{
-    const n=ALL.filter(c=>c.category===cat).length;
-    const esc=escapeHtml(cat);
-    const arg=cat.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const others=cats.filter(x=>x!==cat);
-    const mergeSel=others.length?`<select class="lm-merge" onchange="lmMerge('${arg}',this.value);this.value='';"><option value="">Merge into…</option>${others.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`:'';
-    html+=`<div class="lm-row">
-      <div class="lm-main">
-        <div class="lm-name" title="${esc}">${esc}</div>
-        <div class="lm-count">${n} contact${n!==1?'s':''}</div>
-      </div>
-      <div class="lm-actions">
-        <button class="lm-link" onclick="lmRename('${arg}')">Rename</button>
-        ${mergeSel}
-        <button class="lm-link danger" onclick="lmDeleteList('${arg}')">Delete list</button>
-      </div>
-    </div>`;
-  });
-  box.innerHTML=html;
-}
-async function _chunkIds(ids,size,fn){ for(let i=0;i<ids.length;i+=size){ await fn(ids.slice(i,i+size)); } }
-async function deleteByIds(ids){ await _chunkIds(ids,80, async b=>{ try{ await sb(`${TABLE}?id=in.(${b.join(',')})`,{method:'DELETE'}); }catch(e){} }); }
-async function patchCategoryByIds(ids,newCat){ await _chunkIds(ids,80, async b=>{ try{ await sb(`${TABLE}?id=in.(${b.join(',')})`,{method:'PATCH',body:JSON.stringify({category:newCat,updated_at:new Date().toISOString()})}); }catch(e){} }); }
-function lmRename(cat){
-  const next=(window.prompt('Rename list "'+cat+'" to:', cat)||'').trim();
-  if(!next||next===cat) return;
-  const merging=categories().includes(next);
-  const list=ALL.filter(c=>c.category===cat); const ids=list.map(c=>c.id);
-  list.forEach(c=>{ c.category=next; });
-  if(activeTab===cat) activeTab=next;
-  buildTabs(); buildCatList(); applyTabView(activeTab); renderListsManager();
-  patchCategoryByIds(ids,next);
-  toast(merging?`Merged into ${next}`:`Renamed to ${next}`);
-}
-function lmMerge(cat,target){
-  if(!target||target===cat) return;
-  const list=ALL.filter(c=>c.category===cat); const ids=list.map(c=>c.id); const n=ids.length;
-  list.forEach(c=>{ c.category=target; });
-  if(activeTab===cat) activeTab=target;
-  buildTabs(); buildCatList(); applyTabView(activeTab); renderListsManager();
-  patchCategoryByIds(ids,target);
-  toast(`${n} moved into ${target}`);
-}
-function lmDeleteList(cat){
-  const list=ALL.filter(c=>c.category===cat); if(!list.length) return;
-  const n=list.length; const ids=list.map(c=>c.id); const snapshot=list.slice();
-  ALL=ALL.filter(c=>c.category!==cat);
-  snapshot.forEach(c=>SELECTED.delete(c.id));
-  if(activeTab===cat) activeTab='all';
-  buildTabs(); buildCatList(); applyTabView(activeTab); renderNudge(); renderListsManager();
-  scheduleUndoable(
-    async ()=>{ await deleteByIds(ids); },
-    ()=>{ ALL.push(...snapshot); buildTabs(); buildCatList(); applyTabView(activeTab); renderNudge(); renderListsManager(); },
-    `Deleted "${cat}" — ${n} contact${n!==1?'s':''}`
-  );
-}
-
 /* ── AI draft inside compose (reuses suggest-reply edge function) ── */
 async function aiDraftCompose(){
   const btn=document.getElementById('ai-draft'); if(!btn) return;
@@ -2034,7 +1791,6 @@ function cmdkCommands(){
   const cmds=[
     {label:'Add contact', run:()=>{ closeCmdk(); openAddModal(); }},
     {label:'Import a list', run:()=>{ closeCmdk(); openImportModal(); }},
-    {label:'Manage lists', run:()=>{ closeCmdk(); openListsModal(); }},
     {label:'Refresh', run:()=>{ closeCmdk(); refresh(); }},
     {label:'Open Up next', run:()=>{ closeCmdk(); toggleNudge(); }},
     {label:'Select all mailable', run:()=>{ closeCmdk(); selectAllMailable(); }},
@@ -2085,17 +1841,16 @@ function renderViews(){
   html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
   bar.innerHTML=html;
 }
-function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced, needsAttention }; }
+function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced }; }
 function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
 function applyView(i){
   const v=loadViews()[i]; if(!v) return;
   activeTab=v.tab||'all';
   document.getElementById('search').value=v.search||'';
   document.getElementById('status-filter').value=v.status||'';
-  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced; needsAttention=!!v.needsAttention;
+  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced;
   const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
   const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
-  const na=document.getElementById('needs-toggle'); if(na) na.classList.toggle('on',needsAttention);
   buildTabs(); applyTabView(activeTab);
 }
 function deleteView(i){
