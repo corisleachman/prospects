@@ -287,6 +287,13 @@ tr.dragging{opacity:.4}
 .ai-draft-btn:disabled{opacity:.5;cursor:wait}
 
 /* Import column mapping */
+.imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
+.imp-mode-btn{border:none;background:none;padding:7px 16px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
+.imp-mode-btn.active{background:var(--black);color:var(--white)}
+.imp-enrich-fields{display:flex;flex-wrap:wrap;gap:14px}
+.imp-enrich-fields label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.imp-enrich-fields input,#imp-enrich-opts input{width:auto;cursor:pointer}
+#imp-enrich-opts{margin:4px 0 0;padding:12px 14px;border:1.5px dashed var(--grey-light);border-radius:10px}
 .imp-map-head{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--grey-mid);margin:4px 0 10px}
 .imp-map-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
 .imp-map-row{display:flex;align-items:center;gap:10px}
@@ -523,7 +530,14 @@ tr.dragging{opacity:.4}
   <div class="mbox">
     <div class="mhead"><div class="mtitle">Import a list</div><button class="mclose" onclick="closeImportModal()">✕</button></div>
     <div class="mbody">
-      <div class="fld full"><label>Category for this group <span class="req">*</span></label>
+      <div class="fld full">
+        <div class="imp-mode">
+          <button type="button" class="imp-mode-btn active" data-mode="add" onclick="setImportMode('add')">Add new contacts</button>
+          <button type="button" class="imp-mode-btn" data-mode="enrich" onclick="setImportMode('enrich')">Enrich existing</button>
+        </div>
+        <p class="hint" id="imp-mode-hint" style="margin-top:8px">Add rows as new contacts. Anyone already in your database is skipped.</p>
+      </div>
+      <div class="fld full" id="imp-cat-fld"><label>Category for this group <span class="req">*</span></label>
         <input id="imp-category" list="cat-list" placeholder="e.g. LinkedIn, Referrals, MAD Meets">
       </div>
       <div class="fld full">
@@ -533,6 +547,17 @@ tr.dragging{opacity:.4}
         <textarea id="imp-text" rows="7" oninput="prepareImport()" placeholder="name,email,company,title&#10;Jane Smith,jane@acme.com,Acme,MD" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
       </div>
       <div id="imp-map" style="display:none"></div>
+      <div id="imp-enrich-opts" style="display:none">
+        <div class="imp-map-head">Fill these fields on matched contacts when they're empty:</div>
+        <div class="imp-enrich-fields">
+          <label><input type="checkbox" id="enr-email" checked onchange="updateImportPreview()"> Email</label>
+          <label><input type="checkbox" id="enr-company" checked onchange="updateImportPreview()"> Company</label>
+          <label><input type="checkbox" id="enr-title" checked onchange="updateImportPreview()"> Title</label>
+          <label><input type="checkbox" id="enr-website" checked onchange="updateImportPreview()"> Website</label>
+          <label><input type="checkbox" id="enr-linkedin_url" checked onchange="updateImportPreview()"> LinkedIn</label>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="enr-replace-company" checked onchange="updateImportPreview()"> Replace domain-style company names with the real name (e.g. "acme" → "Acme Studio")</label>
+      </div>
       <label id="imp-dupe-row" style="display:none;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;cursor:pointer">
         <input type="checkbox" id="imp-skip-dupes" checked onchange="updateImportPreview()" style="width:auto;cursor:pointer">
         Skip contacts already in my database
@@ -544,7 +569,7 @@ tr.dragging{opacity:.4}
       <div style="display:flex;gap:8px">
         <button class="cancelbtn" onclick="closeImportModal()">Cancel</button>
         <button class="cancelbtn" onclick="previewCsv()">Preview</button>
-        <button class="savebtn" id="imp-btn" onclick="runImport()">Import →</button>
+        <button class="savebtn" id="imp-btn" onclick="runImportOrEnrich()">Import →</button>
       </div>
     </div>
   </div>
@@ -1004,6 +1029,8 @@ function openImportModal(){
   const map=document.getElementById('imp-map'); if(map){ map.style.display='none'; map.innerHTML=''; }
   const dr=document.getElementById('imp-dupe-row'); if(dr) dr.style.display='none';
   const sd=document.getElementById('imp-skip-dupes'); if(sd) sd.checked=true;
+  const eo=document.getElementById('imp-enrich-opts'); if(eo) eo.style.display='none';
+  if(typeof setImportMode==='function') setImportMode('add');
   const btn=document.getElementById('imp-btn'); if(btn) btn.disabled=false;
   RAW={headers:[],rows:[],delim:','};
   importedRows=[];
@@ -1131,6 +1158,14 @@ function updateImportPreview(){
     else p.innerHTML='No rows have a name or email once mapped. Check the mapping, or the file may have blank rows.';
     if(btn)btn.disabled=true; if(dupeRow)dupeRow.style.display='none'; return;
   }
+  if(IMPORT_MODE==='enrich'){
+    if(dupeRow) dupeRow.style.display='none';
+    const e=computeEnrichment();
+    const parts=Object.entries(e.counts).filter(([k,v])=>v).map(([k,v])=>`${v} ${k==='linkedin_url'?'LinkedIn':k}`);
+    p.innerHTML = `${e.matched} of ${e.total} rows match a contact you already have · <b>${e.plan.length}</b> can be enriched${parts.length?` — fills ${parts.join(' · ')}`:''}. ${e.total-e.matched} not matched${IMPORT_MODE==='enrich'?' (left alone)':''}.`;
+    if(btn)btn.disabled = e.plan.length<=0;
+    return;
+  }
   const dupes=importedRows.filter(r=>r._dupe).length;
   const news=importedRows.length-dupes;
   if(dupeRow) dupeRow.style.display=dupes?'flex':'none';
@@ -1142,6 +1177,84 @@ function updateImportPreview(){
   p.innerHTML=`Ready: <b>${willImport}</b> to import · ${news} new${dupNote} · ${withEmail} with email. First new: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
   if(btn)btn.disabled = willImport<=0;
 }
+
+/* ── Enrich existing contacts from a file ── */
+let IMPORT_MODE='add';
+let ENRICH={plan:[],counts:{},matched:0,total:0};
+function setImportMode(m){
+  IMPORT_MODE=m;
+  document.querySelectorAll('.imp-mode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===m));
+  const enr=document.getElementById('imp-enrich-opts'); if(enr) enr.style.display=(m==='enrich')?'block':'none';
+  const catf=document.getElementById('imp-cat-fld'); if(catf) catf.style.display=(m==='enrich')?'none':'';
+  const btn=document.getElementById('imp-btn'); if(btn) btn.textContent=(m==='enrich')?'Enrich →':'Import →';
+  const hint=document.getElementById('imp-mode-hint'); if(hint) hint.textContent=(m==='enrich')?'Match rows to contacts you already have and fill in the gaps — no new contacts are created.':'Add rows as new contacts. Anyone already in your database is skipped.';
+  updateImportPreview();
+}
+function existingLookup(){
+  const byEmail=new Map(), byLi=new Map(), byNc=new Map();
+  (typeof ALL!=='undefined'?ALL:[]).forEach(c=>{
+    if(c.email) byEmail.set(String(c.email).toLowerCase().trim(), c);
+    const l=normLinkedin(c.linkedin_url); if(l) byLi.set(l,c);
+    if(c.name) byNc.set(normHead(c.name)+'|'+normHead(c.company||''), c);
+  });
+  return {byEmail,byLi,byNc};
+}
+function matchContact(r, look){
+  if(r.email && look.byEmail.has(r.email.toLowerCase())) return look.byEmail.get(r.email.toLowerCase());
+  const li=normLinkedin(r.linkedin_url); if(li && look.byLi.has(li)) return look.byLi.get(li);
+  const nc=normHead(r.name)+'|'+normHead(r.company||''); if(look.byNc.has(nc)) return look.byNc.get(nc);
+  return null;
+}
+function looksDomainDerived(company, c, r){
+  if(!company) return false;
+  const cc=company.toLowerCase().trim();
+  if(/[\s.]/.test(cc)) return false;               // real names have spaces; keep those
+  const domFrom=(src)=>((src||'').split('@')[1] || (src||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0] || '').toLowerCase();
+  const doms=[domFrom(c.email), domFrom(c.website), domFrom(r&&r.email), domFrom(r&&r.website)].filter(Boolean);
+  return doms.some(dom=>{ const root=dom.split('.')[0]; return root && (cc===root || cc===dom); });
+}
+function enrichFieldsSelected(){ return ['email','company','title','website','linkedin_url'].filter(f=>{ const el=document.getElementById('enr-'+f); return el&&el.checked; }); }
+function computeEnrichment(){
+  const look=existingLookup();
+  const fields=enrichFieldsSelected();
+  const replaceCo=(document.getElementById('enr-replace-company')||{}).checked;
+  const plan=[]; const counts={email:0,company:0,title:0,website:0,linkedin_url:0};
+  let matched=0; const usedContacts=new Set();
+  importedRows.forEach(r=>{
+    const c=matchContact(r, look); if(!c) return; matched++;
+    if(usedContacts.has(c.id)) return;
+    const changes={};
+    fields.forEach(f=>{
+      const nv=r[f]; if(!nv) return;
+      if(f==='company'){
+        if(!c.company) changes.company=nv;
+        else if(replaceCo && looksDomainDerived(c.company,c,r) && normHead(nv)!==normHead(c.company)) changes.company=nv;
+      } else if(!c[f]) changes[f]=nv;
+    });
+    if(Object.keys(changes).length){ plan.push({id:c.id, changes}); usedContacts.add(c.id); Object.keys(changes).forEach(k=>counts[k]++); }
+  });
+  ENRICH={plan,counts,matched,total:importedRows.length};
+  return ENRICH;
+}
+async function runEnrich(){
+  applyMapping(); computeEnrichment();
+  const plan=ENRICH.plan;
+  if(!plan.length){ setImpStatus('Nothing to enrich — no matched contacts have empty fields to fill.','#b23c22'); return; }
+  const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus(`Enriching ${plan.length}…`,'var(--grey-mid)');
+  const snaps=[];
+  plan.forEach(item=>{ const c=ALL.find(x=>x.id===item.id); if(!c) return; const snap={}; Object.keys(item.changes).forEach(k=>snap[k]=c[k]); snaps.push({id:c.id,snap}); Object.assign(c,item.changes); });
+  render(); buildTabs(); buildCatList();
+  let ok=0;
+  for(const item of plan){ try{ const r=await sb(`${TABLE}?id=eq.${item.id}`,{method:'PATCH',body:JSON.stringify({...item.changes, updated_at:new Date().toISOString()})}); if(r.ok) ok++; }catch(e){} }
+  setImpStatus(`✓ Enriched ${ok} contact${ok!==1?'s':''}`, '#2a6600');
+  toast(`Enriched ${ok} contact${ok!==1?'s':''}`, ()=>{
+    snaps.forEach(s=>{ const c=ALL.find(x=>x.id===s.id); if(c) Object.assign(c,s.snap); });
+    render(); buildTabs(); buildCatList();
+    snaps.forEach(s=>sb(`${TABLE}?id=eq.${s.id}`,{method:'PATCH',body:JSON.stringify({...s.snap, updated_at:new Date().toISOString()})}).catch(()=>{}));
+  });
+  setTimeout(closeImportModal,1600); btn.disabled=false;
+}
+function runImportOrEnrich(){ if(IMPORT_MODE==='enrich') runEnrich(); else runImport(); }
 function prepareImport(){
   parseDelimited(document.getElementById('imp-text').value);
   renderMapping(guessMapping(RAW.headers));
