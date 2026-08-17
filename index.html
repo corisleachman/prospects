@@ -1647,7 +1647,7 @@ function sendToSelected(){
   document.getElementById('email-modal').classList.add('open');
 }
 function openNextBatch(){
-  if(!batchQueue.length){ BATCH=false; alert(`✓ Sent ${batchSent} email${batchSent!==1?'s':''}.`); document.getElementById('email-modal').classList.remove('open'); render(); return; }
+  if(!batchQueue.length){ BATCH=false; document.getElementById('email-modal').classList.remove('open'); render(); toast(`${batchSent} email${batchSent!==1?'s':''} queued — each sends in ${SEND_UNDO_SECONDS}s unless you hit Undo`); return; }
   batchCurrent=batchQueue.shift();
   emailContact={id:batchCurrent.id,name:batchCurrent.name,company:batchCurrent.company||'',email:batchCurrent.email,title:batchCurrent.title||''};
   const total=batchSent+batchQueue.length+1;
@@ -1662,23 +1662,51 @@ function openNextBatch(){
 }
 function skipBatch(){ if(BATCH) openNextBatch(); }
 let lastSubject='', lastBodyTemplate='';
+/* ── Send with an undo window (message is held, then sent) ── */
+const SEND_UNDO_SECONDS=5;   // change this to lengthen/shorten the undo window
+const OUTBOX={}; let _sendSeq=0;
+function sendFirstName(contact,to){ return (contact&&contact.name)?contact.name.split(' ')[0]:to; }
+function queueSend(payload){
+  const id=++_sendSeq;
+  payload.t=setTimeout(()=>fireSend(id), SEND_UNDO_SECONDS*1000);
+  OUTBOX[id]=payload;
+  toast(`Sending to ${sendFirstName(payload.contact,payload.to)} in ${SEND_UNDO_SECONDS}s…`, ()=>cancelSend(id));
+}
+function cancelSend(id){
+  const s=OUTBOX[id]; if(!s) return; clearTimeout(s.t); delete OUTBOX[id];
+  if(s.isBatch && batchSent>0) batchSent--;
+  toast(`Send to ${sendFirstName(s.contact,s.to)} cancelled — nothing was sent`);
+}
+async function fireSend(id){
+  const s=OUTBOX[id]; if(!s) return; delete OUTBOX[id];
+  try{
+    await gmailSend(s.to, s.subj, s.body, s.attachments);
+    if(s.contact&&s.contact.id) markContacted(s.contact.id);
+    toast(`Sent to ${sendFirstName(s.contact,s.to)} ✓`);
+  }catch(e){ toast(`Couldn't send to ${s.to} — ${e.message||'error'}`); }
+}
 async function sendEmail(){
   const to=document.getElementById('e-to').value.trim();
   const subject=document.getElementById('e-subject').value.trim();
   const bodyRaw=document.getElementById('e-body').value.trim();
   if(!to||!subject||!bodyRaw){ alert('Fill in all fields.'); return; }
   if(!gConnected()){ const t=await getGoogleToken(false); if(!t){ refreshSendState(); return; } }
-  const btn=document.getElementById('e-send'); btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…';
-  try{
-    const attachments=await collectAttachments();
-    const body=personalize(bodyRaw,emailContact||{});
-    const subj=personalize(subject,emailContact||{});
-    await gmailSend(to,subj,body,attachments);
-    if(emailContact&&emailContact.id) markContacted(emailContact.id);
-    if(BATCH){ lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++; btn.disabled=false; openNextBatch(); }
-    else{ btn.disabled=false; btn.textContent=orig; alert('Sent to '+to+' ✓'); document.getElementById('email-modal').classList.remove('open'); render(); }
-  }catch(e){ alert('Error: '+e.message); btn.disabled=false; btn.textContent=orig; }
+  let attachments=[];
+  try{ attachments=await collectAttachments(); }catch(e){ alert('Attachment error: '+e.message); return; }
+  const contact=emailContact;
+  const body=personalize(bodyRaw, contact||{});
+  const subj=personalize(subject, contact||{});
+  const isBatch=BATCH;
+  if(isBatch){
+    lastSubject=subject; lastBodyTemplate=bodyRaw; batchSent++;
+    queueSend({to,subj,body,attachments,contact,isBatch:true});
+    openNextBatch();
+  } else {
+    document.getElementById('email-modal').classList.remove('open'); render();
+    queueSend({to,subj,body,attachments,contact,isBatch:false});
+  }
 }
+window.addEventListener('beforeunload', e=>{ if(Object.keys(OUTBOX).length){ e.preventDefault(); e.returnValue=''; } });
 
 /* ── Conversation viewer (reads Gmail) ── */
 let MY_EMAIL='', convoContact=null;
