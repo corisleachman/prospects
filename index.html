@@ -287,6 +287,7 @@ tr.dragging{opacity:.4}
 .ai-draft-btn:disabled{opacity:.5;cursor:wait}
 
 /* Import column mapping */
+.pill.p-archived{background:#e7e2d6;color:#6b6456}
 .imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
 .imp-mode-btn{border:none;background:none;padding:7px 16px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
 .imp-mode-btn.active{background:var(--black);color:var(--white)}
@@ -378,6 +379,7 @@ tr.dragging{opacity:.4}
         </label>
         <button class="toggle" id="replied-toggle" onclick="toggleReplied()">Replied only</button>
         <button class="toggle" id="hidebounced-toggle" onclick="toggleHideBounced()">Hide bounced</button>
+        <button class="toggle" id="nocontact-toggle" onclick="toggleNoContact()">No last contact</button>
         <div class="count" id="count"></div>
         <div class="spacer">
           <span id="sel-count" class="count" style="display:none"></span>
@@ -495,6 +497,7 @@ tr.dragging{opacity:.4}
             <option value="Contacted">Contacted</option>
             <option value="Replied">Replied</option>
             <option value="Bounced">Bounced</option>
+            <option value="Archived">Archived (do not contact)</option>
           </select>
         </div>
       </div>
@@ -515,6 +518,7 @@ tr.dragging{opacity:.4}
     <div class="mfoot">
       <div style="display:flex;gap:8px;align-items:center">
         <button class="delbtn" id="del-btn" style="display:none" onclick="deleteContact()">Delete</button>
+        <button class="delbtn" id="arch-btn" style="display:none;color:var(--grey-mid);border-color:var(--grey-light)" onclick="toggleArchive()">Archive</button>
         <span class="mstatus" id="edit-status"></span>
       </div>
       <div style="display:flex;gap:8px">
@@ -736,7 +740,7 @@ function updateGoogleBtn(){
 /* ── State ── */
 let ALL=[];
 let activeTab='all';
-let repliedOnly=false, hideBounced=false;
+let repliedOnly=false, hideBounced=false, noContactOnly=false;
 const SELECTED=new Set();
 
 async function startApp(){
@@ -798,14 +802,18 @@ function categories(){
 function buildTabs(){
   const bar=document.getElementById('tabs-bar');
   const cats=categories();
-  let html=`<button class="tab ${activeTab==='all'?'active':''}" onclick="switchTab('all',this)">All contacts <span class="badge">${ALL.length}</span></button>`;
-  html+=`<button class="tab ${activeTab==='__replied__'?'active':''}" onclick="switchTab('__replied__',this)">Replied <span class="badge">${ALL.filter(c=>c.replied).length}</span></button>`;
+  const live=ALL.filter(c=>c.status!=='Archived');
+  const archived=ALL.length-live.length;
+  let html=`<button class="tab ${activeTab==='all'?'active':''}" onclick="switchTab('all',this)">All contacts <span class="badge">${live.length}</span></button>`;
+  html+=`<button class="tab ${activeTab==='__replied__'?'active':''}" onclick="switchTab('__replied__',this)">Replied <span class="badge">${live.filter(c=>c.replied).length}</span></button>`;
   cats.forEach(cat=>{
-    const n=ALL.filter(c=>c.category===cat).length;
+    const n=live.filter(c=>c.category===cat).length;
     const esc=cat.replace(/'/g,"\\'");
     html+=`<button class="tab ${activeTab===cat?'active':''}" onclick="switchTab('${esc}',this)" ondragover="tabDragOver(event,this)" ondragleave="this.classList.remove('dragover')" ondrop="tabDrop(event,'${esc}',this)">${escapeHtml(cat)} <span class="badge">${n}</span></button>`;
   });
-  html+=`<button class="tab ${activeTab==='__enquiries__'?'active':''}" onclick="switchTab('__enquiries__',this)" style="margin-left:auto">✉ Enquiries <span class="badge">${ENQUIRIES.length}</span></button>`;
+  html+=`<span style="margin-left:auto"></span>`;
+  if(archived) html+=`<button class="tab ${activeTab==='__archived__'?'active':''}" onclick="switchTab('__archived__',this)" title="Do-not-contact — kept so re-imports skip them">🗄 Archived <span class="badge">${archived}</span></button>`;
+  html+=`<button class="tab ${activeTab==='__enquiries__'?'active':''}" onclick="switchTab('__enquiries__',this)">✉ Enquiries <span class="badge">${ENQUIRIES.length}</span></button>`;
   bar.innerHTML=html;
 }
 function switchTab(tab,btn){
@@ -829,6 +837,7 @@ function applyTabView(tab){
   }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts across every source'; }
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
+  else if(tab==='__archived__'){ title.textContent='Archived'; sub.textContent='Do-not-contact — kept on record so re-imports skip them'; }
   else{ title.textContent=tab; sub.textContent='Category'; }
   render();
 }
@@ -853,15 +862,20 @@ function companyUrl(c){
   return '';
 }
 function toDateInput(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function statusClass(c){ if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
+function statusClass(c){ if(c.status==='Archived')return'p-archived'; if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const sf=document.getElementById('status-filter').value;
+  const arch=activeTab==='__archived__';
   return ALL.filter(c=>{
+    const isArch=c.status==='Archived';
+    if(arch){ if(!isArch) return false; }
+    else if(isArch) return false;
     if(activeTab==='__replied__' && !c.replied) return false;
-    if(activeTab!=='all' && activeTab!=='__replied__' && c.category!==activeTab) return false;
+    if(activeTab!=='all' && activeTab!=='__replied__' && activeTab!=='__archived__' && c.category!==activeTab) return false;
     if(repliedOnly && !c.replied) return false;
     if(hideBounced && (c.bounced||c.status==='Bounced')) return false;
+    if(noContactOnly && c.last_emailed_at) return false;
     if(sf){ if(sf==='Replied'&&!c.replied) return false; if(sf==='Bounced'&&!(c.bounced||c.status==='Bounced')) return false; if(sf==='Contacted'&&!(c.status==='Contacted'&&!c.replied)) return false; }
     if(q){ const hay=`${c.name} ${c.company} ${c.email} ${c.title} ${c.category}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
@@ -909,6 +923,7 @@ function render(){
 }
 function toggleReplied(){ repliedOnly=!repliedOnly; document.getElementById('replied-toggle').classList.toggle('on',repliedOnly); render(); }
 function toggleHideBounced(){ hideBounced=!hideBounced; document.getElementById('hidebounced-toggle').classList.toggle('on',hideBounced); render(); }
+function toggleNoContact(){ noContactOnly=!noContactOnly; document.getElementById('nocontact-toggle').classList.toggle('on',noContactOnly); render(); }
 
 /* ── Selection ── */
 function toggleSel(id,cb){ cb.checked?SELECTED.add(id):SELECTED.delete(id); render(); }
@@ -948,6 +963,7 @@ function openEditModal(c){
   editingId=full.id;
   document.getElementById('edit-title').textContent='Edit contact';
   document.getElementById('del-btn').style.display='inline-block';
+  const ab=document.getElementById('arch-btn'); if(ab){ ab.style.display='inline-block'; ab.textContent = full.status==='Archived' ? 'Unarchive' : 'Archive'; }
   document.getElementById('f-name').value=full.name||'';
   document.getElementById('f-email').value=full.email||'';
   document.getElementById('f-company').value=full.company||'';
@@ -1015,6 +1031,21 @@ function deleteContact(){
     ()=>{ ALL.splice(Math.min(idx,ALL.length),0,snap); buildTabs(); render(); renderNudge(); },
     `Deleted ${(snap.name||'contact').split(' ')[0]}`
   );
+}
+function toggleArchive(){
+  if(!editingId) return;
+  const c=ALL.find(x=>x.id===editingId); if(!c) return;
+  const wasArchived=c.status==='Archived';
+  const prevStatus=c.status;
+  const newStatus = wasArchived ? (c.replied?'Replied':(c.last_emailed_at?'Contacted':'Not contacted')) : 'Archived';
+  c.status=newStatus;
+  buildTabs(); render(); renderNudge(); closeEditModal();
+  const first=(c.name||'contact').split(' ')[0];
+  sb(`${TABLE}?id=eq.${c.id}`,{method:'PATCH',body:JSON.stringify({status:newStatus,updated_at:new Date().toISOString()})}).catch(()=>{});
+  toast(wasArchived?`${first} restored`:`${first} archived — won't be re-imported`, ()=>{
+    c.status=prevStatus; buildTabs(); render(); renderNudge();
+    sb(`${TABLE}?id=eq.${c.id}`,{method:'PATCH',body:JSON.stringify({status:prevStatus,updated_at:new Date().toISOString()})}).catch(()=>{});
+  });
 }
 function setEditStatus(m,c){ const e=document.getElementById('edit-status'); e.textContent=m; e.style.color=c||'var(--grey-mid)'; }
 
@@ -1502,14 +1533,14 @@ function toast(msg, onUndo){
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function addDaysStr(days){ const d=new Date(); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function daysSinceContact(c){ if(!c.last_emailed_at) return null; return Math.floor((Date.now()-new Date(c.last_emailed_at).getTime())/86400000); }
-function nudgeList(){ return ALL.filter(c=>c.follow_up_at && !c.replied && !(c.bounced||c.status==='Bounced')); }
+function nudgeList(){ return ALL.filter(c=>c.follow_up_at && !c.replied && c.status!=='Archived' && !(c.bounced||c.status==='Bounced')); }
 function toggleNudge(){ const p=document.getElementById('nudge-pane'); p.classList.toggle('open'); if(p.classList.contains('open')) renderNudge(); }
 /* Reply triage + gone-quiet helpers (client-side dismissal, no schema change) */
 function handledReplies(){ try{ return new Set(JSON.parse(localStorage.getItem('replies_handled')||'[]').map(String)); }catch(e){ return new Set(); } }
 function saveHandledReplies(set){ localStorage.setItem('replies_handled', JSON.stringify([...set])); }
 function parkedQuiet(){ try{ return new Set(JSON.parse(localStorage.getItem('quiet_parked')||'[]').map(String)); }catch(e){ return new Set(); } }
 function saveParkedQuiet(set){ localStorage.setItem('quiet_parked', JSON.stringify([...set])); }
-function repliesToHandle(){ const h=handledReplies(); return ALL.filter(c=>c.replied && !(c.bounced) && !h.has(String(c.id))); }
+function repliesToHandle(){ const h=handledReplies(); return ALL.filter(c=>c.replied && !(c.bounced) && c.status!=='Archived' && !h.has(String(c.id))); }
 function goneQuiet(){ const cutoff=addDaysStr(-30); const h=parkedQuiet(); return ALL.filter(c=>!c.replied && !(c.bounced||c.status==='Bounced') && c.status==='Contacted' && c.last_emailed_at && !c.follow_up_at && toDateInput(c.last_emailed_at)<=cutoff && !h.has(String(c.id))); }
 function nudgeCardEl(id){ return document.querySelector('.np-card[data-id="'+id+'"]'); }
 
@@ -1811,7 +1842,7 @@ function startInlineEdit(td, id, field){
   let el;
   if(field==='status'){
     el=document.createElement('select'); el.className='inline-input';
-    ['Not contacted','Contacted','Replied','Bounced'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if(o===cur) op.selected=true; el.appendChild(op); });
+    ['Not contacted','Contacted','Replied','Bounced','Archived'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if(o===cur) op.selected=true; el.appendChild(op); });
   } else if(field==='category'){
     el=document.createElement('input'); el.className='inline-input'; el.setAttribute('list','cat-list'); el.value=cur;
   } else {
@@ -1954,16 +1985,17 @@ function renderViews(){
   html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
   bar.innerHTML=html;
 }
-function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced }; }
+function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced, noContactOnly }; }
 function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
 function applyView(i){
   const v=loadViews()[i]; if(!v) return;
   activeTab=v.tab||'all';
   document.getElementById('search').value=v.search||'';
   document.getElementById('status-filter').value=v.status||'';
-  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced;
+  repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced; noContactOnly=!!v.noContactOnly;
   const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
   const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
+  const nc=document.getElementById('nocontact-toggle'); if(nc) nc.classList.toggle('on',noContactOnly);
   buildTabs(); applyTabView(activeTab);
 }
 function deleteView(i){
