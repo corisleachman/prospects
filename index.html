@@ -446,6 +446,7 @@ tr.dragging{opacity:.4}
         <div class="tpl-msg-head">
           <label style="margin:0">Message</label>
           <div class="tpl-vars">
+            <button type="button" class="ai-draft-btn" id="tpl-ai" onclick="aiDraftTemplate()" title="Draft this template with AI">✨ Draft with AI</button>
             <button type="button" class="tpl-var" onclick="insertTplVar('{{first_name}}')" title="Insert the recipient's first name">+ first_name</button>
             <button type="button" class="tpl-var" onclick="insertTplVar('{{company}}')" title="Insert the recipient's company">+ company</button>
           </div>
@@ -2007,19 +2008,43 @@ function bulkDelete(){
 }
 
 /* ── AI draft inside compose (reuses suggest-reply edge function) ── */
+/* ── AI draft (reuses suggest-reply edge function) ── */
+async function aiDraftRequest(conversation, contactName, company){
+  const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||''),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation,contactName:contactName||'',company:company||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),angle:''})});
+  let d={}; try{ d=await r.json(); }catch(_){}
+  if(!r.ok) throw new Error((d&&d.error)?String(d.error):('HTTP '+r.status));
+  if(!d || !d.reply) throw new Error('empty response');
+  return d.reply;
+}
+function aiErr(e){
+  const m=((e&&e.message)||'').toString();
+  if(/assignment to constant/i.test(m)) return 'AI drafting is temporarily unavailable — the drafting service hit an internal error.';
+  if(/not authoris|not authoriz|401/i.test(m)) return 'AI draft needs you to be signed in — try refreshing.';
+  return 'AI draft unavailable — '+(m||'please try again');
+}
 async function aiDraftCompose(){
   const btn=document.getElementById('ai-draft'); if(!btn) return;
-  const c=emailContact||{}; const orig=btn.textContent;
-  btn.disabled=true; btn.textContent='✨ Drafting…';
+  const c=emailContact||{}; const orig=btn.textContent; btn.disabled=true; btn.textContent='✨ Drafting…';
   try{
     const priorBody=(document.getElementById('e-body').value||'').trim();
-    const convo=[{who:'You',date:'',text: priorBody ? ('Earlier note I sent:\n'+priorBody) : 'I previously reached out to introduce fractional new business support and have not heard back yet.'}];
-    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/suggest-reply`,{method:'POST',headers:{Authorization:'Bearer '+(AUTH.token||CONFIG.SUPABASE_ANON),apikey:CONFIG.SUPABASE_ANON,'Content-Type':'application/json'},body:JSON.stringify({conversation:convo,contactName:c.name||'',company:c.company||'',today:new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),angle:'a brief, warm follow-up chaser that gently reopens the conversation'})});
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok){ toast(d && d.error ? ('AI: '+d.error) : 'AI draft failed'); }
-    else if(d && d.reply){ document.getElementById('e-body').value=d.reply; if(typeof templateEdited==='function') templateEdited(); toast('AI draft ready'); }
-    else toast('No draft returned');
-  }catch(e){ toast('AI draft — network error'); }
+    const convo=[{who:'You',date:'',text: priorBody || 'Draft a short, warm follow-up to a prospect I emailed a while ago and have not heard back from. Keep it brief and low-pressure.'}];
+    const reply=await aiDraftRequest(convo, c.name, c.company);
+    document.getElementById('e-body').value=reply; if(typeof templateEdited==='function') templateEdited(); toast('AI draft ready');
+  }catch(e){ toast(aiErr(e)); }
+  btn.disabled=false; btn.textContent=orig;
+}
+async function aiDraftTemplate(){
+  const btn=document.getElementById('tpl-ai'); if(!btn) return;
+  const orig=btn.textContent; btn.disabled=true; btn.textContent='✨ Drafting…';
+  try{
+    const name=(document.getElementById('tpl-name').value||'').trim();
+    const existing=(document.getElementById('tpl-body').value||'').trim();
+    const brief = existing || ('Write a reusable outreach email template'+(name?(' called "'+name+'"'):'')+'. Warm, clear, first-person, no hype. Address the reader and reference their company.');
+    const convo=[{who:'You',date:'',text:brief}];
+    // Passing the tokens as name/company nudges the draft to include {{first_name}} / {{company}}
+    const reply=await aiDraftRequest(convo, '{{first_name}}', '{{company}}');
+    document.getElementById('tpl-body').value=reply; toast('AI draft ready');
+  }catch(e){ toast(aiErr(e)); }
   btn.disabled=false; btn.textContent=orig;
 }
 
