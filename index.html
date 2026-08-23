@@ -287,6 +287,19 @@ tr.dragging{opacity:.4}
 .ai-draft-btn:disabled{opacity:.5;cursor:wait}
 
 /* Import column mapping */
+.tpl-msg-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.tpl-vars{display:flex;gap:6px}
+.tpl-var{border:1.5px solid var(--grey-light);background:var(--white);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--black);cursor:pointer}
+.tpl-var:hover{border-color:var(--black);background:var(--cream)}
+.tpl-mgr-empty{font-size:13px;color:var(--grey-mid);padding:14px;text-align:center;border:1.5px dashed var(--grey-light);border-radius:10px;margin-bottom:10px}
+.tpl-mgr-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1.5px solid var(--grey-light);border-radius:10px;margin-bottom:8px}
+.tpl-mgr-row.builtin{background:var(--cream);opacity:.85}
+.tpl-mgr-info{min-width:0;flex:1}
+.tpl-mgr-name{font-weight:600;font-size:13px;color:var(--black)}
+.tpl-mgr-badge{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);border:1px solid var(--grey-light);border-radius:100px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.tpl-mgr-sub{font-size:11px;color:var(--grey-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-mgr-actions{display:flex;gap:6px;flex-shrink:0}
+.tpl-mgr-new{margin-top:4px}
 .pill.p-archived{background:#e7e2d6;color:#6b6456}
 .imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
 .imp-mode-btn{border:none;background:none;padding:7px 16px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
@@ -342,6 +355,10 @@ tr.dragging{opacity:.4}
     <button class="tbtn" id="nudge-toggle" onclick="toggleNudge()">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
       Up next <span class="ncount" id="nudge-count" style="display:none">0</span>
+    </button>
+    <button class="tbtn" onclick="openTemplateManager()" title="Create and manage email templates">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      Templates
     </button>
     <button class="tbtn solid" onclick="openImportModal()">Import list</button>
     <button class="tbtn solid" onclick="openAddModal()">+ Add</button>
@@ -425,8 +442,16 @@ tr.dragging{opacity:.4}
     <div class="mbody">
       <div class="fld"><label>Template name (shown on the pill) <span class="req">*</span></label><input id="tpl-name" placeholder="e.g. Recruiter intro"></div>
       <div class="fld"><label>Subject</label><input id="tpl-subject" placeholder="Subject…"></div>
-      <div class="fld"><label>Message</label><textarea id="tpl-body" rows="10" placeholder="Body…"></textarea></div>
-      <p class="hint"><code>{{first_name}}</code> and <code>{{company}}</code> are filled in per recipient when you use the template. Save two or three variants and each becomes its own pill.</p>
+      <div class="fld">
+        <div class="tpl-msg-head">
+          <label style="margin:0">Message</label>
+          <div class="tpl-vars">
+            <button type="button" class="tpl-var" onclick="insertTplVar('{{first_name}}')" title="Insert the recipient's first name">+ first_name</button>
+            <button type="button" class="tpl-var" onclick="insertTplVar('{{company}}')" title="Insert the recipient's company">+ company</button>
+          </div>
+        </div>
+        <textarea id="tpl-body" rows="10" placeholder="Body…"></textarea>
+      </div>
     </div>
     <div class="mfoot">
       <div style="display:flex;gap:8px;align-items:center">
@@ -437,6 +462,18 @@ tr.dragging{opacity:.4}
         <button class="cancelbtn" onclick="closeTemplateModal()">Cancel</button>
         <button class="savebtn" id="tpl-save" onclick="saveTemplate()">Save →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE MANAGER MODAL -->
+<div id="tpl-manager" class="modal" onclick="if(event.target===this)closeTemplateManager()">
+  <div class="mbox" style="width:min(600px,100%)">
+    <div class="mhead"><div class="mtitle">Templates</div><button class="mclose" onclick="closeTemplateManager()">✕</button></div>
+    <div class="mbody">
+      <p class="hint">Reusable email templates — each becomes a pill in the email composer. <code>{{first_name}}</code> and <code>{{company}}</code> fill in per recipient.</p>
+      <div id="tpl-mgr-list"></div>
+      <button class="savebtn tpl-mgr-new" onclick="newTemplate(true)">+ New template</button>
     </div>
   </div>
 </div>
@@ -1374,21 +1411,46 @@ function applyTemplate(key,btn){
   markPill(key);
 }
 /* Template CRUD */
-let editingTemplateId=null;
-function newTemplate(){
-  editingTemplateId=null;
+let editingTemplateId=null, _tplReturnManager=false;
+function insertTplVar(tok){
+  const ta=document.getElementById('tpl-body'); if(!ta) return;
+  const s=(ta.selectionStart==null?ta.value.length:ta.selectionStart);
+  const e=(ta.selectionEnd==null?ta.value.length:ta.selectionEnd);
+  ta.value=ta.value.slice(0,s)+tok+ta.value.slice(e);
+  const pos=s+tok.length; ta.focus(); try{ ta.setSelectionRange(pos,pos); }catch(_){}
+}
+function openTemplateManager(){ renderTemplateManager(); document.getElementById('tpl-manager').classList.add('open'); }
+function closeTemplateManager(){ document.getElementById('tpl-manager').classList.remove('open'); }
+function renderTemplateManager(){
+  const box=document.getElementById('tpl-mgr-list'); if(!box) return;
+  let html='';
+  if(!SAVED_TEMPLATES.length) html+='<div class="tpl-mgr-empty">No custom templates yet — create one below. The three built-ins are always available in the composer.</div>';
+  html+=SAVED_TEMPLATES.map(t=>`<div class="tpl-mgr-row">
+    <div class="tpl-mgr-info"><div class="tpl-mgr-name">${escapeHtml(t.name)}</div><div class="tpl-mgr-sub">${escapeHtml(t.subject||'—')}</div></div>
+    <div class="tpl-mgr-actions"><button class="bulk-ctl" onclick="editTemplate('${t.id}',true)">Edit</button><button class="bulk-ctl danger" onclick="deleteTemplateById('${t.id}')">Delete</button></div>
+  </div>`).join('');
+  html+=Object.keys(BUILTINS).map(k=>`<div class="tpl-mgr-row builtin">
+    <div class="tpl-mgr-info"><div class="tpl-mgr-name">${escapeHtml(BUILTINS[k].name)} <span class="tpl-mgr-badge">built-in</span></div><div class="tpl-mgr-sub">${escapeHtml(BUILTINS[k].subject||'—')}</div></div>
+  </div>`).join('');
+  box.innerHTML=html;
+}
+function newTemplate(fromManager){
+  editingTemplateId=null; _tplReturnManager=!!fromManager;
+  if(fromManager) closeTemplateManager();
   document.getElementById('tpl-title').textContent='New template';
   document.getElementById('tpl-del').style.display='none';
   document.getElementById('tpl-name').value='';
-  document.getElementById('tpl-subject').value=document.getElementById('e-subject').value||'';
-  document.getElementById('tpl-body').value=document.getElementById('e-body').value||'';
+  const es=document.getElementById('e-subject'), eb=document.getElementById('e-body');
+  document.getElementById('tpl-subject').value = fromManager ? '' : (es?es.value:'')||'';
+  document.getElementById('tpl-body').value = fromManager ? '' : (eb?eb.value:'')||'';
   document.getElementById('tpl-status').textContent='';
   document.getElementById('tpl-modal').classList.add('open');
   setTimeout(()=>document.getElementById('tpl-name').focus(),80);
 }
-function editTemplate(id){
+function editTemplate(id, fromManager){
   const t=SAVED_TEMPLATES.find(x=>String(x.id)===String(id)); if(!t) return;
-  editingTemplateId=t.id;
+  editingTemplateId=t.id; _tplReturnManager=!!fromManager;
+  if(fromManager) closeTemplateManager();
   document.getElementById('tpl-title').textContent='Edit template';
   document.getElementById('tpl-del').style.display='inline-block';
   document.getElementById('tpl-name').value=t.name||'';
@@ -1397,7 +1459,10 @@ function editTemplate(id){
   document.getElementById('tpl-status').textContent='';
   document.getElementById('tpl-modal').classList.add('open');
 }
-function closeTemplateModal(){ document.getElementById('tpl-modal').classList.remove('open'); }
+function closeTemplateModal(){
+  document.getElementById('tpl-modal').classList.remove('open');
+  if(_tplReturnManager){ _tplReturnManager=false; openTemplateManager(); }
+}
 function setTplStatus(m,c){ const e=document.getElementById('tpl-status'); e.textContent=m; e.style.color=c||'var(--grey-mid)'; }
 async function saveTemplate(){
   const name=document.getElementById('tpl-name').value.trim();
@@ -1412,21 +1477,25 @@ async function saveTemplate(){
       const r=await sb('email_templates',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
       if(!r.ok) throw new Error('HTTP '+r.status); SAVED_TEMPLATES.push((await r.json())[0]);
     }
-    renderTemplatePills(); closeTemplateModal(); toast('Template saved');
+    renderTemplatePills(); renderTemplateManager(); closeTemplateModal(); toast('Template saved');
   }catch(e){ setTplStatus('Error: '+e.message,'#b23c22'); btn.disabled=false; }
   btn.disabled=false;
 }
-function deleteTemplate(){
-  if(!editingTemplateId) return; const id=editingTemplateId;
-  const idx=SAVED_TEMPLATES.findIndex(x=>String(x.id)===String(id)); if(idx<0){ closeTemplateModal(); return; }
+function deleteTemplateById(id){
+  const idx=SAVED_TEMPLATES.findIndex(x=>String(x.id)===String(id)); if(idx<0) return;
   const snap=SAVED_TEMPLATES[idx];
   SAVED_TEMPLATES.splice(idx,1); if(activeTemplate==='db:'+id) activeTemplate=null;
-  renderTemplatePills(); closeTemplateModal();
+  renderTemplatePills(); renderTemplateManager();
   scheduleUndoable(
     async ()=>{ try{ await sb(`email_templates?id=eq.${id}`,{method:'DELETE'}); }catch(e){} },
-    ()=>{ SAVED_TEMPLATES.splice(Math.min(idx,SAVED_TEMPLATES.length),0,snap); renderTemplatePills(); },
+    ()=>{ SAVED_TEMPLATES.splice(Math.min(idx,SAVED_TEMPLATES.length),0,snap); renderTemplatePills(); renderTemplateManager(); },
     `Deleted "${snap.name}"`
   );
+}
+function deleteTemplate(){
+  if(!editingTemplateId) return; const id=editingTemplateId;
+  deleteTemplateById(id);
+  closeTemplateModal();
 }
 function templateEdited(){ activeTemplate=null; document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active')); }
 function refreshSendState(){
@@ -1822,7 +1891,7 @@ function useSuggestedReply(){
   let subj=CONVO_SUBJECT||''; if(subj && !/^\s*re:/i.test(subj)) subj='Re: '+subj; if(subj) document.getElementById('e-subject').value=subj;
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); closeCmdk(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEditModal(); closeImportModal(); closeTemplateModal(); closeTemplateManager(); closeConvo(); const em=document.getElementById('email-modal'); if(em.classList.contains('open')) closeEmailModal(); closeCmdk(); } });
 
 /* ==================================================================
    ENHANCEMENTS  —  undo, skeleton, inline edit, bulk actions,
@@ -1963,6 +2032,7 @@ function cmdkCommands(){
   const cmds=[
     {label:'Add contact', run:()=>{ closeCmdk(); openAddModal(); }},
     {label:'Import a list', run:()=>{ closeCmdk(); openImportModal(); }},
+    {label:'Manage templates', run:()=>{ closeCmdk(); openTemplateManager(); }},
     {label:'Refresh', run:()=>{ closeCmdk(); refresh(); }},
     {label:'Open Up next', run:()=>{ closeCmdk(); toggleNudge(); }},
     {label:'Select all mailable', run:()=>{ closeCmdk(); selectAllMailable(); }},
