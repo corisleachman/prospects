@@ -83,8 +83,8 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .tbl td a{color:var(--black)}
 .rowlink{color:inherit;text-decoration:none;border-bottom:1px solid var(--grey);transition:border-color .12s}
 .rowlink:hover{border-bottom-color:var(--black)}
-.rowlink .lnkicon{display:none;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle}
-.rowlink:hover .lnkicon{display:inline}
+.rowlink .lnkicon{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle;opacity:0;transition:opacity .12s}
+.rowlink:hover .lnkicon{opacity:1}
 .pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .p-replied{background:rgba(135,251,102,0.18);color:#2a6600}
 .p-contacted{background:rgba(74,191,255,0.12);color:#1a5a8a}
