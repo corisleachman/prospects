@@ -302,6 +302,12 @@ tr.dragging{opacity:.4}
 .tpl-mgr-actions{display:flex;gap:6px;flex-shrink:0}
 .tpl-mgr-new{margin-top:4px}
 .pill.p-archived{background:#e7e2d6;color:#6b6456}
+.pill.warm-hot{background:#f6d5c9;color:#a5341a}
+.pill.warm-warm{background:#f7e6c6;color:#8a5a12}
+.pill.warm-nurture{background:#d9ecd2;color:#3f6b34}
+.pill.warm-cold{background:#dfe4ee;color:#4a5570}
+.pill.warm-none{background:#efe9db;color:#9a927f}
+.np-hot{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:12px;background:rgba(255,107,74,0.20);color:#FF8A63;margin-left:4px}
 .imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
 .imp-mode-btn{border:none;background:none;padding:7px 16px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
 .imp-mode-btn.active{background:var(--black);color:var(--white)}
@@ -399,6 +405,16 @@ tr.dragging{opacity:.4}
             <option value="Bounced">Bounced</option>
           </select>
         </label>
+        <label class="selpill">Warmth:
+          <select id="warmth-filter" onchange="render()">
+            <option value="">All</option>
+            <option value="hot">🔥 Hot</option>
+            <option value="warm">🌤 Warm</option>
+            <option value="nurture">🌱 Nurture</option>
+            <option value="cold">🧊 Cold</option>
+            <option value="__unrated__">Unrated</option>
+          </select>
+        </label>
         <button class="toggle" id="replied-toggle" onclick="toggleReplied()">Replied only</button>
         <button class="toggle" id="hidebounced-toggle" onclick="toggleHideBounced()">Hide bounced</button>
         <button class="toggle" id="nocontact-toggle" onclick="toggleNoContact()">No last contact</button>
@@ -430,7 +446,7 @@ tr.dragging{opacity:.4}
           <thead><tr>
             <th style="width:34px"><input type="checkbox" id="select-all" onchange="toggleSelectAllVisible(this)"></th>
             <th>Name</th><th>Company</th><th>Title</th><th>Email</th>
-            <th>Category</th><th>Status</th><th>Last contact</th><th></th>
+            <th>Category</th><th>Status</th><th>Warmth</th><th>Last contact</th><th></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -914,9 +930,11 @@ function companyUrl(c){
 }
 function toDateInput(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function statusClass(c){ if(c.status==='Archived')return'p-archived'; if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
+function warmthLabel(w){ return ({hot:'🔥 Hot',warm:'🌤 Warm',nurture:'🌱 Nurture',cold:'🧊 Cold'})[w]||'—'; }
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const sf=document.getElementById('status-filter').value;
+  const wfv=(document.getElementById('warmth-filter')||{}).value||'';
   const arch=activeTab==='__archived__';
   return ALL.filter(c=>{
     const isArch=c.status==='Archived';
@@ -928,6 +946,7 @@ function visibleRows(){
     if(hideBounced && (c.bounced||c.status==='Bounced')) return false;
     if(noContactOnly && c.last_emailed_at) return false;
     if(sf){ if(sf==='Replied'&&!c.replied) return false; if(sf==='Bounced'&&!(c.bounced||c.status==='Bounced')) return false; if(sf==='Contacted'&&!(c.status==='Contacted'&&!c.replied)) return false; }
+    if(wfv){ if(wfv==='__unrated__'){ if(c.warmth) return false; } else if(c.warmth!==wfv) return false; }
     if(q){ const hay=`${c.name} ${c.company} ${c.email} ${c.title} ${c.category}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
@@ -956,6 +975,7 @@ function render(){
       <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
       <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
+      <td data-f="warmth"><span class="pill pill-btn warm-${c.warmth||'none'}" title="Click to set how warm this prospect is" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','warmth')">${warmthLabel(c.warmth)}</span></td>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         ${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
@@ -1675,6 +1695,7 @@ function upCard(c, kind, groupKey){
   const coHtml=!c.company?'':(nCo?`<a class="np-link dim" href="${escapeHtml(nCo)}" target="_blank" rel="noopener" title="${escapeHtml(nCo)}">${escapeHtml(c.company)}</a>`:`<span style="font-weight:400;color:rgba(255,255,255,0.55)">${escapeHtml(c.company)}</span>`);
   const touches=c.touches||0;
   const cold = kind==='followup' && groupKey==='overdue' && (touches>=3 || (since!=null && since>=21));
+  const hotBadge = c.warmth==='hot' ? '<span class="np-hot">🔥 Hot</span>' : '';
   let pill, actions;
   if(kind==='reply'){
     pill='<span class="np-warm" style="background:rgba(135,251,102,0.18);color:#87FB66">Replied</span>';
@@ -1689,7 +1710,7 @@ function upCard(c, kind, groupKey){
   }
   return `<div class="np-card ${groupKey==='overdue'?'overdue':''} ${cold?'cold':''}" data-id="${c.id}">
     <div class="np-name">${nameHtml}${coHtml?` · ${coHtml}`:''}</div>
-    <div class="np-meta">${pill}<span class="np-since">${sinceLabel}</span></div>
+    <div class="np-meta">${pill}${hotBadge}<span class="np-since">${sinceLabel}</span></div>
     <div class="np-actions">${actions}</div>
   </div>`;
 }
@@ -1708,12 +1729,18 @@ function renderNudge(){
     html+='<div class="np-sect-lbl" style="border-top:none;padding-top:0">✦ New replies — respond</div>';
     html+=replies.map(c=>upCard(c,'reply')).join('');
   }
+  const hotDue=list.filter(c=>c.warmth==='hot' && c.follow_up_at<=t);
+  const hotDueIds=new Set(hotDue.map(c=>c.id));
   const groups=[
-    {key:'overdue',label:'Overdue',color:'#FF6B4A',items:list.filter(c=>c.follow_up_at<t)},
-    {key:'today',label:'Due today',color:'#F0B429',items:list.filter(c=>c.follow_up_at===t)},
+    {key:'overdue',label:'Overdue',color:'#FF6B4A',items:list.filter(c=>c.follow_up_at<t && !hotDueIds.has(c.id))},
+    {key:'today',label:'Due today',color:'#F0B429',items:list.filter(c=>c.follow_up_at===t && !hotDueIds.has(c.id))},
     {key:'soon',label:'Upcoming',color:'#3ECF8E',items:list.filter(c=>c.follow_up_at>t)},
   ];
-  if(list.length){
+  if(hotDue.length){
+    html+='<div class="np-sect-lbl" style="color:#FF8A63">🔥 Hot — check in now</div>';
+    html+=hotDue.map(c=>upCard(c,'followup', c.follow_up_at<t?'overdue':'today')).join('');
+  }
+  if(groups.some(g=>g.items.length)){
     html+='<div class="np-sect-lbl">⏱ Follow-ups</div>';
     html+=groups.filter(g=>g.items.length).map(g=>{
       const cards=g.items.map(c=>upCard(c,'followup',g.key)).join('');
@@ -1990,6 +2017,9 @@ function startInlineEdit(td, id, field){
     ['Not contacted','Contacted','Replied','Bounced','Archived'].forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if(o===cur) op.selected=true; el.appendChild(op); });
   } else if(field==='category'){
     el=document.createElement('input'); el.className='inline-input'; el.setAttribute('list','cat-list'); el.value=cur;
+  } else if(field==='warmth'){
+    el=document.createElement('select'); el.className='inline-input';
+    [['','—'],['hot','🔥 Hot'],['warm','🌤 Warm'],['nurture','🌱 Nurture'],['cold','🧊 Cold']].forEach(([v,lab])=>{ const op=document.createElement('option'); op.value=v; op.textContent=lab; if(v===cur) op.selected=true; el.appendChild(op); });
   } else {
     el=document.createElement('input'); el.className='inline-input'; el.value=cur; if(field==='email') el.type='email';
   }
@@ -1999,7 +2029,7 @@ function startInlineEdit(td, id, field){
   const cancel=()=>{ if(done) return; done=true; render(); };
   el.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); commit(); } else if(ev.key==='Escape'){ ev.preventDefault(); cancel(); } });
   el.addEventListener('blur', commit);
-  if(field==='status') el.addEventListener('change', commit);
+  if(field==='status'||field==='warmth') el.addEventListener('change', commit);
 }
 async function applyInlineEdit(c, field, val){
   const patch={updated_at:new Date().toISOString()};
@@ -2155,13 +2185,14 @@ function renderViews(){
   html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
   bar.innerHTML=html;
 }
-function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), repliedOnly, hideBounced, noContactOnly }; }
+function currentViewState(){ return { tab:activeTab, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), warmth:(document.getElementById('warmth-filter')||{}).value||'', repliedOnly, hideBounced, noContactOnly }; }
 function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
 function applyView(i){
   const v=loadViews()[i]; if(!v) return;
   activeTab=v.tab||'all';
   document.getElementById('search').value=v.search||'';
   document.getElementById('status-filter').value=v.status||'';
+  const _wf=document.getElementById('warmth-filter'); if(_wf) _wf.value=v.warmth||'';
   repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced; noContactOnly=!!v.noContactOnly;
   const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
   const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
