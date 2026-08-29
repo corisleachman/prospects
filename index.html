@@ -1678,11 +1678,12 @@ function saveHandledReplies(set){ localStorage.setItem('replies_handled', JSON.s
 function parkedQuiet(){ try{ return new Set(JSON.parse(localStorage.getItem('quiet_parked')||'[]').map(String)); }catch(e){ return new Set(); } }
 function saveParkedQuiet(set){ localStorage.setItem('quiet_parked', JSON.stringify([...set])); }
 function repliesToHandle(){ const h=handledReplies(); return ALL.filter(c=>c.replied && !(c.bounced) && c.status!=='Archived' && !h.has(String(c.id))); }
-function goneQuiet(){ const cutoff=addDaysStr(-30); const h=parkedQuiet(); return ALL.filter(c=>!c.replied && !(c.bounced||c.status==='Bounced') && c.status==='Contacted' && c.last_emailed_at && !c.follow_up_at && toDateInput(c.last_emailed_at)<=cutoff && !h.has(String(c.id))); }
+function goneQuiet(){ const cutoff=addDaysStr(-30); const h=parkedQuiet(); return ALL.filter(c=>!c.replied && !(c.bounced||c.status==='Bounced') && c.status==='Contacted' && c.last_emailed_at && !c.follow_up_at && toDateInput(c.last_emailed_at)<=cutoff && c.warmth!=='hot' && !h.has(String(c.id))); }
+function hotUnscheduled(){ return ALL.filter(c=>c.warmth==='hot' && !c.follow_up_at && !c.replied && c.status!=='Archived' && !(c.bounced||c.status==='Bounced')); }
 function nudgeCardEl(id){ return document.querySelector('.np-card[data-id="'+id+'"]'); }
 
 function updateNudgeCount(){
-  const due=nudgeList().filter(c=>c.follow_up_at<=todayStr()).length + repliesToHandle().length;
+  const due=nudgeList().filter(c=>c.follow_up_at<=todayStr()).length + repliesToHandle().length + hotUnscheduled().length;
   const el=document.getElementById('nudge-count');
   if(el){ if(due>0){ el.style.display='inline-block'; el.textContent=due; } else el.style.display='none'; }
 }
@@ -1703,6 +1704,9 @@ function upCard(c, kind, groupKey){
   } else if(kind==='quiet'){
     pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>`;
     actions=`${c.email&&!c.bounced?`<button class="np-btn email" onclick='draftFollowup(${cdata})'>✉ Re-open</button>`:''}<button class="np-btn" onclick="parkQuiet('${c.id}')">Park</button>`;
+  } else if(kind==='hotunsched'){
+    pill=`<span class="np-warm">${escapeHtml(c.status||'Not contacted')}</span>`;
+    actions=`${c.email&&!c.bounced?`<button class="np-btn email" onclick='draftFollowup(${cdata})'>✉ Draft follow-up</button>`:''}<button class="np-btn" onclick="scheduleHot('${c.id}',3)">+3d</button><button class="np-btn" onclick="scheduleHot('${c.id}',7)">📅 +1w</button>`;
   } else {
     const parkNote = touches>=3?`chased ${touches}× · park?`:'gone cold · park?';
     pill=`<span class="np-warm">${escapeHtml(c.status||'Contacted')}</span>${cold?`<span class="np-park">${parkNote}</span>`:''}`;
@@ -1720,10 +1724,11 @@ function renderNudge(){
   const replies=repliesToHandle();
   const list=nudgeList().sort((a,b)=>a.follow_up_at<b.follow_up_at?-1:(a.follow_up_at>b.follow_up_at?1:0));
   const quiet=goneQuiet();
+  const hotUn=hotUnscheduled();
   const t=todayStr();
-  const actionable=replies.length + list.filter(c=>c.follow_up_at<=t).length;
-  document.getElementById('np-sub').textContent=(replies.length+list.length+quiet.length)?`${actionable} to action now`:'all clear';
-  if(!replies.length && !list.length && !quiet.length){ body.innerHTML='<div class="np-empty">Nothing needs you right now.<br>Replies, follow-ups and threads that go quiet will surface here.</div>'; return; }
+  const actionable=replies.length + list.filter(c=>c.follow_up_at<=t).length + hotUn.length;
+  document.getElementById('np-sub').textContent=(replies.length+list.length+quiet.length+hotUn.length)?`${actionable} to action now`:'all clear';
+  if(!replies.length && !list.length && !quiet.length && !hotUn.length){ body.innerHTML='<div class="np-empty">Nothing needs you right now.<br>Replies, follow-ups and threads that go quiet will surface here.</div>'; return; }
   let html='';
   if(replies.length){
     html+='<div class="np-sect-lbl" style="border-top:none;padding-top:0">✦ New replies — respond</div>';
@@ -1739,6 +1744,10 @@ function renderNudge(){
   if(hotDue.length){
     html+='<div class="np-sect-lbl" style="color:#FF8A63">🔥 Hot — check in now</div>';
     html+=hotDue.map(c=>upCard(c,'followup', c.follow_up_at<t?'overdue':'today')).join('');
+  }
+  if(hotUn.length){
+    html+='<div class="np-sect-lbl" style="color:#FF8A63">🔥 Hot — no check-in scheduled</div>';
+    html+=hotUn.map(c=>upCard(c,'hotunsched')).join('');
   }
   if(groups.some(g=>g.items.length)){
     html+='<div class="np-sect-lbl">⏱ Follow-ups</div>';
@@ -1780,6 +1789,7 @@ async function doneFollowup(id){
   sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:null,updated_at:new Date().toISOString()})}).catch(()=>{});
   toast('Marked done', ()=>{ c.follow_up_at=prev; renderNudge(); sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:prev,updated_at:new Date().toISOString()})}).catch(()=>{}); });
 }
+async function scheduleHot(id, days){ const c=ALL.find(x=>x.id===id); if(!c) return; const prev=c.follow_up_at; const nd=addDaysStr(days); animateCardOut(id, ()=>{ c.follow_up_at=nd; renderNudge(); }); sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:nd,updated_at:new Date().toISOString()})}).catch(()=>{}); toast('Check-in set for '+fmtDate(nd), ()=>{ c.follow_up_at=prev; renderNudge(); sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({follow_up_at:prev,updated_at:new Date().toISOString()})}).catch(()=>{}); }); }
 /* single + batch send */
 let BATCH=false, batchQueue=[], batchSent=0, batchCurrent=null;
 function sendToSelected(){
