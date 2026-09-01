@@ -1190,17 +1190,21 @@ const IMPORT_FIELDS=[
   {key:'linkedin_url',label:'LinkedIn URL'},
   {key:'website',label:'Website'},
   {key:'notes',label:'Notes'},
+  {key:'company_size',label:'Company size'},
+  {key:'ownership',label:'Ownership'},
 ];
 const IMPORT_SYNS={
-  name:['name','fullname','contactname','contact','person','prospect'],
+  name:['name','fullname','contactname','contact','person','prospect','leadershipperson','leadershipname','leadershipcontact','leader','keyperson'],
   first_name:['firstname','first','fname','givenname','forename'],
   last_name:['lastname','last','lname','surname','familyname'],
   email:['email','emailaddress','mail','workemail','emailid','primaryemail','emails','emailaddress1'],
-  company:['company','companyname','organisation','organization','org','agency','business','account','accountname','employer'],
+  company:['company','companyname','organisation','organization','org','agency','agencyname','studio','studioname','business','account','accountname','employer'],
   title:['title','jobtitle','role','position','jobrole','designation'],
   linkedin_url:['linkedin','linkedinurl','li','linkedinprofile','linkedinlink','profileurl'],
   website:['website','websiteurl','url','site','web','domain','companywebsite','homepage'],
-  notes:['notes','note','comment','comments','description','remark','remarks','memo'],
+  notes:['notes','note','comment','comments','description','remark','remarks','memo','notablework','notableworkandstyle','notableworkbestyle','workandstyle'],
+  company_size:['companysize','sizeoftheagency','sizeofagency','agencysize','size','headcount','employees','employeecount','numberofemployees','staff','teamsize','companyheadcount'],
+  ownership:['ownership','ownershiptype','ownershipstatus','owned','ownedby','parent','parentcompany','holdingcompany','holdinggroup','independence'],
 };
 function normHead(h){ return (h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function sniffDelimiter(headerLine){
@@ -1228,7 +1232,7 @@ function parseDelimited(text){
 }
 function guessMapping(headers){
   const norm=headers.map(normHead); const used=new Set(); const map={};
-  const order=['email','name','first_name','last_name','company','title','linkedin_url','website','notes'];
+  const order=['email','name','first_name','last_name','company','title','linkedin_url','website','notes','company_size','ownership'];
   order.forEach(f=>{ map[f]=-1; const idx=norm.findIndex((h,i)=>!used.has(i)&&IMPORT_SYNS[f].includes(h)); if(idx>=0){ map[f]=idx; used.add(idx); } });
   order.forEach(f=>{ if(map[f]>=0) return; const idx=norm.findIndex((h,i)=>!used.has(i)&&h&&IMPORT_SYNS[f].some(s=>h.includes(s))); if(idx>=0){ map[f]=idx; used.add(idx); } });
   return map;
@@ -1267,7 +1271,7 @@ function applyMapping(){
     if(!name) name=[get(cells,'first_name'),get(cells,'last_name')].filter(Boolean).join(' ').trim();
     const email=get(cells,'email').toLowerCase();
     if(!name && !email) return;
-    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null });
+    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null, company_size:get(cells,'company_size')||null, ownership:get(cells,'ownership')||null });
   });
   // Flag rows already in the database, and duplicates within the file itself
   const idx=existingIndex(); const seen=new Set();
