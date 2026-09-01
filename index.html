@@ -755,9 +755,13 @@ async function authInit(){
 document.addEventListener('DOMContentLoaded', authInit);
 
 /* ── Supabase REST ── */
-function sb(path,opts={}){
-  const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
-  return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}});
+async function sb(path,opts={}){
+  if(AUTH.token && !authValid() && AUTH.refresh){ try{ await authRefresh(); }catch(e){} }
+  const doFetch=()=>{ const bearer=(AUTH&&AUTH.token)?AUTH.token:CONFIG.SUPABASE_ANON;
+    return fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`,{...opts,headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json',...(opts.headers||{})}}); };
+  let res=await doFetch();
+  if(res.status===401 && AUTH.refresh){ const ok=await authRefresh().catch(()=>false); if(ok) res=await doFetch(); }
+  return res;
 }
 
 /* ── Google auth (Google Identity Services — silent renewal, no reconnect) ── */
