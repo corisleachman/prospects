@@ -633,6 +633,10 @@ tr.dragging{opacity:.4}
         <input type="checkbox" id="imp-skip-dupes" checked onchange="updateImportPreview()" style="width:auto;cursor:pointer">
         Skip contacts already in my database
       </label>
+      <label id="imp-company-row" style="display:none;align-items:center;gap:8px;margin:6px 0 0;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="imp-skip-company" checked onchange="updateImportPreview()" style="width:auto;cursor:pointer">
+        Also skip agencies already in my database (even if it's a different contact)
+      </label>
       <div class="notewarn" id="imp-preview" style="display:none"></div>
     </div>
     <div class="mfoot">
@@ -1169,6 +1173,8 @@ function openImportModal(){
   const map=document.getElementById('imp-map'); if(map){ map.style.display='none'; map.innerHTML=''; }
   const dr=document.getElementById('imp-dupe-row'); if(dr) dr.style.display='none';
   const sd=document.getElementById('imp-skip-dupes'); if(sd) sd.checked=true;
+  const sc2=document.getElementById('imp-skip-company'); if(sc2) sc2.checked=true;
+  const cr2=document.getElementById('imp-company-row'); if(cr2) cr2.style.display='none';
   const eo=document.getElementById('imp-enrich-opts'); if(eo) eo.style.display='none';
   if(typeof setImportMode==='function') setImportMode('add');
   const btn=document.getElementById('imp-btn'); if(btn) btn.disabled=false;
@@ -1258,13 +1264,14 @@ function renderMapping(guess){
 }
 function normLinkedin(u){ const m=(u||'').toLowerCase().match(/linkedin\.com\/in\/([^/?#]+)/); return m?m[1].replace(/\/+$/,''):''; }
 function existingIndex(){
-  const em=new Set(), li=new Set(), nc=new Set();
+  const em=new Set(), li=new Set(), nc=new Set(), co=new Set();
   (typeof ALL!=='undefined'?ALL:[]).forEach(c=>{
     if(c.email) em.add(String(c.email).toLowerCase().trim());
     const l=normLinkedin(c.linkedin_url); if(l) li.add(l);
     if(c.name) nc.add(normHead(c.name)+'|'+normHead(c.company||''));
+    if(c.company){ const ck=normHead(c.company); if(ck) co.add(ck); }
   });
-  return {em,li,nc};
+  return {em,li,nc,co};
 }
 function applyMapping(){
   const map=currentMapping();
@@ -1287,6 +1294,8 @@ function applyMapping(){
     const fkey = emk || (lik?'li:'+lik:'') || nck;
     if(seen.has(fkey)) dupe=true; else if(fkey) seen.add(fkey);
     r._dupe=dupe;
+    const ck=normHead(r.company||'');
+    r._companyDupe = (!dupe) && !!ck && idx.co.has(ck);
   });
   importedRows=rows; return rows;
 }
@@ -1310,14 +1319,21 @@ function updateImportPreview(){
     if(btn)btn.disabled = e.plan.length<=0;
     return;
   }
-  const dupes=importedRows.filter(r=>r._dupe).length;
-  const news=importedRows.length-dupes;
-  if(dupeRow) dupeRow.style.display=dupes?'flex':'none';
-  const skip=document.getElementById('imp-skip-dupes'); const skipping=dupes && skip && skip.checked;
-  const willImport = skipping ? news : importedRows.length;
-  const withEmail=importedRows.filter(r=>r.email).length; const f=importedRows.find(r=>!r._dupe)||importedRows[0];
+  const exact=importedRows.filter(r=>r._dupe).length;
+  const coOnly=importedRows.filter(r=>r._companyDupe).length;
+  const seEl=document.getElementById('imp-skip-dupes'); const scEl=document.getElementById('imp-skip-company');
+  const se=!!(seEl&&seEl.checked), sc=!!(scEl&&scEl.checked);
+  const coRow=document.getElementById('imp-company-row');
+  if(dupeRow) dupeRow.style.display=exact?'flex':'none';
+  if(coRow) coRow.style.display=coOnly?'flex':'none';
+  const skippedExact = se?exact:0, skippedCo = sc?coOnly:0;
+  const willImport = importedRows.length - skippedExact - skippedCo;
+  const news = importedRows.length - exact - coOnly;
+  const withEmail=importedRows.filter(r=>r.email).length;
+  const f=importedRows.find(r=>!(se&&r._dupe)&&!(sc&&r._companyDupe))||importedRows.find(r=>!r._dupe&&!r._companyDupe)||importedRows[0];
   let dupNote='';
-  if(dupes) dupNote = ` · <b style="color:#b23c22">${dupes}</b> already in your CRM${skipping?' (skipped)':''}`;
+  if(exact) dupNote += ` · <b style="color:#b23c22">${exact}</b> exact match${exact!==1?'es':''}${se?' (skipped)':''}`;
+  if(coOnly) dupNote += ` · <b style="color:#c07a1e">${coOnly}</b> at agencies you already have${sc?' (skipped)':''}`;
   p.innerHTML=`Ready: <b>${willImport}</b> to import · ${news} new${dupNote} · ${withEmail} with email. First new: <b>${escapeHtml(f.name)}</b>${f.email?` &lt;${escapeHtml(f.email)}&gt;`:''}${f.company?` · ${escapeHtml(f.company)}`:''}. Set a category, then Import.`;
   if(btn)btn.disabled = willImport<=0;
 }
@@ -1410,8 +1426,9 @@ async function runImport(){
   const cat=document.getElementById('imp-category').value.trim();
   if(!cat){ setImpStatus('Set a category first.','#b23c22'); return; }
   applyMapping();
-  const skip=document.getElementById('imp-skip-dupes'); const skipping=skip&&skip.checked;
-  const toImport = skipping ? importedRows.filter(r=>!r._dupe) : importedRows;
+  const skipExactEl=document.getElementById('imp-skip-dupes'); const skipCoEl=document.getElementById('imp-skip-company');
+  const se=!!(skipExactEl&&skipExactEl.checked), sc=!!(skipCoEl&&skipCoEl.checked);
+  const toImport = importedRows.filter(r=> !(se&&r._dupe) && !(sc&&r._companyDupe) );
   const skipped = importedRows.length - toImport.length;
   if(!toImport.length){ setImpStatus(skipped?'All rows are already in your database — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
