@@ -1432,7 +1432,7 @@ async function runImport(){
   const skipped = importedRows.length - toImport.length;
   if(!toImport.length){ setImpStatus(skipped?'All rows are already in your database — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
-  const payload=toImport.map(r=>{ const {_dupe, ...rest}=r; return {...rest, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}; });
+  const payload=toImport.map(r=>{ const {_dupe, _companyDupe, ...rest}=r; return {...rest, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}; });
   try{
     const res=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,120));
