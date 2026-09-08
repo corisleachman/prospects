@@ -325,6 +325,9 @@ tr.dragging{opacity:.4}
 @media (max-width:640px){ .imp-map-grid{grid-template-columns:1fr} }
 
 @media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
+
+/* Prospect signal scan */
+.signal-modal-box{width:min(960px,100%)}.signal-tabs{display:flex;gap:6px;margin-bottom:18px}.signal-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:600 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.signal-tab.active{background:var(--black);color:var(--green);border-color:var(--black)}.signal-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.signal-summary{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;line-height:1.5}.signal-list{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow:auto}.signal-person{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}.signal-person:last-child{border-bottom:0}.signal-person small{display:block;color:var(--grey-mid);margin-top:2px}.signal-person a{color:var(--black);font:600 9px 'DM Mono',monospace;text-decoration:none}.signal-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:15px;margin-bottom:10px}.signal-card-top{display:flex;justify-content:space-between;gap:12px;align-items:start}.signal-score{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--black);color:var(--green);font-weight:800}.signal-score.low{background:var(--cream);color:var(--grey-mid)}.signal-card h3{font-size:15px;margin:0 0 3px}.signal-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}.signal-text{font-size:12px;line-height:1.5;margin:12px 0;color:#4f4c47;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.signal-angle{background:var(--cream);border-radius:9px;padding:10px;font-size:11px;line-height:1.45}.signal-actions{display:flex;gap:7px;margin-top:10px}.signal-empty{padding:32px;text-align:center;color:var(--grey-mid);font-size:13px}.signal-cost{font:600 11px 'DM Mono',monospace;color:var(--black)}@media(max-width:700px){.signal-config{grid-template-columns:1fr}.signal-card-top{align-items:center}}
 </style>
 </head>
 <body>
@@ -351,6 +354,10 @@ tr.dragging{opacity:.4}
 <div id="topbar">
   <span class="topbar-title">Prospects<b>.</b></span>
   <div class="topbar-right">
+    <button class="tbtn" onclick="openSignalModal()" title="Find and review LinkedIn prospect signals">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+      Signals
+    </button>
     <a class="tbtn" href="playbook/" style="text-decoration:none" title="Open the outreach playbook">
       <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v16H6.5A2.5 2.5 0 004 21.5z"/><path d="M4 5.5v16M8 7h8M8 11h8"/></svg>
       Playbook
@@ -453,6 +460,35 @@ tr.dragging{opacity:.4}
       </div>
       <div id="enquiries-wrap" style="display:none;margin-top:4px"></div>
     </div>
+  </div>
+</div>
+
+
+<!-- SIGNAL SCAN MODAL -->
+<div id="signal-modal" class="modal" onclick="if(event.target===this)closeSignalModal()">
+  <div class="mbox signal-modal-box">
+    <div class="mhead"><div class="mtitle">Prospect signals</div><button class="mclose" onclick="closeSignalModal()">✕</button></div>
+    <div class="mbody">
+      <div class="signal-tabs">
+        <button class="signal-tab active" id="signal-tab-scan" onclick="showSignalTab('scan')">Find signals</button>
+        <button class="signal-tab" id="signal-tab-review" onclick="showSignalTab('review')">Review queue <span id="signal-new-count"></span></button>
+      </div>
+      <div id="signal-scan-view">
+        <p class="hint">Choose up to 30 prospects. Apify will collect recent LinkedIn posts, then the playbook scoring method will filter for useful outreach signals.</p>
+        <div class="signal-config">
+          <label class="fld" style="margin:0"><label>Batch size</label><select id="signal-batch-size" onchange="applySignalBatchSize()"><option value="10">10 prospects</option><option value="20">20 prospects</option><option value="30">30 prospects</option></select></label>
+          <label class="fld" style="margin:0"><label>Posts per prospect</label><select id="signal-post-count" onchange="updateSignalEstimate()"><option value="2">Latest 2 posts</option><option value="3" selected>Latest 3 posts</option></select></label>
+        </div>
+        <div class="signal-summary" id="signal-estimate">Select prospects to see the maximum estimated cost.</div>
+        <div class="signal-list" id="signal-prospect-list" style="margin-top:12px"></div>
+      </div>
+      <div id="signal-review-view" style="display:none"><div id="signal-results"></div></div>
+    </div>
+    <div class="mfoot" id="signal-scan-footer">
+      <span class="mstatus" id="signal-status"></span>
+      <div style="display:flex;gap:8px"><button class="cancelbtn" onclick="closeSignalModal()">Cancel</button><button class="savebtn" id="signal-run-btn" onclick="runSignalScan()">Check cost and run →</button></div>
+    </div>
+    <div class="mfoot" id="signal-review-footer" style="display:none"><span class="mstatus">Only signals scoring 7+ need action.</span><button class="cancelbtn" onclick="closeSignalModal()">Close</button></div>
   </div>
 </div>
 
@@ -2158,6 +2194,101 @@ async function aiDraftTemplate(){
     document.getElementById('tpl-body').value=reply; toast('AI draft ready');
   }catch(e){ toast(aiErr(e)); }
   btn.disabled=false; btn.textContent=orig;
+}
+
+
+/* ── Prospect signal scan ── */
+let SIGNAL_SELECTED=new Set(), SIGNAL_ITEMS=[];
+function signalEligible(){ return visibleRows().filter(c=>!!linkedinUrl(c)); }
+function openSignalModal(){
+  const eligible=signalEligible();
+  SIGNAL_SELECTED=new Set(eligible.slice(0,Math.min(10,eligible.length)).map(c=>c.id));
+  document.getElementById('signal-batch-size').value='10';
+  document.getElementById('signal-modal').classList.add('open');
+  showSignalTab('scan'); renderSignalProspects(); updateSignalEstimate();
+}
+function closeSignalModal(){ document.getElementById('signal-modal').classList.remove('open'); }
+function showSignalTab(tab){
+  const scan=tab==='scan';
+  document.getElementById('signal-scan-view').style.display=scan?'block':'none';
+  document.getElementById('signal-review-view').style.display=scan?'none':'block';
+  document.getElementById('signal-scan-footer').style.display=scan?'flex':'none';
+  document.getElementById('signal-review-footer').style.display=scan?'none':'flex';
+  document.getElementById('signal-tab-scan').classList.toggle('active',scan);
+  document.getElementById('signal-tab-review').classList.toggle('active',!scan);
+  if(!scan) loadSignalResults();
+}
+function applySignalBatchSize(){
+  const n=Number(document.getElementById('signal-batch-size').value||10);
+  SIGNAL_SELECTED=new Set(signalEligible().slice(0,n).map(c=>c.id));
+  renderSignalProspects(); updateSignalEstimate();
+}
+function toggleSignalProspect(id,checked){
+  if(checked){ if(SIGNAL_SELECTED.size>=30){ toast('Maximum batch size is 30'); renderSignalProspects(); return; } SIGNAL_SELECTED.add(id); }
+  else SIGNAL_SELECTED.delete(id);
+  updateSignalEstimate();
+}
+function renderSignalProspects(){
+  const rows=signalEligible(), box=document.getElementById('signal-prospect-list');
+  if(!rows.length){ box.innerHTML='<div class="signal-empty">No prospects in this view have LinkedIn profile URLs.</div>'; return; }
+  box.innerHTML=rows.map(c=>`<label class="signal-person"><input type="checkbox" ${SIGNAL_SELECTED.has(c.id)?'checked':''} onchange="toggleSignalProspect('${c.id}',this.checked)"><span><b>${escapeHtml(c.name)}</b><small>${escapeHtml(c.company||'No company')} · ${escapeHtml(c.title||'No title')}</small></span><a href="${escapeHtml(linkedinUrl(c))}" target="_blank" rel="noopener">View ↗</a></label>`).join('');
+}
+function updateSignalEstimate(){
+  const n=SIGNAL_SELECTED.size, posts=Number(document.getElementById('signal-post-count').value||3);
+  const postCost=n*posts*.002, cap=Math.max(.02,Math.ceil((postCost+n*.001+.01)*100)/100);
+  document.getElementById('signal-estimate').innerHTML=`<b>${n} selected</b> · up to ${n*posts} posts · estimated post cost <span class="signal-cost">${postCost.toFixed(2)}</span> · maximum run cap <span class="signal-cost">${cap.toFixed(2)}</span><br><span style="color:var(--grey-mid)">Comments, reactions and full-profile enrichment are switched off.</span>`;
+  document.getElementById('signal-run-btn').disabled=!n;
+}
+async function invokeSignalFunction(payload){
+  if(!authValid() && !(await authRefresh())) throw new Error('Your session expired. Please sign in again.');
+  const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/prospect-signal-scan`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+AUTH.token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.error||d.message||('HTTP '+r.status));
+  return d;
+}
+async function runSignalScan(){
+  const ids=[...SIGNAL_SELECTED], posts=Number(document.getElementById('signal-post-count').value||3);
+  if(!ids.length) return;
+  const btn=document.getElementById('signal-run-btn'), status=document.getElementById('signal-status');
+  btn.disabled=true; status.textContent='Checking cost…';
+  try{
+    const estimate=await invokeSignalFunction({action:'estimate',contact_ids:ids,posts_per_contact:posts});
+    const missing=(estimate.missingLinkedIn||[]).length;
+    const message=`Run Apify for ${estimate.eligible} prospects and up to ${estimate.eligible*posts} posts?\n\nEstimated post cost: ${Number(estimate.estimatedPostCostUsd||0).toFixed(2)}\nHard run cap: ${Number(estimate.recommendedCapUsd||0).toFixed(2)}${missing?'\n'+missing+' selected prospects will be skipped because they have no LinkedIn URL.':''}`;
+    if(!window.confirm(message)){ status.textContent='Run cancelled.'; btn.disabled=false; return; }
+    status.textContent='Scanning LinkedIn posts…';
+    const result=await invokeSignalFunction({action:'run',contact_ids:ids,posts_per_contact:posts,confirm_paid_run:true});
+    status.textContent=`${result.actorItems||0} posts checked · ${(result.storedSignals||[]).length} saved`;
+    await loadSignalResults(); showSignalTab('review'); toast('Signal scan complete');
+  }catch(e){ status.textContent='Error: '+e.message; }
+  btn.disabled=false;
+}
+async function loadSignalResults(){
+  const box=document.getElementById('signal-results');
+  box.innerHTML='<div class="signal-empty">Loading signals…</div>';
+  try{
+    const r=await sb('prospect_signals?select=*,contacts(name,company,linkedin_url)&review_status=neq.dismissed&order=total_score.desc,observed_at.desc&limit=100');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    SIGNAL_ITEMS=await r.json();
+    const useful=SIGNAL_ITEMS.filter(s=>Number(s.total_score)>=7);
+    document.getElementById('signal-new-count').textContent=useful.length?'('+useful.length+')':'';
+    if(!SIGNAL_ITEMS.length){ box.innerHTML='<div class="signal-empty">No signals yet. Run a small batch to create the first review queue.</div>'; return; }
+    box.innerHTML=SIGNAL_ITEMS.map(s=>{
+      const score=Number(s.total_score||0), contact=s.contacts||{}, date=s.observed_at?fmtDate(s.observed_at):'Date unknown';
+      return `<article class="signal-card"><div class="signal-card-top"><div><div class="signal-meta">${escapeHtml((s.signal_polarity||'no signal')+' · '+(s.signal_category||'not relevant')+' · '+date)}</div><h3>${escapeHtml(contact.name||s.author_name||'Unknown prospect')}${contact.company?' · '+escapeHtml(contact.company):''}</h3></div><div class="signal-score ${score<7?'low':''}">${score}/10</div></div><div class="signal-text">${escapeHtml(s.source_text)}</div>${s.working_hypothesis?`<div class="signal-angle"><b>Working hypothesis:</b> ${escapeHtml(s.working_hypothesis)}${s.outreach_angle?'<br><br><b>Suggested response:</b> '+escapeHtml(s.outreach_angle):''}</div>`:''}<div class="signal-actions"><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(s.source_url)}" target="_blank" rel="noopener">View post ↗</a><button class="cancelbtn" onclick="setSignalStatus('${s.id}','saved')">Save</button><button class="cancelbtn" onclick="setSignalStatus('${s.id}','dismissed')">Dismiss</button>${score>=7?'<button class="savebtn" onclick="prepareSignalOutreach(\''+s.id+'\')">Prepare outreach</button>':''}</div></article>`;
+    }).join('');
+  }catch(e){ box.innerHTML='<div class="signal-empty">Could not load signals: '+escapeHtml(e.message)+'</div>'; }
+}
+async function setSignalStatus(id,status){
+  const r=await sb('prospect_signals?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({review_status:status})});
+  if(!r.ok){ toast('Could not update signal'); return; }
+  loadSignalResults();
+}
+function prepareSignalOutreach(id){
+  const s=SIGNAL_ITEMS.find(x=>x.id===id); if(!s)return;
+  const c=s.contacts||{};
+  const prompt=`Prepare a concise, low-pressure outreach message for ${c.name||s.author_name}${c.company?' at '+c.company:''}.\n\nVerified LinkedIn post:\n${s.source_text}\nSource: ${s.source_url}\n\nWorking hypothesis: ${s.working_hypothesis||'None'}\nSuggested response: ${s.outreach_angle||'Engage with the post without forcing a sales pitch.'}\n\nTreat the implication as a question, not a fact. Use one reason for contact and one small next step. Don't promise leads, meetings or revenue.`;
+  navigator.clipboard.writeText(prompt).then(()=>toast('Outreach brief copied'));
 }
 
 /* ── Command palette ── */
