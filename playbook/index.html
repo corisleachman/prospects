@@ -19,7 +19,9 @@ button,input,select,textarea{font:inherit}.mono{font-family:'DM Mono',monospace}
 .coach{position:fixed;inset:0;z-index:60;background:var(--cream);display:none;overflow:auto}.coach.open{display:block}.coach-top{height:56px;background:var(--black);display:flex;align-items:center;justify-content:space-between;padding:0 24px;color:#fff}.coach-wrap{max-width:820px;margin:0 auto;padding:34px 24px 80px}.progress{font:500 9px 'DM Mono';letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin-bottom:9px}.coach h2{font-size:29px;letter-spacing:-.04em;margin:0 0 7px}.coach-lede{color:var(--grey);margin:0 0 22px}.steps{display:grid;gap:12px}.step{background:#fff;border:1.5px solid var(--soft);border-radius:14px;padding:18px}.step label{display:block;font:600 9px 'DM Mono';letter-spacing:.12em;text-transform:uppercase;color:var(--grey);margin-bottom:7px}.step input,.step select,.step textarea{width:100%;background:var(--cream);border:1.5px solid var(--soft);border-radius:9px;padding:11px 12px;outline:none}.step textarea{min-height:72px;resize:vertical}.step input:focus,.step select:focus,.step textarea:focus{border-color:var(--black)}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.coach-actions{display:flex;gap:8px;margin-top:16px}.result{display:none;margin-top:18px;background:var(--black);color:#fff;border-radius:16px;padding:20px}.result.show{display:block}.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.result-block{background:#ffffff0b;border:1px solid #ffffff14;border-radius:10px;padding:13px}.result-label{font:500 8px 'DM Mono';letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:6px}.result-text{font-size:13px;line-height:1.5;color:#ddd;white-space:pre-wrap}.readiness{font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:14px}.readiness.wait{color:var(--amber)}.readiness.ready{color:var(--green)}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.quick .card{padding:15px}.quick b{display:block;font-size:13px;margin-bottom:5px}.quick span{font-size:11px;color:var(--grey);line-height:1.4;display:block}
 .template-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.filter-btn{border:1px solid var(--soft);background:var(--white);color:var(--grey);border-radius:999px;padding:7px 11px;font:600 9px 'DM Mono';letter-spacing:.07em;text-transform:uppercase;cursor:pointer}.filter-btn.active{background:var(--black);border-color:var(--black);color:var(--green)}.templates{display:grid;grid-template-columns:1fr 1fr;gap:12px}.template-card{display:flex;flex-direction:column;gap:13px}.template-top{display:flex;align-items:start;justify-content:space-between;gap:12px}.template-card h3{font-size:18px;letter-spacing:-.025em;margin:3px 0 0}.template-subject{font:500 9px 'DM Mono';letter-spacing:.07em;text-transform:uppercase;color:var(--grey)}.template-copy{white-space:pre-wrap;background:var(--cream);border:1px solid var(--soft);border-radius:11px;padding:14px;font-size:12px;line-height:1.55;flex:1}.copy-template{align-self:flex-start}.template-card.hidden{display:none}
-@media(max-width:900px){.families{grid-template-columns:repeat(2,1fr)}.signals,.quick,.templates{grid-template-columns:repeat(2,1fr)}.start-grid{grid-template-columns:1fr}}@media(max-width:600px){.shell{padding:22px 16px 60px}.families,.signals,.rules,.quick,.templates,.row,.result-grid{grid-template-columns:1fr}.top-actions .hide-sm{display:none}h1{font-size:29px}.family{min-height:150px}}
+
+.method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.method-card h3{font-size:17px;margin:4px 0 8px;letter-spacing:-.02em}.method-card p{font-size:12px;color:var(--grey);line-height:1.5;margin:0}.method-card .tag{display:inline-block;margin-top:12px;padding:5px 8px;border-radius:999px;background:var(--cream);font:500 8px 'DM Mono';letter-spacing:.08em;text-transform:uppercase}.signal-library{display:grid;grid-template-columns:1fr 1fr;gap:12px}.signal-column{padding:20px}.signal-column.positive{border-top:5px solid var(--green)}.signal-column.negative{border-top:5px solid var(--coral)}.signal-column h3{font-size:20px;margin:4px 0 5px}.signal-group{padding:13px 0;border-top:1px solid var(--soft)}.signal-group:first-of-type{margin-top:10px}.signal-group b{display:block;font-size:13px;margin-bottom:5px}.signal-group span{display:block;font-size:12px;line-height:1.45;color:var(--grey)}.signal-group em{display:block;margin-top:6px;font:500 9px 'DM Mono';line-height:1.45;color:var(--black);font-style:normal}.score-wrap{display:grid;grid-template-columns:.78fr 1.22fr;gap:12px}.score-card{background:var(--black);color:#fff}.score-total{font-size:54px;line-height:1;font-weight:800;letter-spacing:-.06em;color:var(--green);margin:12px 0 5px}.score-total span{font-size:19px;color:#777}.score-card p{color:#aaa;font-size:12px;line-height:1.5}.score-table{width:100%;border-collapse:collapse}.score-table th,.score-table td{text-align:left;padding:10px 8px;border-top:1px solid var(--soft);font-size:12px;vertical-align:top}.score-table th{font:600 8px 'DM Mono';letter-spacing:.09em;text-transform:uppercase;color:var(--grey)}.score-table td:first-child{font-weight:700}.score-table td:nth-child(2){font-family:'DM Mono';white-space:nowrap}.action-ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.action-step{position:relative;min-height:180px}.action-step .range{font:600 10px 'DM Mono';color:var(--grey)}.action-step h3{font-size:16px;margin:18px 0 7px}.action-step p{font-size:12px;line-height:1.48;color:var(--grey);margin:0}.action-step.hot{background:var(--black);color:#fff}.action-step.hot p{color:#aaa}.action-step.hot .range{color:var(--green)}.evidence-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.evidence-item{display:flex;gap:12px;align-items:flex-start}.evidence-num{flex:0 0 28px;height:28px;border-radius:50%;background:var(--black);color:var(--green);display:grid;place-items:center;font:600 9px 'DM Mono'}.evidence-item b{display:block;font-size:13px;margin-bottom:3px}.evidence-item span{font-size:12px;color:var(--grey);line-height:1.45}.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.pipe-step{padding:15px;background:var(--white);border:1.5px solid var(--soft);border-radius:13px}.pipe-step .eyebrow{color:var(--grey)}.pipe-step b{display:block;font-size:13px;margin:10px 0 5px}.pipe-step span{font-size:11px;color:var(--grey);line-height:1.4}.source-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.source-grid .card{padding:15px}.source-grid b{display:block;font-size:13px;margin-bottom:5px}.source-grid span{font-size:11px;color:var(--grey);line-height:1.4;display:block}.weak-list{columns:2;column-gap:28px;margin:12px 0 0;padding-left:18px}.weak-list li{break-inside:avoid;font-size:12px;line-height:1.45;margin-bottom:8px;color:var(--grey)}
+@media(max-width:900px){.families{grid-template-columns:repeat(2,1fr)}.signals,.quick,.templates,.action-ladder,.source-grid,.pipeline{grid-template-columns:repeat(2,1fr)}.start-grid{grid-template-columns:1fr}}@media(max-width:600px){.shell{padding:22px 16px 60px}.families,.signals,.rules,.quick,.templates,.row,.result-grid,.method-grid,.signal-library,.score-wrap,.action-ladder,.evidence-grid,.source-grid,.pipeline{grid-template-columns:1fr}.weak-list{columns:1}.top-actions .hide-sm{display:none}h1{font-size:29px}.family{min-height:150px}}
 </style>
 </head>
 <body>
@@ -45,6 +47,111 @@ button,input,select,textarea{font:inherit}.mono{font-family:'DM Mono',monospace}
       <p class="small">Best case: one verified event plus a second supporting signal.</p>
     </section>
   </div>
+
+
+  <section class="section" id="methodology">
+    <div class="section-head"><div><div class="eyebrow">The complete method</div><h2>What the signal system is set up to do</h2></div><p>Scan widely. Interrupt selectively.</p></div>
+    <div class="method-grid">
+      <article class="card method-card"><div class="eyebrow">01 · Monitor</div><h3>Watch a changing prospect universe</h3><p>Track founder-led independent creative, digital and social agencies, generally 10–100 people and especially 10–30. Follow the company plus founders, owners, MDs and relevant growth leaders.</p><span class="tag">Hundreds monitored</span></article>
+      <article class="card method-card"><div class="eyebrow">02 · Detect</div><h3>Find evidence of change or pressure</h3><p>Collect public events, posts, comments, hiring, leadership moves, offer changes and agency news. A source item is evidence. It only becomes a signal after its possible commercial meaning has been assessed.</p><span class="tag">Thousands scanned</span></article>
+      <article class="card method-card"><div class="eyebrow">03 · Judge</div><h3>Separate useful evidence from noise</h3><p>Classify, deduplicate and score every candidate signal. Prefer multiple related signals over one isolated event. Preserve the source URL, date and exact supporting evidence.</p><span class="tag">Only strong items surface</span></article>
+      <article class="card method-card"><div class="eyebrow">04 · Act</div><h3>Recommend the smallest credible action</h3><p>Decide whether to comment publicly, connect, send a private note, research further or wait. AI prepares the brief and draft. Coris reviews every message before anything is sent.</p><span class="tag">Human approval required</span></article>
+    </div>
+  </section>
+
+  <section class="section" id="signal-library">
+    <div class="section-head"><div><div class="eyebrow">Signal library</div><h2>Positive and negative signals</h2></div><p>A positive event can create as much need as a problem.</p></div>
+    <div class="signal-library">
+      <article class="card signal-column positive">
+        <div class="eyebrow">Momentum and investment</div><h3>Positive signals</h3>
+        <div class="signal-group"><b>Growth ambition</b><span>Expansion into a new market, an aggressive growth target, office opening, acquisition or public statement of ambition.</span><em>Response: recognise the direction, then ask what must change commercially to support it.</em></div>
+        <div class="signal-group"><b>Team expansion</b><span>First commercial hire, senior marketing or growth appointment, several delivery hires, or rapid headcount growth.</span><em>Response: explore whether the operating model, ownership and pipeline are ready for the extra capacity.</em></div>
+        <div class="signal-group"><b>Offer development</b><span>New service, capability, sector proposition, productised offer, AI offer or partnership.</span><em>Response: ask how the offer is being packaged, evidenced and taken to market.</em></div>
+        <div class="signal-group"><b>Positioning change</b><span>Rebrand, new website, proposition rewrite, clearer specialism or new market narrative.</span><em>Response: offer an informed outside view. Never turn a positive launch into unsolicited criticism.</em></div>
+        <div class="signal-group"><b>Commercial momentum</b><span>Major client win, strong run of wins, award, funding, senior promotion or visible business confidence.</span><em>Response: focus on maintaining momentum and converting success into repeatable growth.</em></div>
+        <div class="signal-group"><b>Founder perspective</b><span>A founder asks a relevant question, describes a priority, shares a lesson or discusses growth systems and AI.</span><em>Response: engage with the stated view first. A private message is justified only when you can add something useful.</em></div>
+      </article>
+      <article class="card signal-column negative">
+        <div class="eyebrow">Pressure and constraint</div><h3>Negative signals</h3>
+        <div class="signal-group"><b>System pressure</b><span>Founder wearing too many hats, bursts of marketing, disconnected tools, weak CRM adoption, slow follow-up or nobody clearly owning growth.</span><em>Response: frame the gap as a question and offer a practical diagnostic or example workflow.</em></div>
+        <div class="signal-group"><b>Pipeline quality</b><span>Referral dependence, unpredictable opportunities, low conversion, poor forecasting or a pipeline that cannot be trusted.</span><em>Response: discuss visibility, qualification and consistency. Don't imply guaranteed leads.</em></div>
+        <div class="signal-group"><b>Commercial pressure</b><span>Client loss, concentration risk, redundancies, contraction, profit pressure, stalled growth or a missed target.</span><em>Response: handle carefully. Research before contacting and never exploit bad news in the opening.</em></div>
+        <div class="signal-group"><b>Hiring friction</b><span>Repeated vacancy, long-open role, difficulty finding senior growth talent or a role that combines too many responsibilities.</span><em>Response: ask whether the need is really a hire, a system gap, or both.</em></div>
+        <div class="signal-group"><b>Positioning confusion</b><span>Broad capability list, inconsistent story, unclear differentiation or several offers competing for attention.</span><em>Response: treat this as a hypothesis, not a diagnosis. Use a specific observation and invite their view.</em></div>
+        <div class="signal-group"><b>Explicit frustration</b><span>A founder openly describes inconsistent new business, lack of time, poor technology adoption, content pressure or uncertainty about AI.</span><em>Response: mirror their language lightly, acknowledge the issue and offer one relevant idea or question.</em></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="scoring">
+    <div class="section-head"><div><div class="eyebrow">Qualification</div><h2>Score before contacting</h2></div><p>Research or outreach starts at 7/10.</p></div>
+    <div class="score-wrap">
+      <article class="card score-card"><div class="eyebrow" style="color:var(--green)">Signal threshold</div><div class="score-total">7<span>/10</span></div><p>The score is a decision aid, not permission to invent a problem. A high score still needs verified evidence and a credible, low-pressure reason to contact the person.</p></article>
+      <article class="card">
+        <table class="score-table"><thead><tr><th>Dimension</th><th>Score</th><th>Question</th></tr></thead><tbody>
+          <tr><td>Trigger</td><td>0–3</td><td>Is there a recent, specific external event or statement?</td></tr>
+          <tr><td>Need</td><td>0–3</td><td>Does the evidence suggest a commercially meaningful problem, pressure or opportunity?</td></tr>
+          <tr><td>Readiness</td><td>0–2</td><td>Is the agency visibly investing, changing or open to action now?</td></tr>
+          <tr><td>Fit</td><td>0–2</td><td>Does the agency and issue fit Coris's experience and offer?</td></tr>
+        </tbody></table>
+      </article>
+    </div>
+    <div class="action-ladder" style="margin-top:12px">
+      <article class="card action-step"><span class="range">0–3</span><h3>Ignore or monitor</h3><p>There is only ICP fit, generic activity or weak evidence. Store it without creating outreach.</p></article>
+      <article class="card action-step"><span class="range">4–6</span><h3>Research further</h3><p>There may be something useful, but the commercial implication or timing is not strong enough yet.</p></article>
+      <article class="card action-step hot"><span class="range">7–8</span><h3>Prepare engagement</h3><p>Choose a public comment, connection request or short private message based on the source and relationship.</p></article>
+      <article class="card action-step hot"><span class="range">9–10</span><h3>Priority outreach</h3><p>Multiple verified signals create a timely reason to act. Prepare a highly personalised note and clear value exchange.</p></article>
+    </div>
+  </section>
+
+  <section class="section" id="evidence">
+    <div class="section-head"><div><div class="eyebrow">Evidence standard</div><h2>What counts as a real signal?</h2></div><p>Never turn inference into fact.</p></div>
+    <div class="card evidence-grid">
+      <div class="evidence-item"><span class="evidence-num">01</span><div><b>Recent</b><span>Record when the event happened, not just when an article or repost was found.</span></div></div>
+      <div class="evidence-item"><span class="evidence-num">02</span><div><b>Sourceable</b><span>Keep the direct URL, source type, publication date and a short exact extract or faithful note.</span></div></div>
+      <div class="evidence-item"><span class="evidence-num">03</span><div><b>Commercially relevant</b><span>Explain why it may affect growth, positioning, pipeline, capacity, systems or ownership.</span></div></div>
+      <div class="evidence-item"><span class="evidence-num">04</span><div><b>Explicitly qualified</b><span>Separate the observed fact from your working hypothesis. Phrase the implication as a question.</span></div></div>
+      <div class="evidence-item"><span class="evidence-num">05</span><div><b>Deduplicated</b><span>Several articles repeating one announcement are one event. Several different events may form a strong signal cluster.</span></div></div>
+      <div class="evidence-item"><span class="evidence-num">06</span><div><b>Person-specific</b><span>Use a founder's post or comment for their perspective. Don't transfer another employee's view to them.</span></div></div>
+    </div>
+    <article class="card" style="margin-top:12px"><div class="eyebrow">Weak on their own</div><h3 style="margin:7px 0 0">These are prompts to investigate, not automatic outreach reasons</h3><ul class="weak-list"><li>An ordinary award announcement</li><li>A standard vacancy with no wider context</li><li>A new case study</li><li>A website refresh</li><li>General headcount growth</li><li>Infrequent posting</li><li>A generic AI post</li><li>A vague compliment about the work</li></ul></article>
+  </section>
+
+  <section class="section" id="response">
+    <div class="section-head"><div><div class="eyebrow">Response method</div><h2>Match the action to the evidence</h2></div><p>Personalisation should be proportional to what you know.</p></div>
+    <div class="quick">
+      <div class="card"><b>Public perspective</b><span>Comment first. Respond to the idea in the post without steering immediately towards your service.</span></div>
+      <div class="card"><b>Strong business event</b><span>Send a brief private note connecting the event to one useful question or observation.</span></div>
+      <div class="card"><b>Possible but incomplete signal</b><span>Research or monitor. Don't manufacture a personalised opening from thin evidence.</span></div>
+      <div class="card"><b>Sensitive negative event</b><span>Pause and investigate. Don't mention redundancies, losses or financial pressure opportunistically.</span></div>
+    </div>
+    <div class="method-grid" style="margin-top:12px">
+      <article class="card method-card"><div class="eyebrow">Minimal</div><h3>One relevant reference</h3><p>Use for an initial approach where information is limited. Be straightforward about relevance rather than pretending to know their problem.</p></article>
+      <article class="card method-card"><div class="eyebrow">Moderate</div><h3>Signal plus working hypothesis</h3><p>Use a verified event and one plausible commercial implication. Ask whether your reading is fair.</p></article>
+      <article class="card method-card"><div class="eyebrow">High</div><h3>Signal cluster plus useful idea</h3><p>Reserve for strategic prospects. Reference several connected facts and offer a tailored observation, workflow or relevant example.</p></article>
+      <article class="card method-card"><div class="eyebrow">Follow-up</div><h3>Add value or wait</h3><p>Check the last promise, stated decision date and relationship warmth. Follow up when there is new information or a useful next step, not just because time passed.</p></article>
+    </div>
+  </section>
+
+  <section class="section" id="collection">
+    <div class="section-head"><div><div class="eyebrow">Collection system</div><h2>How signals enter the queue</h2></div><p>The model classifies evidence. It isn't the primary collector.</p></div>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="eyebrow">01</div><b>Collect</b><span>Scheduled sources gather new public items.</span></div>
+      <div class="pipe-step"><div class="eyebrow">02</div><b>Normalise</b><span>Attach agency, person, date, source and URL.</span></div>
+      <div class="pipe-step"><div class="eyebrow">03</div><b>Classify</b><span>Apply category, polarity and working implication.</span></div>
+      <div class="pipe-step"><div class="eyebrow">04</div><b>Score</b><span>Deduplicate, cluster and apply the 10-point model.</span></div>
+      <div class="pipe-step"><div class="eyebrow">05</div><b>Review</b><span>Surface a short daily action queue for human approval.</span></div>
+    </div>
+    <div class="source-grid" style="margin-top:12px">
+      <div class="card"><b>LinkedIn and Sales Navigator</b><span>Named-person posts, comments, company activity, saved-lead alerts and career changes. Treat LinkedIn as the primary source of founder perspective.</span></div>
+      <div class="card"><b>News and alerts</b><span>Google Alerts, news search, agency publications, press releases, interviews, podcasts and newsletters.</span></div>
+      <div class="card"><b>Owned channels</b><span>Agency websites, news pages, service pages, careers pages and website-change monitoring.</span></div>
+      <div class="card"><b>Corporate records</b><span>Companies House, leadership appointments, ownership changes and filings where relevant.</span></div>
+      <div class="card"><b>Jobs and hiring</b><span>New roles, repeated vacancies, role descriptions and hiring clusters. A vacancy supports a theory; it rarely proves one.</span></div>
+      <div class="card"><b>Inbox and CRM</b><span>Replies, stated priorities, promises, proposal activity and relationship history. Keep buying signals separate from public prospect signals.</span></div>
+    </div>
+    <article class="card" style="margin-top:12px"><div class="eyebrow">Prospect coverage</div><h3 style="font-size:18px;margin:7px 0 7px">Use a portfolio, not a permanently fixed list</h3><p class="small" style="max-width:900px">Maintain a priority group for active relationships and high-fit agencies, a rotating discovery group for new agencies, and a watchlist for weak or developing signals. Importing a prospect creates monitoring subscriptions. Review the mix regularly so Gold Front, Little Bird PR, Umpf, Billion Dollar Boy and OMSE can remain useful starting points without becoming the whole search.</p></article>
+  </section>
 
   <section class="section" id="families">
     <div class="section-head"><div><div class="eyebrow">Choose one</div><h2>Five message families</h2></div><p>One reason for contact. One next step.</p></div>
