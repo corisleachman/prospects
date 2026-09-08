@@ -327,7 +327,7 @@ tr.dragging{opacity:.4}
 @media (prefers-reduced-motion: reduce){ .np-card{animation:none} .skel-cell{animation:none} }
 
 /* Prospect signal scan */
-.signal-modal-box{width:min(960px,100%)}.signal-tabs{display:flex;gap:6px;margin-bottom:18px}.signal-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:600 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.signal-tab.active{background:var(--black);color:var(--green);border-color:var(--black)}.signal-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.signal-summary{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;line-height:1.5}.signal-list{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow:auto}.signal-person{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}.signal-person:last-child{border-bottom:0}.signal-person small{display:block;color:var(--grey-mid);margin-top:2px}.signal-person a{color:var(--black);font:600 9px 'DM Mono',monospace;text-decoration:none}.signal-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:15px;margin-bottom:10px}.signal-card-top{display:flex;justify-content:space-between;gap:12px;align-items:start}.signal-score{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--black);color:var(--green);font-weight:800}.signal-score.low{background:var(--cream);color:var(--grey-mid)}.signal-card h3{font-size:15px;margin:0 0 3px}.signal-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}.signal-text{font-size:12px;line-height:1.5;margin:12px 0;color:#4f4c47;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.signal-angle{background:var(--cream);border-radius:9px;padding:10px;font-size:11px;line-height:1.45}.signal-actions{display:flex;gap:7px;margin-top:10px}.signal-empty{padding:32px;text-align:center;color:var(--grey-mid);font-size:13px}.signal-cost{font:600 11px 'DM Mono',monospace;color:var(--black)}@media(max-width:700px){.signal-config{grid-template-columns:1fr}.signal-card-top{align-items:center}}
+.signal-modal-box{width:min(960px,100%)}.signal-tabs{display:flex;gap:6px;margin-bottom:18px}.signal-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:600 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.signal-tab.active{background:var(--black);color:var(--green);border-color:var(--black)}.signal-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.signal-summary{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;line-height:1.5}.signal-list{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow:auto}.signal-person{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}.signal-person:last-child{border-bottom:0}.signal-person small{display:block;color:var(--grey-mid);margin-top:2px}.signal-person a{color:var(--black);font:600 9px 'DM Mono',monospace;text-decoration:none}.signal-person.scanned{background:var(--cream-soft);opacity:.72}.signal-checked{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#daf6d2;color:#286318;font:600 8px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}.signal-option{display:flex;align-items:center;gap:8px;margin:9px 0 0;font-size:11px;color:var(--grey-mid)}.signal-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:15px;margin-bottom:10px}.signal-card-top{display:flex;justify-content:space-between;gap:12px;align-items:start}.signal-score{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--black);color:var(--green);font-weight:800}.signal-score.low{background:var(--cream);color:var(--grey-mid)}.signal-card h3{font-size:15px;margin:0 0 3px}.signal-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}.signal-text{font-size:12px;line-height:1.5;margin:12px 0;color:#4f4c47;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.signal-angle{background:var(--cream);border-radius:9px;padding:10px;font-size:11px;line-height:1.45}.signal-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.signal-empty{padding:32px;text-align:center;color:var(--grey-mid);font-size:13px}.signal-cost{font:600 11px 'DM Mono',monospace;color:var(--black)}@media(max-width:700px){.signal-config{grid-template-columns:1fr}.signal-card-top{align-items:center}}
 </style>
 </head>
 <body>
@@ -472,6 +472,7 @@ tr.dragging{opacity:.4}
       <div class="signal-tabs">
         <button class="signal-tab active" id="signal-tab-scan" onclick="showSignalTab('scan')">Find signals</button>
         <button class="signal-tab" id="signal-tab-review" onclick="showSignalTab('review')">Review queue <span id="signal-new-count"></span></button>
+        <button class="signal-tab" id="signal-tab-discover" onclick="showSignalTab('discover')">New prospects <span id="signal-discovery-count"></span></button>
       </div>
       <div id="signal-scan-view">
         <p class="hint">Choose up to 30 prospects. Apify will collect recent LinkedIn posts, then the playbook scoring method will filter for useful outreach signals.</p>
@@ -480,9 +481,11 @@ tr.dragging{opacity:.4}
           <label class="fld" style="margin:0"><label>Posts per prospect</label><select id="signal-post-count" onchange="updateSignalEstimate()"><option value="2">Latest 2 posts</option><option value="3" selected>Latest 3 posts</option></select></label>
         </div>
         <div class="signal-summary" id="signal-estimate">Select prospects to see the maximum estimated cost.</div>
+        <label class="signal-option"><input type="checkbox" id="signal-include-scanned" onchange="toggleScannedProspects()"> Show already checked prospects and allow a deliberate rescan</label>
         <div class="signal-list" id="signal-prospect-list" style="margin-top:12px"></div>
       </div>
       <div id="signal-review-view" style="display:none"><div id="signal-results"></div></div>
+      <div id="signal-discover-view" style="display:none"><p class="hint">People found through conversation and keyword searches who aren't already in the CRM.</p><div id="signal-discoveries"></div></div>
     </div>
     <div class="mfoot" id="signal-scan-footer">
       <span class="mstatus" id="signal-status"></span>
@@ -2198,8 +2201,12 @@ async function aiDraftTemplate(){
 
 
 /* ── Prospect signal scan ── */
-let SIGNAL_SELECTED=new Set(), SIGNAL_ITEMS=[];
-function signalEligible(){ return visibleRows().filter(c=>!!linkedinUrl(c)); }
+let SIGNAL_SELECTED=new Set(), SIGNAL_ITEMS=[], SIGNAL_DISCOVERIES=[];
+function signalAllEligible(){ return visibleRows().filter(c=>!!linkedinUrl(c)); }
+function signalEligible(){
+  const include=document.getElementById('signal-include-scanned')?.checked;
+  return signalAllEligible().filter(c=>include||!c.signal_scanned_at);
+}
 function openSignalModal(){
   const eligible=signalEligible();
   SIGNAL_SELECTED=new Set(eligible.slice(0,Math.min(10,eligible.length)).map(c=>c.id));
@@ -2210,14 +2217,19 @@ function openSignalModal(){
 function closeSignalModal(){ document.getElementById('signal-modal').classList.remove('open'); }
 function showSignalTab(tab){
   const scan=tab==='scan';
+  const review=tab==='review';
   document.getElementById('signal-scan-view').style.display=scan?'block':'none';
-  document.getElementById('signal-review-view').style.display=scan?'none':'block';
+  document.getElementById('signal-review-view').style.display=review?'block':'none';
+  document.getElementById('signal-discover-view').style.display=tab==='discover'?'block':'none';
   document.getElementById('signal-scan-footer').style.display=scan?'flex':'none';
   document.getElementById('signal-review-footer').style.display=scan?'none':'flex';
   document.getElementById('signal-tab-scan').classList.toggle('active',scan);
-  document.getElementById('signal-tab-review').classList.toggle('active',!scan);
-  if(!scan) loadSignalResults();
+  document.getElementById('signal-tab-review').classList.toggle('active',review);
+  document.getElementById('signal-tab-discover').classList.toggle('active',tab==='discover');
+  if(review) loadSignalResults();
+  if(tab==='discover') loadSignalDiscoveries();
 }
+function toggleScannedProspects(){ applySignalBatchSize(); }
 function applySignalBatchSize(){
   const n=Number(document.getElementById('signal-batch-size').value||10);
   SIGNAL_SELECTED=new Set(signalEligible().slice(0,n).map(c=>c.id));
@@ -2229,9 +2241,9 @@ function toggleSignalProspect(id,checked){
   updateSignalEstimate();
 }
 function renderSignalProspects(){
-  const rows=signalEligible(), box=document.getElementById('signal-prospect-list');
-  if(!rows.length){ box.innerHTML='<div class="signal-empty">No prospects in this view have LinkedIn profile URLs.</div>'; return; }
-  box.innerHTML=rows.map(c=>`<label class="signal-person"><input type="checkbox" ${SIGNAL_SELECTED.has(c.id)?'checked':''} onchange="toggleSignalProspect('${c.id}',this.checked)"><span><b>${escapeHtml(c.name)}</b><small>${escapeHtml(c.company||'No company')} · ${escapeHtml(c.title||'No title')}</small></span><a href="${escapeHtml(linkedinUrl(c))}" target="_blank" rel="noopener">View ↗</a></label>`).join('');
+  const rows=signalEligible(), box=document.getElementById('signal-prospect-list'), all=signalAllEligible();
+  if(!rows.length){ box.innerHTML=`<div class="signal-empty">${all.length?'Everyone in this view has already been checked. Turn on deliberate rescan to see them.':'No prospects in this view have LinkedIn profile URLs.'}</div>`; return; }
+  box.innerHTML=rows.map(c=>`<label class="signal-person ${c.signal_scanned_at?'scanned':''}"><input type="checkbox" ${SIGNAL_SELECTED.has(c.id)?'checked':''} onchange="toggleSignalProspect('${c.id}',this.checked)"><span><b>${escapeHtml(c.name)}</b>${c.signal_scanned_at?'<span class="signal-checked">Checked '+escapeHtml(fmtDate(c.signal_scanned_at))+'</span>':''}<small>${escapeHtml(c.company||'No company')} · ${escapeHtml(c.title||'No title')}</small></span><a href="${escapeHtml(linkedinUrl(c))}" target="_blank" rel="noopener">View ↗</a></label>`).join('');
 }
 function updateSignalEstimate(){
   const n=SIGNAL_SELECTED.size, posts=Number(document.getElementById('signal-post-count').value||3);
@@ -2252,13 +2264,17 @@ async function runSignalScan(){
   const btn=document.getElementById('signal-run-btn'), status=document.getElementById('signal-status');
   btn.disabled=true; status.textContent='Checking cost…';
   try{
-    const estimate=await invokeSignalFunction({action:'estimate',contact_ids:ids,posts_per_contact:posts});
+    const force=document.getElementById('signal-include-scanned').checked;
+    const estimate=await invokeSignalFunction({action:'estimate',contact_ids:ids,posts_per_contact:posts,force_rescan:force});
     const missing=(estimate.missingLinkedIn||[]).length;
-    const message=`Run Apify for ${estimate.eligible} prospects and up to ${estimate.eligible*posts} posts?\n\nEstimated post cost: ${Number(estimate.estimatedPostCostUsd||0).toFixed(2)}\nHard run cap: ${Number(estimate.recommendedCapUsd||0).toFixed(2)}${missing?'\n'+missing+' selected prospects will be skipped because they have no LinkedIn URL.':''}`;
+    const repeats=(estimate.alreadyScanned||[]).length;
+    if(!estimate.eligible){ status.textContent=repeats?'Everyone selected has already been checked.':'No selected prospects can be scanned.'; btn.disabled=false; return; }
+    const message=`Run Apify for ${estimate.eligible} prospects and up to ${estimate.eligible*posts} posts?\n\nEstimated post cost: ${Number(estimate.estimatedPostCostUsd||0).toFixed(2)}\nHard run cap: ${Number(estimate.recommendedCapUsd||0).toFixed(2)}${missing?'\n'+missing+' selected prospects will be skipped because they have no LinkedIn URL.':''}${repeats&&!force?'\n'+repeats+' already checked prospects will not be searched again.':''}${force&&repeats?'\nYou are deliberately rescanning '+repeats+' previously checked prospects.':''}`;
     if(!window.confirm(message)){ status.textContent='Run cancelled.'; btn.disabled=false; return; }
     status.textContent='Scanning LinkedIn posts…';
-    const result=await invokeSignalFunction({action:'run',contact_ids:ids,posts_per_contact:posts,confirm_paid_run:true});
-    status.textContent=`${result.actorItems||0} posts checked · ${(result.storedSignals||[]).length} saved`;
+    const result=await invokeSignalFunction({action:'run',contact_ids:ids,posts_per_contact:posts,confirm_paid_run:true,force_rescan:force});
+    (result.scannedContactIds||[]).forEach(id=>{const c=ALL.find(x=>x.id===id);if(c)c.signal_scanned_at=result.scannedAt;});
+    status.textContent=`${result.eligible||0} prospects marked checked · ${result.actorItems||0} posts checked · ${(result.storedSignals||[]).length} saved`;
     await loadSignalResults(); showSignalTab('review'); toast('Signal scan complete');
   }catch(e){ status.textContent='Error: '+e.message; }
   btn.disabled=false;
@@ -2289,6 +2305,32 @@ function prepareSignalOutreach(id){
   const c=s.contacts||{};
   const prompt=`Prepare a concise, low-pressure outreach message for ${c.name||s.author_name}${c.company?' at '+c.company:''}.\n\nVerified LinkedIn post:\n${s.source_text}\nSource: ${s.source_url}\n\nWorking hypothesis: ${s.working_hypothesis||'None'}\nSuggested response: ${s.outreach_angle||'Engage with the post without forcing a sales pitch.'}\n\nTreat the implication as a question, not a fact. Use one reason for contact and one small next step. Don't promise leads, meetings or revenue.`;
   navigator.clipboard.writeText(prompt).then(()=>toast('Outreach brief copied'));
+}
+async function loadSignalDiscoveries(){
+  const box=document.getElementById('signal-discoveries');
+  box.innerHTML='<div class="signal-empty">Loading new prospects…</div>';
+  try{
+    const r=await sb('prospect_discoveries?select=*&review_status=not.in.(added,dismissed)&order=total_score.desc,observed_at.desc&limit=100');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    SIGNAL_DISCOVERIES=await r.json();
+    document.getElementById('signal-discovery-count').textContent=SIGNAL_DISCOVERIES.length?'('+SIGNAL_DISCOVERIES.length+')':'';
+    if(!SIGNAL_DISCOVERIES.length){ box.innerHTML='<div class="signal-empty">No outside prospects yet. Keyword and conversation searches will place people here before anything is added to the CRM.</div>'; return; }
+    box.innerHTML=SIGNAL_DISCOVERIES.map(d=>`<article class="signal-card"><div class="signal-card-top"><div><div class="signal-meta">${escapeHtml((d.signal_category||'discovered')+' · '+(d.suggested_action||'review'))}</div><h3>${escapeHtml(d.name||'Unknown person')}${d.company?' · '+escapeHtml(d.company):''}</h3></div><div class="signal-score ${Number(d.total_score)<7?'low':''}">${Number(d.total_score||0)}/10</div></div><div class="signal-text">${escapeHtml(d.source_text)}</div>${d.draft_copy?`<div class="signal-angle"><b>Draft:</b> ${escapeHtml(d.draft_copy)}</div>`:''}<div class="signal-actions"><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.source_url)}" target="_blank" rel="noopener">View conversation ↗</a><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.linkedin_url)}" target="_blank" rel="noopener">View profile ↗</a><button class="savebtn" onclick="addDiscoveryToCrm('${d.id}')">Add to CRM</button><button class="cancelbtn" onclick="dismissDiscovery('${d.id}')">Dismiss</button></div></article>`).join('');
+  }catch(e){ box.innerHTML='<div class="signal-empty">Could not load new prospects: '+escapeHtml(e.message)+'</div>'; }
+}
+async function addDiscoveryToCrm(id){
+  const d=SIGNAL_DISCOVERIES.find(x=>x.id===id); if(!d)return;
+  if(ALL.some(c=>linkedinUrl(c).replace(/^https?:\/\//,'').replace(/\/$/,'').toLowerCase()===String(d.linkedin_url||'').replace(/^https?:\/\//,'').replace(/\/$/,'').toLowerCase())){ toast('This person is already in the CRM'); return; }
+  const payload={name:d.name||'LinkedIn prospect',company:d.company||null,title:d.title||null,linkedin_url:d.linkedin_url,source:'LinkedIn signal discovery',status:'Not contacted',notes:'Found from '+d.source_url};
+  const r=await sb('contacts',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+  if(!r.ok){ toast('Could not add prospect'); return; }
+  const rows=await r.json(), contact=rows[0]; if(contact)ALL.unshift(contact);
+  await sb('prospect_discoveries?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({review_status:'added',added_contact_id:contact?.id||null})});
+  toast('Prospect added to CRM'); loadSignalDiscoveries(); render();
+}
+async function dismissDiscovery(id){
+  const r=await sb('prospect_discoveries?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({review_status:'dismissed'})});
+  if(!r.ok){toast('Could not dismiss prospect');return;} loadSignalDiscoveries();
 }
 
 /* ── Command palette ── */
