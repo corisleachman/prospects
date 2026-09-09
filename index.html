@@ -328,6 +328,7 @@ tr.dragging{opacity:.4}
 
 /* Prospect signal scan */
 .signal-modal-box{width:min(960px,100%)}.signal-tabs{display:flex;gap:6px;margin-bottom:18px}.signal-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:600 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.signal-tab.active{background:var(--black);color:var(--green);border-color:var(--black)}.signal-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.signal-summary{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;line-height:1.5}.signal-list{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow:auto}.signal-person{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}.signal-person:last-child{border-bottom:0}.signal-person small{display:block;color:var(--grey-mid);margin-top:2px}.signal-person a{color:var(--black);font:600 9px 'DM Mono',monospace;text-decoration:none}.signal-person.scanned{background:var(--cream-soft);opacity:.72}.signal-checked{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#daf6d2;color:#286318;font:600 8px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}.signal-option{display:flex;align-items:center;gap:8px;margin:9px 0 0;font-size:11px;color:var(--grey-mid)}.signal-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:15px;margin-bottom:10px}.signal-card-top{display:flex;justify-content:space-between;gap:12px;align-items:start}.signal-score{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--black);color:var(--green);font-weight:800}.signal-score.low{background:var(--cream);color:var(--grey-mid)}.signal-card h3{font-size:15px;margin:0 0 3px}.signal-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}.signal-text{font-size:12px;line-height:1.5;margin:12px 0;color:#4f4c47;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.signal-angle{background:var(--cream);border-radius:9px;padding:10px;font-size:11px;line-height:1.45}.signal-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.signal-empty{padding:32px;text-align:center;color:var(--grey-mid);font-size:13px}.signal-cost{font:600 11px 'DM Mono',monospace;color:var(--black)}@media(max-width:700px){.signal-config{grid-template-columns:1fr}.signal-card-top{align-items:center}}
+.discovery-search{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px;margin:10px 0 14px}.discovery-search textarea{width:100%;min-height:116px;border:1px solid var(--grey-light);border-radius:9px;padding:10px 12px;font:12px/1.5 'DM Mono',monospace;resize:vertical;outline:none}.discovery-search textarea:focus{border-color:var(--black)}.discovery-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.discovery-run{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}.discovery-run .savebtn{flex-shrink:0}@media(max-width:700px){.discovery-controls{grid-template-columns:1fr}.discovery-run{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -485,7 +486,20 @@ tr.dragging{opacity:.4}
         <div class="signal-list" id="signal-prospect-list" style="margin-top:12px"></div>
       </div>
       <div id="signal-review-view" style="display:none"><div id="signal-results"></div></div>
-      <div id="signal-discover-view" style="display:none"><p class="hint">People found through conversation and keyword searches who aren't already in the CRM.</p><div id="signal-discoveries"></div></div>
+      <div id="signal-discover-view" style="display:none">
+        <p class="hint">Search recent LinkedIn conversations, then keep only relevant people who aren't already in the CRM.</p>
+        <div class="discovery-search">
+          <label class="fld"><label>Search themes, one LinkedIn query per line</label><textarea id="discovery-queries" oninput="updateDiscoveryEstimate()"></textarea></label>
+          <div class="discovery-controls">
+            <label class="fld"><label>How recent?</label><select id="discovery-period" onchange="updateDiscoveryEstimate()"><option value="24h">Last 24 hours</option><option value="week" selected>Last week</option><option value="month">Last month</option></select></label>
+            <label class="fld"><label>Posts per query</label><select id="discovery-max-posts" onchange="updateDiscoveryEstimate()"><option value="3">Up to 3</option><option value="5" selected>Up to 5</option><option value="8">Up to 8</option><option value="10">Up to 10</option></select></label>
+          </div>
+          <label class="signal-option"><input type="checkbox" id="discovery-comments" checked onchange="updateDiscoveryEstimate()"> Include up to 3 comments per post, so relevant commenters can also be found</label>
+          <div class="discovery-run"><div class="signal-summary" id="discovery-estimate" style="flex:1"></div><button class="savebtn" id="discovery-run-btn" onclick="runDiscoverySearch()">Check cost and search →</button></div>
+          <div class="mstatus" id="discovery-status" style="margin-top:9px"></div>
+        </div>
+        <div id="signal-discoveries"></div>
+      </div>
     </div>
     <div class="mfoot" id="signal-scan-footer">
       <span class="mstatus" id="signal-status"></span>
@@ -2201,6 +2215,13 @@ async function aiDraftTemplate(){
 
 
 /* ── Prospect signal scan ── */
+const DISCOVERY_QUERIES=[
+  '("new business" OR "business development") AND agency',
+  '("lead generation" OR "lead gen") AND agency',
+  '(pipeline OR referrals) AND agency',
+  '("agency growth" OR "growth strategy")',
+  '("head of growth" OR "new business hire") AND agency'
+];
 let SIGNAL_SELECTED=new Set(), SIGNAL_ITEMS=[], SIGNAL_DISCOVERIES=[];
 function signalAllEligible(){ return visibleRows().filter(c=>!!linkedinUrl(c)); }
 function signalEligible(){
@@ -2211,8 +2232,9 @@ function openSignalModal(){
   const eligible=signalEligible();
   SIGNAL_SELECTED=new Set(eligible.slice(0,Math.min(10,eligible.length)).map(c=>c.id));
   document.getElementById('signal-batch-size').value='10';
+  if(!document.getElementById('discovery-queries').value)document.getElementById('discovery-queries').value=DISCOVERY_QUERIES.join('\n');
   document.getElementById('signal-modal').classList.add('open');
-  showSignalTab('scan'); renderSignalProspects(); updateSignalEstimate();
+  showSignalTab('scan'); renderSignalProspects(); updateSignalEstimate(); updateDiscoveryEstimate();
 }
 function closeSignalModal(){ document.getElementById('signal-modal').classList.remove('open'); }
 function showSignalTab(tab){
@@ -2306,6 +2328,30 @@ function prepareSignalOutreach(id){
   const prompt=`Prepare a concise, low-pressure outreach message for ${c.name||s.author_name}${c.company?' at '+c.company:''}.\n\nVerified LinkedIn post:\n${s.source_text}\nSource: ${s.source_url}\n\nWorking hypothesis: ${s.working_hypothesis||'None'}\nSuggested response: ${s.outreach_angle||'Engage with the post without forcing a sales pitch.'}\n\nTreat the implication as a question, not a fact. Use one reason for contact and one small next step. Don't promise leads, meetings or revenue.`;
   navigator.clipboard.writeText(prompt).then(()=>toast('Outreach brief copied'));
 }
+function discoveryQueries(){return document.getElementById('discovery-queries').value.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,6)}
+function updateDiscoveryEstimate(){
+  const box=document.getElementById('discovery-estimate');if(!box)return;
+  const queries=discoveryQueries().length, posts=Number(document.getElementById('discovery-max-posts').value||5), comments=document.getElementById('discovery-comments').checked?3:0;
+  const maximumItems=queries*posts*(1+comments), estimated=maximumItems*.002+queries*.001, cap=Math.max(.02,Math.ceil((estimated+.01)*100)/100);
+  box.innerHTML=`<b>${queries} queries</b> · up to ${queries*posts} posts${comments?' and '+queries*posts*comments+' comments':''}<br>Maximum estimated charge <span class="signal-cost">$${estimated.toFixed(2)}</span> · hard cap <span class="signal-cost">$${cap.toFixed(2)}</span>`;
+  document.getElementById('discovery-run-btn').disabled=!queries;
+}
+async function runDiscoverySearch(){
+  const queries=discoveryQueries(), posts=Number(document.getElementById('discovery-max-posts').value||5), comments=document.getElementById('discovery-comments').checked, period=document.getElementById('discovery-period').value;
+  const btn=document.getElementById('discovery-run-btn'), status=document.getElementById('discovery-status');if(!queries.length)return;
+  btn.disabled=true;status.textContent='Checking the exact cost limit…';
+  const payload={search_queries:queries,max_posts_per_query:posts,posted_limit:period,include_comments:comments,max_comments_per_post:3};
+  try{
+    const estimate=await invokeSignalFunction({action:'estimate_discovery',...payload});
+    const message=`Search ${estimate.queries} LinkedIn themes from the ${period==='24h'?'last 24 hours':period==='week'?'last week':'last month'}?\n\nThis Actor charges $0.002 per post or comment and $0.001 for a query with no results.\nMaximum estimated charge: $${Number(estimate.estimatedMaxCostUsd||0).toFixed(2)}\nHard run cap: $${Number(estimate.recommendedCapUsd||0).toFixed(2)}\n\nOnly people outside your CRM who meet the relevance threshold will be saved.`;
+    if(!window.confirm(message)){status.textContent='Search cancelled.';btn.disabled=false;return;}
+    status.textContent='Searching LinkedIn conversations…';
+    const result=await invokeSignalFunction({action:'run_discovery',confirm_paid_run:true,...payload});
+    status.textContent=`${result.actorItems||0} items checked · ${result.qualifiedDiscoveries||0} relevant new-prospect signals saved`;
+    await loadSignalDiscoveries();toast('Discovery search complete');
+  }catch(e){status.textContent='Error: '+e.message;}
+  btn.disabled=false;
+}
 async function loadSignalDiscoveries(){
   const box=document.getElementById('signal-discoveries');
   box.innerHTML='<div class="signal-empty">Loading new prospects…</div>';
@@ -2315,9 +2361,10 @@ async function loadSignalDiscoveries(){
     SIGNAL_DISCOVERIES=await r.json();
     document.getElementById('signal-discovery-count').textContent=SIGNAL_DISCOVERIES.length?'('+SIGNAL_DISCOVERIES.length+')':'';
     if(!SIGNAL_DISCOVERIES.length){ box.innerHTML='<div class="signal-empty">No outside prospects yet. Keyword and conversation searches will place people here before anything is added to the CRM.</div>'; return; }
-    box.innerHTML=SIGNAL_DISCOVERIES.map(d=>`<article class="signal-card"><div class="signal-card-top"><div><div class="signal-meta">${escapeHtml((d.signal_category||'discovered')+' · '+(d.suggested_action||'review'))}</div><h3>${escapeHtml(d.name||'Unknown person')}${d.company?' · '+escapeHtml(d.company):''}</h3></div><div class="signal-score ${Number(d.total_score)<7?'low':''}">${Number(d.total_score||0)}/10</div></div><div class="signal-text">${escapeHtml(d.source_text)}</div>${d.draft_copy?`<div class="signal-angle"><b>Draft:</b> ${escapeHtml(d.draft_copy)}</div>`:''}<div class="signal-actions"><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.source_url)}" target="_blank" rel="noopener">View conversation ↗</a><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.linkedin_url)}" target="_blank" rel="noopener">View profile ↗</a><button class="savebtn" onclick="addDiscoveryToCrm('${d.id}')">Add to CRM</button><button class="cancelbtn" onclick="dismissDiscovery('${d.id}')">Dismiss</button></div></article>`).join('');
+    box.innerHTML=SIGNAL_DISCOVERIES.map(d=>`<article class="signal-card"><div class="signal-card-top"><div><div class="signal-meta">${escapeHtml((d.source_type||'linkedin_post').replace('linkedin_','')+' · '+(d.signal_category||'discovered')+' · '+(d.suggested_action||'review'))}</div><h3>${escapeHtml(d.name||'Unknown person')}${d.company?' · '+escapeHtml(d.company):''}</h3>${d.title?'<div class="hint">'+escapeHtml(d.title)+'</div>':''}</div><div class="signal-score ${Number(d.total_score)<7?'low':''}">${Number(d.total_score||0)}/10</div></div><div class="signal-text">${escapeHtml(d.source_text)}</div><div class="signal-angle"><b>Why it surfaced:</b> subject ${Number(d.subject_score||0)}/3 · recency ${Number(d.recency_score||0)}/2 · contribution ${Number(d.contribution_score||0)}/2 · audience ${Number(d.audience_score||0)}/2 · relationship value ${Number(d.relationship_score||0)}/1${d.working_hypothesis?'<br><br><b>Working hypothesis:</b> '+escapeHtml(d.working_hypothesis):''}${d.draft_copy?'<br><br><b>Draft:</b> '+escapeHtml(d.draft_copy):''}</div><div class="signal-actions"><button class="cancelbtn" onclick="copyDiscovery('${d.id}')">Copy draft</button><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.source_url)}" target="_blank" rel="noopener">Open conversation ↗</a><a class="cancelbtn" style="text-decoration:none" href="${escapeHtml(d.linkedin_url)}" target="_blank" rel="noopener">View profile ↗</a><button class="savebtn" onclick="addDiscoveryToCrm('${d.id}')">Add to CRM</button><button class="cancelbtn" onclick="dismissDiscovery('${d.id}')">Dismiss</button></div></article>`).join('');
   }catch(e){ box.innerHTML='<div class="signal-empty">Could not load new prospects: '+escapeHtml(e.message)+'</div>'; }
 }
+function copyDiscovery(id){const d=SIGNAL_DISCOVERIES.find(x=>x.id===id);if(!d)return;navigator.clipboard.writeText(d.draft_copy||'').then(()=>toast('Draft copied'))}
 async function addDiscoveryToCrm(id){
   const d=SIGNAL_DISCOVERIES.find(x=>x.id===id); if(!d)return;
   if(ALL.some(c=>linkedinUrl(c).replace(/^https?:\/\//,'').replace(/\/$/,'').toLowerCase()===String(d.linkedin_url||'').replace(/^https?:\/\//,'').replace(/\/$/,'').toLowerCase())){ toast('This person is already in the CRM'); return; }
