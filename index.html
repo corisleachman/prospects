@@ -1369,12 +1369,29 @@ function splitLine(l, delim){
 }
 function parseDelimited(text){
   text=(text||'').replace(/^\uFEFF/,'');
-  const lines=text.replace(/\r\n?/g,'\n').split('\n').filter(l=>l.trim().length);
-  if(!lines.length){ RAW={headers:[],rows:[],delim:','}; return RAW; }
-  const delim=sniffDelimiter(lines[0]);
-  const headers=splitLine(lines[0], delim);
-  const rows=[]; for(let i=1;i<lines.length;i++) rows.push(splitLine(lines[i], delim));
-  RAW={headers,rows,delim}; return RAW;
+  if(!text.trim()){ RAW={headers:[],rows:[],delim:','}; return RAW; }
+  const firstPhysicalLine=text.split(/\r?\n/,1)[0];
+  const delim=sniffDelimiter(firstPhysicalLine);
+  const records=[]; let cells=[], cur='', quoted=false;
+  const finishCell=()=>{ cells.push(cur.trim()); cur=''; };
+  const finishRow=()=>{ finishCell(); if(cells.some(v=>v.length)) records.push(cells); cells=[]; };
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(ch==='"'){
+      if(quoted && text[i+1]==='"'){ cur+='"'; i++; }
+      else quoted=!quoted;
+    }else if(ch===delim && !quoted){
+      finishCell();
+    }else if((ch==='\n'||ch==='\r') && !quoted){
+      if(ch==='\r' && text[i+1]==='\n') i++;
+      finishRow();
+    }else{
+      cur+=ch;
+    }
+  }
+  if(cur.length||cells.length) finishRow();
+  const headers=records.shift()||[];
+  RAW={headers,rows:records,delim}; return RAW;
 }
 function guessMapping(headers){
   const norm=headers.map(normHead); const used=new Set(); const map={};
