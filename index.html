@@ -620,6 +620,39 @@ tr.dragging{opacity:.4}
         <div class="fld"><label>LinkedIn URL</label><input id="f-linkedin" type="url" placeholder="https://linkedin.com/in/…"></div>
       </div>
       <div class="fld"><label>Company website</label><input id="f-website" placeholder="e.g. acme.com — leave blank to use the email domain"></div>
+
+      <div style="margin:18px 0 12px;padding-top:16px;border-top:1px solid var(--grey-light)">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">Enrichment details</div>
+        <p class="hint" id="f-enriched-meta" style="margin-top:4px">Extra information from prospect data services and CSV imports.</p>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Email status</label><select id="f-email-status"><option value="">Not recorded</option><option value="validated">Validated</option><option value="unverified">Unverified</option><option value="catch-all">Catch-all</option><option value="invalid">Invalid</option></select></div>
+        <div class="fld"><label>Email source</label><input id="f-email-source" placeholder="e.g. Apify leads finder"></div>
+      </div>
+      <div class="fld"><label>Headline</label><input id="f-headline" placeholder="LinkedIn or provider headline"></div>
+      <div class="row2">
+        <div class="fld"><label>Seniority</label><input id="f-seniority" placeholder="e.g. Founder, C-suite"></div>
+        <div class="fld"><label>Company industry</label><input id="f-company-industry" placeholder="e.g. Marketing & advertising"></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Contact city</label><input id="f-city" placeholder="e.g. London"></div>
+        <div class="fld"><label>Contact country</label><input id="f-country" placeholder="e.g. United Kingdom"></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Company size</label><input id="f-company-size" placeholder="e.g. 11-20"></div>
+        <div class="fld"><label>Annual revenue</label><input id="f-company-revenue" type="number" min="0" step="1" placeholder="e.g. 7041000"></div>
+      </div>
+      <div class="row2">
+        <div class="fld"><label>Company domain</label><input id="f-company-domain" placeholder="e.g. acme.com"></div>
+        <div class="fld"><label>Founded year</label><input id="f-company-founded-year" type="number" min="1000" max="2100" step="1" placeholder="e.g. 2012"></div>
+      </div>
+      <div class="fld"><label>Company LinkedIn URL</label><input id="f-company-linkedin" type="url" placeholder="https://linkedin.com/company/…"></div>
+      <div class="row2">
+        <div class="fld"><label>Company city</label><input id="f-company-city" placeholder="e.g. London"></div>
+        <div class="fld"><label>Company country</label><input id="f-company-country" placeholder="e.g. United Kingdom"></div>
+      </div>
+      <div class="fld full"><label>Company description</label><textarea id="f-company-description" placeholder="Short company overview from the enrichment source"></textarea></div>
+
       <div class="row2">
         <div class="fld"><label>Last emailed / contacted</label><input id="f-last-emailed" type="date"></div>
         <div class="fld"><label>Follow-up on</label><input id="f-followup" type="date"></div>
@@ -678,7 +711,21 @@ tr.dragging{opacity:.4}
           <label><input type="checkbox" id="enr-company" checked onchange="updateImportPreview()"> Company</label>
           <label><input type="checkbox" id="enr-title" checked onchange="updateImportPreview()"> Title</label>
           <label><input type="checkbox" id="enr-website" checked onchange="updateImportPreview()"> Website</label>
-          <label><input type="checkbox" id="enr-linkedin_url" checked onchange="updateImportPreview()"> LinkedIn</label>
+          <label><input type="checkbox" id="enr-linkedin_url" checked onchange="updateImportPreview()"> Personal LinkedIn</label>
+          <label><input type="checkbox" id="enr-headline" checked onchange="updateImportPreview()"> Headline</label>
+          <label><input type="checkbox" id="enr-seniority_level" checked onchange="updateImportPreview()"> Seniority</label>
+          <label><input type="checkbox" id="enr-city" checked onchange="updateImportPreview()"> Contact city</label>
+          <label><input type="checkbox" id="enr-country" checked onchange="updateImportPreview()"> Contact country</label>
+          <label><input type="checkbox" id="enr-email_status" checked onchange="updateImportPreview()"> Email status</label>
+          <label><input type="checkbox" id="enr-company_domain" checked onchange="updateImportPreview()"> Company domain</label>
+          <label><input type="checkbox" id="enr-company_linkedin_url" checked onchange="updateImportPreview()"> Company LinkedIn</label>
+          <label><input type="checkbox" id="enr-company_industry" checked onchange="updateImportPreview()"> Industry</label>
+          <label><input type="checkbox" id="enr-company_size" checked onchange="updateImportPreview()"> Company size</label>
+          <label><input type="checkbox" id="enr-company_revenue" checked onchange="updateImportPreview()"> Revenue</label>
+          <label><input type="checkbox" id="enr-company_founded_year" checked onchange="updateImportPreview()"> Founded year</label>
+          <label><input type="checkbox" id="enr-company_description" checked onchange="updateImportPreview()"> Description</label>
+          <label><input type="checkbox" id="enr-company_city" checked onchange="updateImportPreview()"> Company city</label>
+          <label><input type="checkbox" id="enr-company_country" checked onchange="updateImportPreview()"> Company country</label>
         </div>
         <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="enr-replace-company" checked onchange="updateImportPreview()"> Replace domain-style company names with the real name (e.g. "acme" → "Acme Studio")</label>
       </div>
@@ -1082,7 +1129,9 @@ function openAddModal(){
   editingId=null;
   document.getElementById('edit-title').textContent='Add contact';
   document.getElementById('del-btn').style.display='none';
-  ['f-name','f-email','f-company','f-title','f-linkedin','f-website','f-notes','f-last-emailed','f-followup'].forEach(i=>document.getElementById(i).value='');
+  ['f-name','f-email','f-company','f-title','f-linkedin','f-website','f-notes','f-last-emailed','f-followup','f-email-source','f-headline','f-seniority','f-city','f-country','f-company-size','f-company-revenue','f-company-domain','f-company-founded-year','f-company-linkedin','f-company-industry','f-company-city','f-company-country','f-company-description'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-email-status').value='';
+  document.getElementById('f-enriched-meta').textContent='Extra information from prospect data services and CSV imports.';
   document.getElementById('f-category').value=(activeTab!=='all'&&activeTab!=='__replied__')?activeTab:'';
   document.getElementById('f-status').value='Not contacted';
   document.getElementById('f-replied').value='false';
@@ -1132,6 +1181,21 @@ function openEditModal(c){
   document.getElementById('f-replied').value=String(!!full.replied);
   document.getElementById('f-linkedin').value=full.linkedin_url||'';
   document.getElementById('f-website').value=full.website||'';
+  document.getElementById('f-email-status').value=full.email_status||'';
+  document.getElementById('f-email-source').value=full.email_source||'';
+  document.getElementById('f-headline').value=full.headline||'';
+  document.getElementById('f-seniority').value=full.seniority_level||'';
+  document.getElementById('f-city').value=full.city||''; document.getElementById('f-country').value=full.country||'';
+  document.getElementById('f-company-size').value=full.company_size||'';
+  document.getElementById('f-company-revenue').value=full.company_revenue??'';
+  document.getElementById('f-company-domain').value=full.company_domain||'';
+  document.getElementById('f-company-founded-year').value=full.company_founded_year??'';
+  document.getElementById('f-company-linkedin').value=full.company_linkedin_url||'';
+  document.getElementById('f-company-industry').value=full.company_industry||'';
+  document.getElementById('f-company-city').value=full.company_city||''; document.getElementById('f-company-country').value=full.company_country||'';
+  document.getElementById('f-company-description').value=full.company_description||'';
+  const enrMeta=document.getElementById('f-enriched-meta');
+  enrMeta.textContent=full.enriched_at?`Last enriched ${fmtDate(full.enriched_at)}${full.email_source?' · '+full.email_source:''}`:'Extra information from prospect data services and CSV imports.';
   document.getElementById('f-notes').value=full.notes||'';
   document.getElementById('f-research').value=full.research_summary||'';
   const rAt=document.getElementById('f-research-at'); if(rAt) rAt.textContent = full.research_at ? ('· researched '+fmtDate(full.research_at)) : '';
@@ -1155,6 +1219,19 @@ async function saveContact(){
     replied:document.getElementById('f-replied').value==='true',
     linkedin_url:document.getElementById('f-linkedin').value.trim()||null,
     website:document.getElementById('f-website').value.trim()||null,
+    email_status:document.getElementById('f-email-status').value||null,
+    email_source:document.getElementById('f-email-source').value.trim()||null,
+    headline:document.getElementById('f-headline').value.trim()||null,
+    seniority_level:document.getElementById('f-seniority').value.trim()||null,
+    city:document.getElementById('f-city').value.trim()||null,country:document.getElementById('f-country').value.trim()||null,
+    company_size:document.getElementById('f-company-size').value.trim()||null,
+    company_revenue:document.getElementById('f-company-revenue').value?Number(document.getElementById('f-company-revenue').value):null,
+    company_domain:document.getElementById('f-company-domain').value.trim()||null,
+    company_founded_year:document.getElementById('f-company-founded-year').value?Number(document.getElementById('f-company-founded-year').value):null,
+    company_linkedin_url:document.getElementById('f-company-linkedin').value.trim()||null,
+    company_industry:document.getElementById('f-company-industry').value.trim()||null,
+    company_city:document.getElementById('f-company-city').value.trim()||null,company_country:document.getElementById('f-company-country').value.trim()||null,
+    company_description:document.getElementById('f-company-description').value.trim()||null,
     notes:document.getElementById('f-notes').value.trim()||null,
     updated_at:new Date().toISOString()
   };
@@ -1244,29 +1321,35 @@ function loadCsvFile(ev){
 /* ── CSV/TSV parsing with delimiter detection + column mapping ── */
 let RAW={headers:[],rows:[],delim:','};
 const IMPORT_FIELDS=[
-  {key:'name',label:'Name'},
-  {key:'first_name',label:'First name'},
-  {key:'last_name',label:'Last name'},
-  {key:'email',label:'Email'},
-  {key:'company',label:'Company'},
-  {key:'title',label:'Title'},
-  {key:'linkedin_url',label:'LinkedIn URL'},
-  {key:'website',label:'Website'},
-  {key:'notes',label:'Notes'},
-  {key:'company_size',label:'Company size'},
-  {key:'ownership',label:'Ownership'},
+  {key:'name',label:'Name'},{key:'first_name',label:'First name'},{key:'last_name',label:'Last name'},
+  {key:'email',label:'Email'},{key:'email_status',label:'Email status'},{key:'email_source',label:'Email source'},
+  {key:'company',label:'Company'},{key:'title',label:'Title'},{key:'headline',label:'Headline'},{key:'seniority_level',label:'Seniority'},
+  {key:'linkedin_url',label:'Personal LinkedIn'},{key:'city',label:'Contact city'},{key:'country',label:'Contact country'},
+  {key:'website',label:'Company website'},{key:'company_domain',label:'Company domain'},{key:'company_linkedin_url',label:'Company LinkedIn'},
+  {key:'company_industry',label:'Company industry'},{key:'company_size',label:'Company size'},{key:'company_revenue',label:'Annual revenue'},
+  {key:'company_founded_year',label:'Founded year'},{key:'company_description',label:'Company description'},
+  {key:'company_city',label:'Company city'},{key:'company_country',label:'Company country'},
+  {key:'notes',label:'Notes'},{key:'ownership',label:'Ownership'},
 ];
 const IMPORT_SYNS={
   name:['name','fullname','contactname','contact','person','prospect','leadershipperson','leadershipname','leadershipcontact','leader','keyperson'],
-  first_name:['firstname','first','fname','givenname','forename'],
-  last_name:['lastname','last','lname','surname','familyname'],
+  first_name:['firstname','first','fname','givenname','forename'],last_name:['lastname','last','lname','surname','familyname'],
   email:['email','emailaddress','mail','workemail','emailid','primaryemail','emails','emailaddress1'],
+  email_status:['emailstatus','emailverification','verificationstatus'],email_source:['emailsource','emailprovider','enrichmentsource'],
   company:['company','companyname','organisation','organization','org','agency','agencyname','studio','studioname','business','account','accountname','employer'],
-  title:['title','jobtitle','role','position','jobrole','designation'],
-  linkedin_url:['linkedin','linkedinurl','li','linkedinprofile','linkedinlink','profileurl'],
-  website:['website','websiteurl','url','site','web','domain','companywebsite','homepage'],
-  notes:['notes','note','comment','comments','description','remark','remarks','memo','notablework','notableworkandstyle','notableworkbestyle','workandstyle'],
+  title:['title','jobtitle','role','position','jobrole','designation'],headline:['headline','linkedinheadline','contactheadline'],
+  seniority_level:['senioritylevel','seniority','functionallevel','level'],
+  linkedin_url:['linkedin','linkedinurl','li','linkedinprofile','linkedinlink','profileurl','personallinkedin'],
+  city:['city','contactcity','personcity'],country:['country','contactcountry','personcountry'],
+  website:['website','websiteurl','url','site','web','companywebsite','homepage'],company_domain:['companydomain','domain','businessdomain'],
+  company_linkedin_url:['companylinkedin','companylinkedinurl','organisationlinkedin','organizationlinkedin'],
+  company_industry:['companyindustry','industry','sector'],
   company_size:['companysize','sizeoftheagency','sizeofagency','agencysize','size','headcount','employees','employeecount','numberofemployees','staff','teamsize','companyheadcount'],
+  company_revenue:['companyannualrevenue','annualrevenue','companyrevenue','revenue'],
+  company_founded_year:['companyfoundedyear','foundedyear','yearfounded','founded'],
+  company_description:['companydescription','businessdescription','organisationdescription','organizationdescription'],
+  company_city:['companycity','businesscity','organisationcity','organizationcity'],company_country:['companycountry','businesscountry','organisationcountry','organizationcountry'],
+  notes:['notes','note','comment','comments','remark','remarks','memo','notablework','notableworkandstyle','notableworkbestyle','workandstyle'],
   ownership:['ownership','ownershiptype','ownershipstatus','owned','ownedby','parent','parentcompany','holdingcompany','holdinggroup','independence'],
 };
 function normHead(h){ return (h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
@@ -1295,7 +1378,7 @@ function parseDelimited(text){
 }
 function guessMapping(headers){
   const norm=headers.map(normHead); const used=new Set(); const map={};
-  const order=['email','name','first_name','last_name','company','title','linkedin_url','website','notes','company_size','ownership'];
+  const order=['email','name','first_name','last_name','company','title','linkedin_url','company_linkedin_url','website','company_domain','headline','seniority_level','city','country','email_status','email_source','company_industry','company_size','company_revenue','company_founded_year','company_description','company_city','company_country','notes','ownership'];
   order.forEach(f=>{ map[f]=-1; const idx=norm.findIndex((h,i)=>!used.has(i)&&IMPORT_SYNS[f].includes(h)); if(idx>=0){ map[f]=idx; used.add(idx); } });
   order.forEach(f=>{ if(map[f]>=0) return; const idx=norm.findIndex((h,i)=>!used.has(i)&&h&&IMPORT_SYNS[f].some(s=>h.includes(s))); if(idx>=0){ map[f]=idx; used.add(idx); } });
   return map;
@@ -1335,7 +1418,22 @@ function applyMapping(){
     if(!name) name=[get(cells,'first_name'),get(cells,'last_name')].filter(Boolean).join(' ').trim();
     const email=get(cells,'email').toLowerCase();
     if(!name && !email) return;
-    rows.push({ name:name||email.split('@')[0], email:email||null, company:get(cells,'company')||null, title:get(cells,'title')||null, linkedin_url:get(cells,'linkedin_url')||null, website:get(cells,'website')||null, notes:get(cells,'notes')||null, company_size:get(cells,'company_size')||null, ownership:get(cells,'ownership')||null });
+    const raw={}; RAW.headers.forEach((header,i)=>{ if(header) raw[header]=cells[i]||''; });
+    const isApify=RAW.headers.some(x=>normHead(x)==='companylinkedinuid') && RAW.headers.some(x=>normHead(x)==='functionallevel');
+    const revenueRaw=get(cells,'company_revenue'); const revenueNum=revenueRaw?Number(String(revenueRaw).replace(/[^0-9.-]/g,'')):null;
+    const foundedRaw=get(cells,'company_founded_year'); const foundedNum=foundedRaw?parseInt(foundedRaw,10):null;
+    rows.push({
+      name:name||email.split('@')[0],email:email||null,email_status:get(cells,'email_status')||(isApify&&email?'validated':null),
+      email_source:get(cells,'email_source')||(isApify&&email?'Apify leads finder':null),company:get(cells,'company')||null,
+      title:get(cells,'title')||null,headline:get(cells,'headline')||null,seniority_level:get(cells,'seniority_level')||null,
+      linkedin_url:get(cells,'linkedin_url')||null,city:get(cells,'city')||null,country:get(cells,'country')||null,
+      website:get(cells,'website')||null,company_domain:get(cells,'company_domain')||null,
+      company_linkedin_url:get(cells,'company_linkedin_url')||null,company_industry:get(cells,'company_industry')||null,
+      company_size:get(cells,'company_size')||null,company_revenue:Number.isFinite(revenueNum)?Math.round(revenueNum):null,
+      company_founded_year:Number.isFinite(foundedNum)?foundedNum:null,company_description:get(cells,'company_description')||null,
+      company_city:get(cells,'company_city')||null,company_country:get(cells,'company_country')||null,
+      notes:get(cells,'notes')||null,ownership:get(cells,'ownership')||null,enrichment_data:raw
+    });
   });
   // Flag rows already in the database, and duplicates within the file itself
   const idx=existingIndex(); const seen=new Set();
@@ -1367,7 +1465,8 @@ function updateImportPreview(){
   if(IMPORT_MODE==='enrich'){
     if(dupeRow) dupeRow.style.display='none';
     const e=computeEnrichment();
-    const parts=Object.entries(e.counts).filter(([k,v])=>v).map(([k,v])=>`${v} ${k==='linkedin_url'?'LinkedIn':k}`);
+    const labels=Object.fromEntries(IMPORT_FIELDS.map(f=>[f.key,f.label]));
+    const parts=Object.entries(e.counts).filter(([k,v])=>v).map(([k,v])=>`${v} ${labels[k]||k}`);
     p.innerHTML = `${e.matched} of ${e.total} rows match a contact you already have · <b>${e.plan.length}</b> can be enriched${parts.length?` — fills ${parts.join(' · ')}`:''}. ${e.total-e.matched} not matched${IMPORT_MODE==='enrich'?' (left alone)':''}.`;
     if(btn)btn.disabled = e.plan.length<=0;
     return;
@@ -1426,12 +1525,12 @@ function looksDomainDerived(company, c, r){
   const doms=[domFrom(c.email), domFrom(c.website), domFrom(r&&r.email), domFrom(r&&r.website)].filter(Boolean);
   return doms.some(dom=>{ const root=dom.split('.')[0]; return root && (cc===root || cc===dom); });
 }
-function enrichFieldsSelected(){ return ['email','company','title','website','linkedin_url'].filter(f=>{ const el=document.getElementById('enr-'+f); return el&&el.checked; }); }
+function enrichFieldsSelected(){ return ['email','company','title','website','linkedin_url','headline','seniority_level','city','country','email_status','company_domain','company_linkedin_url','company_industry','company_size','company_revenue','company_founded_year','company_description','company_city','company_country'].filter(f=>{ const el=document.getElementById('enr-'+f); return el&&el.checked; }); }
 function computeEnrichment(){
   const look=existingLookup();
   const fields=enrichFieldsSelected();
   const replaceCo=(document.getElementById('enr-replace-company')||{}).checked;
-  const plan=[]; const counts={email:0,company:0,title:0,website:0,linkedin_url:0};
+  const plan=[]; const counts={}; fields.forEach(f=>counts[f]=0);
   let matched=0; const usedContacts=new Set();
   importedRows.forEach(r=>{
     const c=matchContact(r, look); if(!c) return; matched++;
@@ -1444,7 +1543,14 @@ function computeEnrichment(){
         else if(replaceCo && looksDomainDerived(c.company,c,r) && normHead(nv)!==normHead(c.company)) changes.company=nv;
       } else if(!c[f]) changes[f]=nv;
     });
-    if(Object.keys(changes).length){ plan.push({id:c.id, changes}); usedContacts.add(c.id); Object.keys(changes).forEach(k=>counts[k]++); }
+    if(Object.keys(changes).length){
+      const now=new Date().toISOString();
+      if(changes.email){ if(r.email_status) changes.email_status=r.email_status; if(r.email_source) changes.email_source=r.email_source; changes.email_enriched_at=now; }
+      changes.enriched_at=now;
+      if(r.enrichment_data) changes.enrichment_data={...(c.enrichment_data||{}),...r.enrichment_data};
+      plan.push({id:c.id,changes}); usedContacts.add(c.id);
+      fields.forEach(k=>{ if(Object.prototype.hasOwnProperty.call(changes,k)) counts[k]++; });
+    }
   });
   ENRICH={plan,counts,matched,total:importedRows.length};
   return ENRICH;
@@ -1485,7 +1591,8 @@ async function runImport(){
   const skipped = importedRows.length - toImport.length;
   if(!toImport.length){ setImpStatus(skipped?'All rows are already in your database — nothing new to import.':'Nothing to import — check the column mapping above.','#b23c22'); return; }
   const btn=document.getElementById('imp-btn'); btn.disabled=true; setImpStatus('Importing…','var(--grey-mid)');
-  const payload=toImport.map(r=>{ const {_dupe, _companyDupe, ...rest}=r; return {...rest, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import'}; });
+  const now=new Date().toISOString();
+  const payload=toImport.map(r=>{ const {_dupe, _companyDupe, ...rest}=r; return {...rest, category:cat, status:'Not contacted', replied:false, bounced:false, source:'import', enriched_at:rest.enrichment_data?now:null, email_enriched_at:rest.email?now:null}; });
   try{
     const res=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error('HTTP '+res.status+' '+(await res.text()).slice(0,120));
