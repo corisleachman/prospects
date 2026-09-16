@@ -329,6 +329,66 @@ tr.dragging{opacity:.4}
 /* Prospect signal scan */
 .signal-modal-box{width:min(960px,100%)}.signal-tabs{display:flex;gap:6px;margin-bottom:18px}.signal-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 13px;font:600 9px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}.signal-tab.active{background:var(--black);color:var(--green);border-color:var(--black)}.signal-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}.signal-summary{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px;font-size:12px;line-height:1.5}.signal-list{border:1px solid var(--line);border-radius:12px;max-height:340px;overflow:auto}.signal-person{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}.signal-person:last-child{border-bottom:0}.signal-person small{display:block;color:var(--grey-mid);margin-top:2px}.signal-person a{color:var(--black);font:600 9px 'DM Mono',monospace;text-decoration:none}.signal-person.scanned{background:var(--cream-soft);opacity:.72}.signal-checked{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;background:#daf6d2;color:#286318;font:600 8px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}.signal-option{display:flex;align-items:center;gap:8px;margin:9px 0 0;font-size:11px;color:var(--grey-mid)}.signal-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:15px;margin-bottom:10px}.signal-card-top{display:flex;justify-content:space-between;gap:12px;align-items:start}.signal-score{min-width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--black);color:var(--green);font-weight:800}.signal-score.low{background:var(--cream);color:var(--grey-mid)}.signal-card h3{font-size:15px;margin:0 0 3px}.signal-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}.signal-text{font-size:12px;line-height:1.5;margin:12px 0;color:#4f4c47;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.signal-angle{background:var(--cream);border-radius:9px;padding:10px;font-size:11px;line-height:1.45}.signal-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.signal-empty{padding:32px;text-align:center;color:var(--grey-mid);font-size:13px}.signal-cost{font:600 11px 'DM Mono',monospace;color:var(--black)}@media(max-width:700px){.signal-config{grid-template-columns:1fr}.signal-card-top{align-items:center}}
 .discovery-search{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px;margin:10px 0 14px}.discovery-search textarea{width:100%;min-height:116px;border:1px solid var(--grey-light);border-radius:9px;padding:10px 12px;font:12px/1.5 'DM Mono',monospace;resize:vertical;outline:none}.discovery-search textarea:focus{border-color:var(--black)}.discovery-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.discovery-run{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}.discovery-run .savebtn{flex-shrink:0}@media(max-width:700px){.discovery-controls{grid-template-columns:1fr}.discovery-run{align-items:flex-start;flex-direction:column}}
+
+/* ── Research / verification workflow ── */
+.rq-wrap{max-width:860px;margin:0 auto;width:100%;padding:8px 24px 64px}
+.rq-progress{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--black);color:#fff;border-radius:14px;padding:13px 17px;margin:4px 0 18px;font-size:12px}
+.rq-progress b{color:var(--green)}
+.rq-progress .rq-bar{flex:1;min-width:120px;height:8px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden}
+.rq-progress .rq-bar span{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .3s}
+.rq-card{border:1px solid var(--line);background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+.rq-card h2{font-size:23px;margin:0 0 2px;line-height:1.1}
+.rq-sub{font:600 10px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.06em}
+.rq-loc{font-size:12px;color:var(--grey-mid);margin:2px 0 12px}
+.rq-links{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.rq-links a,.rq-actbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--cream);border-radius:99px;padding:8px 13px;font:600 11px 'DM Sans',sans-serif;color:var(--black);text-decoration:none;cursor:pointer}
+.rq-links a:hover,.rq-actbtn:hover{background:var(--cream-soft)}
+.rq-notes{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:14px;white-space:pre-wrap}
+.rq-auto{border:1px dashed #b3aea2;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;line-height:1.5;background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(0,0,0,.014) 8px,rgba(0,0,0,.014) 16px)}
+.rq-auto .rq-tag{display:inline-block;font:700 8px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;background:var(--black);color:var(--green);border-radius:99px;padding:3px 8px;margin-bottom:6px}
+.rq-stage{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+.rq-stage-h{font:700 10px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:12px}
+.rq-check{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:14px;border-bottom:1px solid var(--grey-light)}
+.rq-check:last-of-type{border-bottom:0}
+.rq-check input{width:19px;height:19px;accent-color:var(--black);flex:none;cursor:pointer}
+.rq-verified-line{display:flex;align-items:center;gap:8px;font-size:13px;color:#286318;font-weight:600;margin-bottom:2px}
+.rq-fld{margin:0 0 13px}
+.rq-fld>label{display:block;font:600 10px 'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);margin-bottom:5px}
+.rq-fld input[type=text],.rq-fld input[type=url],.rq-fld textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:400 13px 'DM Sans',sans-serif;background:#fff;resize:vertical;box-sizing:border-box}
+.rq-fld input:focus,.rq-fld textarea:focus{outline:none;border-color:var(--black)}
+.rq-fld textarea{min-height:58px}
+.rq-strength{display:flex;gap:8px}
+.rq-strength label{flex:1;text-align:center;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--black);margin:0}
+.rq-strength label.on-strong{background:#daf6d2;border-color:#3c9a29}
+.rq-strength label.on-maybe{background:#fff2cc;border-color:#d9a400}
+.rq-strength label.on-nothing{background:var(--cream-soft);border-color:var(--grey-mid);color:var(--grey-mid)}
+.rq-decide{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.rq-btn{flex:1;min-width:132px;border:none;border-radius:11px;padding:14px;font:700 13px 'DM Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.rq-btn.good{background:var(--green);color:var(--black)}
+.rq-btn.warn{background:#fff2cc;color:#6b5200;border:1px solid #d9a400}
+.rq-btn.bad{background:#fff;color:#b23c22;border:1px solid #e3c4bc}
+.rq-btn.ghost{background:var(--black);color:#fff}
+.rq-btn:hover{opacity:.9}
+.rq-skip{display:block;margin:14px auto 0;background:none;border:0;color:var(--grey-mid);font:600 11px 'DM Sans';cursor:pointer;text-decoration:underline;padding:6px}
+.rq-empty{text-align:center;padding:64px 20px;color:var(--grey-mid);font-size:14px}
+.rq-empty .rq-big{font-size:46px;margin-bottom:10px}
+.rc-wrap{max-width:1160px;margin:0 auto;width:100%;padding:8px 24px 64px}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(345px,1fr));gap:14px}
+.rc-card{border:1px solid var(--line);background:#fff;border-radius:15px;padding:18px;display:flex;flex-direction:column;gap:11px}
+.rc-card h3{font-size:17px;margin:0;line-height:1.15}
+.rc-badge{display:inline-block;font:700 8px 'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;border-radius:99px;padding:3px 8px;vertical-align:middle;margin-left:6px}
+.rc-badge.strong{background:#daf6d2;color:#286318}
+.rc-badge.maybe{background:#fff2cc;color:#6b5200}
+.rc-badge.nothing{background:var(--cream-soft);color:var(--grey-mid)}
+.rc-sec{font-size:13px;line-height:1.5}
+.rc-sec .rc-h{font:700 9px 'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);display:block;margin-bottom:3px}
+.rc-auto{border:1px dashed #b3aea2;border-radius:9px;padding:9px 11px;font-size:12px;line-height:1.45;background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(0,0,0,.014) 8px,rgba(0,0,0,.014) 16px)}
+.rc-links{display:flex;gap:7px;flex-wrap:wrap}
+.rc-links a{font:600 10px 'DM Mono',monospace;color:var(--black);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 9px;background:var(--cream)}
+.rc-foot{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.rc-foot .rq-actbtn{font-size:11px;padding:8px 11px}
+.rc-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.05em}
+@media(max-width:600px){.rq-decide .rq-btn{min-width:100%}}
 </style>
 </head>
 <body>
@@ -460,6 +520,8 @@ tr.dragging{opacity:.4}
         </table>
       </div>
       <div id="enquiries-wrap" style="display:none;margin-top:4px"></div>
+      <div id="research-wrap" class="rq-wrap" style="display:none"></div>
+      <div id="coris-wrap" class="rc-wrap" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -981,6 +1043,10 @@ function buildTabs(){
   const archived=ALL.length-live.length;
   let html=`<button class="tab ${activeTab==='all'?'active':''}" onclick="switchTab('all',this)">All contacts <span class="badge">${live.length}</span></button>`;
   html+=`<button class="tab ${activeTab==='__replied__'?'active':''}" onclick="switchTab('__replied__',this)">Replied <span class="badge">${live.filter(c=>c.replied).length}</span></button>`;
+  const rqCount=live.filter(c=>!c.verification_status||c.verification_status==='unverified').length;
+  const rcCount=live.filter(c=>c.verification_status==='ready_for_coris').length;
+  html+=`<button class="tab ${activeTab==='__research__'?'active':''}" onclick="switchTab('__research__',this)" title="Verify prospects and do a quick research pass">🔍 Research queue <span class="badge">${rqCount}</span></button>`;
+  html+=`<button class="tab ${activeTab==='__coris__'?'active':''}" onclick="switchTab('__coris__',this)" title="Human-verified prospects worth a look">⭐ Ready for Coris <span class="badge">${rcCount}</span></button>`;
   cats.forEach(cat=>{
     const n=live.filter(c=>c.category===cat).length;
     const esc=cat.replace(/'/g,"\\'");
@@ -1000,14 +1066,28 @@ function switchTab(tab,btn){
 function applyTabView(tab){
   const title=document.getElementById('page-title'), sub=document.getElementById('page-sub');
   const isEnq=tab==='__enquiries__';
-  document.getElementById('contact-controls').style.display=isEnq?'none':'';
+  const isResearch=tab==='__research__';
+  const isCoris=tab==='__coris__';
+  const isSpecial=isEnq||isResearch||isCoris;
+  document.getElementById('contact-controls').style.display=isSpecial?'none':'';
   document.getElementById('enquiries-wrap').style.display=isEnq?'block':'none';
-  const vb=document.getElementById('views-bar'); if(vb) vb.style.display=isEnq?'none':'';
+  document.getElementById('research-wrap').style.display=isResearch?'block':'none';
+  document.getElementById('coris-wrap').style.display=isCoris?'block':'none';
+  const vb=document.getElementById('views-bar'); if(vb) vb.style.display=isSpecial?'none':'';
+  if(isSpecial){ document.getElementById('table-wrap').style.display='none'; document.getElementById('setup').style.display='none'; }
   if(isEnq){
-    document.getElementById('table-wrap').style.display='none';
-    document.getElementById('setup').style.display='none';
     title.textContent='Enquiries'; sub.textContent='Messages from your build guide';
     renderEnquiries();
+    return;
+  }
+  if(isResearch){
+    title.textContent='Research queue'; sub.textContent='Verify each prospect, spend 2–3 minutes, move on';
+    renderResearch();
+    return;
+  }
+  if(isCoris){
+    title.textContent='Ready for Coris'; sub.textContent='Human-verified prospects worth a look';
+    renderCoris();
     return;
   }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts across every source'; }
@@ -2337,6 +2417,188 @@ async function aiDraftTemplate(){
   btn.disabled=false; btn.textContent=orig;
 }
 
+
+/* ── Research / verification workflow ── */
+let RESEARCH_SESSION={verified:0}, CURRENT_RQ=null, SIGNAL_BY_CONTACT=null;
+
+async function ensureSignalMap(){
+  if(SIGNAL_BY_CONTACT) return SIGNAL_BY_CONTACT;
+  SIGNAL_BY_CONTACT={};
+  try{
+    const r=await sb('prospect_signals?select=contact_id,total_score,signal_category,working_hypothesis,outreach_angle,source_url,source_text,observed_at&order=total_score.desc.nullslast,created_at.desc');
+    if(r.ok){ (await r.json()).forEach(s=>{ if(s.contact_id && !SIGNAL_BY_CONTACT[s.contact_id]) SIGNAL_BY_CONTACT[s.contact_id]=s; }); }
+  }catch(e){}
+  return SIGNAL_BY_CONTACT;
+}
+function autoSignal(c){ return (SIGNAL_BY_CONTACT&&SIGNAL_BY_CONTACT[c.id])||null; }
+function locLine(c){ return [c.city,c.country].filter(Boolean).join(', '); }
+
+/* Prebuilt searches (open in a new tab — no API needed) */
+function gq(s){ return encodeURIComponent(String(s||'')); }
+function googlePerson(c){ return `https://www.google.com/search?q=${gq('"'+(c.name||'')+'" "'+(c.company||'')+'"')}`; }
+function newsDateRange(){ const to=new Date(),from=new Date(); from.setMonth(from.getMonth()-2); const f=d=>`${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`; return `cdr:1,cd_min:${f(from)},cd_max:${f(to)}`; }
+function googleAgencyNews(c){ const terms='(appoints OR hires OR wins OR launches OR "new business" OR growth OR restructure OR rebrand OR expands)'; return `https://www.google.com/search?tbm=nws&tbs=${encodeURIComponent(newsDateRange())}&q=${gq('"'+(c.company||'')+'" '+terms)}`; }
+const RQ_TRADE_SITES=['thedrum.com','campaignlive.co.uk','prweek.com','designweek.co.uk','creativeboom.com','prolificnorth.co.uk','creativebrief.com','lbbonline.com'];
+function googleAgencyNewsTrade(c){ const sites='('+RQ_TRADE_SITES.map(s=>'site:'+s).join(' OR ')+')'; return `https://www.google.com/search?tbs=${encodeURIComponent(newsDateRange())}&q=${gq('"'+(c.company||'')+'" '+sites)}`; }
+
+/* Queue = contacts still unverified, or verified but not yet finished */
+function researchQueueRows(){ return ALL.filter(c=>c.status!=='Archived' && ['unverified','verified'].includes(c.verification_status||'unverified')); }
+function pickNextRQ(rows){
+  return [...rows].sort((a,b)=>{
+    const va=(a.verification_status==='verified')?1:0, vb=(b.verification_status==='verified')?1:0; if(va!==vb) return vb-va; // finish in-progress first
+    const sa=autoSignal(a)?1:0, sb2=autoSignal(b)?1:0; if(sa!==sb2) return sb2-sa; // then those with an auto signal
+    return new Date(b.created_at||0)-new Date(a.created_at||0);
+  })[0]||null;
+}
+
+function rqPatch(id, payload){
+  const c=ALL.find(x=>x.id===id); if(!c) return;
+  Object.assign(c, payload);
+  sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({...payload, updated_at:new Date().toISOString()})}).catch(()=>{});
+}
+function saveResearchField(id, field, val){ rqPatch(id, {[field]: (val===''?null:val)}); }
+function setStrength(id, val){
+  rqPatch(id, {human_signal_strength: val});
+  ['strong','maybe','nothing'].forEach(k=>{ const el=document.getElementById('rqs-'+k); if(el) el.classList.toggle('on-'+k, k===val); });
+}
+
+function verifyProspect(id){
+  const now=new Date().toISOString();
+  rqPatch(id, {verification_status:'verified', verified_at:now, verified_by:(AUTH&&AUTH.email)||null});
+  RESEARCH_SESSION.verified++;
+  buildTabs(); renderResearch();
+  toast('Verified — now do a couple of minutes research', ()=>{
+    rqPatch(id, {verification_status:'unverified', verified_at:null});
+    RESEARCH_SESSION.verified=Math.max(0,RESEARCH_SESSION.verified-1);
+    buildTabs(); renderResearch();
+  });
+}
+function rqAdvance(){ CURRENT_RQ=null; buildTabs(); renderResearch(); }
+function checkWithCoris(id){ rqPatch(id, {verification_status:'needs_coris_review'}); rqAdvance(); toast('Flagged for Coris to check'); }
+function removeProspect(id){
+  const c=ALL.find(x=>x.id===id); if(!c) return; const prev={verification_status:c.verification_status, status:c.status};
+  rqPatch(id, {verification_status:'removed', status:'Archived'}); rqAdvance();
+  toast('Removed & archived', ()=>{ rqPatch(id, prev); buildTabs(); renderResearch(); });
+}
+function readyForCoris(id){ rqPatch(id, {verification_status:'ready_for_coris', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Sent to Ready for Coris ⭐'); }
+function doneNotNow(id){ rqPatch(id, {verification_status:'research_complete', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Marked research complete'); }
+function skipRq(){ const rows=researchQueueRows().filter(r=>r.id!==CURRENT_RQ); const n=pickNextRQ(rows); if(n){ CURRENT_RQ=n.id; renderResearch(); } }
+
+async function renderResearch(){
+  const wrap=document.getElementById('research-wrap'); if(!wrap) return;
+  await ensureSignalMap();
+  const rows=researchQueueRows();
+  const target=25, done=RESEARCH_SESSION.verified, pct=Math.min(100, Math.round(done/target*100));
+  const remaining=rows.filter(c=>(c.verification_status||'unverified')==='unverified').length;
+  const head=`<div class="rq-progress"><span><b>${done}</b> verified this session · target 15–25</span><div class="rq-bar"><span style="width:${pct}%"></span></div><span><b>${remaining}</b> left to verify</span></div>`;
+  if(!rows.length){ CURRENT_RQ=null; wrap.innerHTML=head+`<div class="rq-empty"><div class="rq-big">🎉</div><div>Queue clear — nothing left to verify right now.</div></div>`; return; }
+  let c=CURRENT_RQ?rows.find(r=>r.id===CURRENT_RQ):null;
+  if(!c){ c=pickNextRQ(rows); CURRENT_RQ=c?c.id:null; }
+  wrap.innerHTML=head+renderResearchCard(c);
+}
+
+function renderResearchCard(c){
+  const li=linkedinUrl(c), co=companyUrl(c), loc=locLine(c);
+  const sig=autoSignal(c);
+  const verified=c.verification_status==='verified';
+  let h=`<div class="rq-card">`;
+  h+=`<h2>${escapeHtml(c.name||'Unknown')}</h2>`;
+  h+=`<div class="rq-sub">${escapeHtml(c.title||'No title')} · ${escapeHtml(c.company||'No agency')}</div>`;
+  if(loc) h+=`<div class="rq-loc">📍 ${escapeHtml(loc)}</div>`;
+  h+=`<div class="rq-links">`;
+  h+= li?`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">in LinkedIn ↗</a>`:`<span class="rq-actbtn" style="opacity:.5;cursor:default">No LinkedIn URL</span>`;
+  if(co) h+=`<a href="${escapeHtml(co)}" target="_blank" rel="noopener">Agency site ↗</a>`;
+  h+=`</div>`;
+  if(c.notes) h+=`<div class="rq-notes">${escapeHtml(c.notes)}</div>`;
+  if(sig){ h+=`<div class="rq-auto"><span class="rq-tag">Auto signal · machine-generated</span><div>${escapeHtml(sig.working_hypothesis||sig.outreach_angle||sig.source_text||'Signal on file')}${sig.total_score!=null?` <b>(score ${sig.total_score})</b>`:''}</div></div>`; }
+
+  /* Stage 1 — identity */
+  if(!verified){
+    h+=`<div class="rq-stage"><div class="rq-stage-h">1 · Identity check</div>`;
+    ['Does the LinkedIn profile open and look right?','Are they still at this agency?','Is the job title correct?','Are they Founder / CEO / MD / another decision-maker?','Does the agency still fit our target (indie creative, ~10–100 people)?']
+      .forEach((q,i)=>{ h+=`<label class="rq-check"><input type="checkbox" id="rqchk-${i}"><span>${q}</span></label>`; });
+    h+=`<div class="rq-decide">`;
+    h+=`<button class="rq-btn good" onclick="verifyProspect('${c.id}')">✓ Verified</button>`;
+    h+=`<button class="rq-btn warn" onclick="checkWithCoris('${c.id}')">? Check with Coris</button>`;
+    h+=`<button class="rq-btn bad" onclick="removeProspect('${c.id}')">✕ Remove</button>`;
+    h+=`</div></div>`;
+    h+=`<button class="rq-skip" onclick="skipRq()">Skip for now →</button>`;
+    h+=`</div>`;
+    return h;
+  }
+
+  /* Stage 2 — research (verified) */
+  h+=`<div class="rq-stage"><div class="rq-verified-line">✓ Identity verified</div></div>`;
+  h+=`<div class="rq-stage"><div class="rq-stage-h">2 · Quick research (2–3 min)</div>`;
+  h+=`<div class="rq-links" style="margin-bottom:16px">`;
+  if(li) h+=`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">Open LinkedIn ↗</a>`;
+  h+=`<a href="${googlePerson(c)}" target="_blank" rel="noopener">Google person ↗</a>`;
+  h+=`<a href="${googleAgencyNews(c)}" target="_blank" rel="noopener">Agency news ↗</a>`;
+  h+=`<a href="${googleAgencyNewsTrade(c)}" target="_blank" rel="noopener">Trade press ↗</a>`;
+  if(li) h+=`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">Mutual connections ↗</a>`;
+  h+=`</div>`;
+  h+=`<div class="rq-fld"><label>LinkedIn — skim the latest ~3 posts. Anything useful?</label><textarea onchange="saveResearchField('${c.id}','linkedin_research_notes',this.value)" placeholder="What are they posting about?">${escapeHtml(c.linkedin_research_notes||'')}</textarea></div>`;
+  h+=`<div class="rq-fld"><label>Best post URL</label><input type="url" onchange="saveResearchField('${c.id}','interesting_post_url',this.value)" value="${escapeHtml(c.interesting_post_url||'')}" placeholder="https://www.linkedin.com/posts/…"></div>`;
+  h+=`<div class="rq-fld"><label>Why it's relevant (one sentence)</label><input type="text" onchange="saveResearchField('${c.id}','interesting_post_summary',this.value)" value="${escapeHtml(c.interesting_post_summary||'')}" placeholder="e.g. Just posted about scaling new business without a hire"></div>`;
+  const st=c.human_signal_strength||'';
+  h+=`<div class="rq-fld"><label>Signal strength</label><div class="rq-strength">`
+    +`<label id="rqs-strong" class="${st==='strong'?'on-strong':''}" onclick="setStrength('${c.id}','strong')">Strong</label>`
+    +`<label id="rqs-maybe" class="${st==='maybe'?'on-maybe':''}" onclick="setStrength('${c.id}','maybe')">Maybe</label>`
+    +`<label id="rqs-nothing" class="${st==='nothing'?'on-nothing':''}" onclick="setStrength('${c.id}','nothing')">Nothing</label>`
+    +`</div></div>`;
+  h+=`<div class="rq-fld"><label>News / research notes</label><textarea onchange="saveResearchField('${c.id}','news_research_notes',this.value)" placeholder="Recent wins, hires, funding, rebrand…">${escapeHtml(c.news_research_notes||'')}</textarea></div>`;
+  h+=`<div class="rq-fld"><label>Research source URL</label><input type="url" onchange="saveResearchField('${c.id}','research_source_url',this.value)" value="${escapeHtml(c.research_source_url||'')}" placeholder="Link to the article / source"></div>`;
+  h+=`<div class="rq-fld"><label>Mutual connections</label><textarea onchange="saveResearchField('${c.id}','mutual_connection_notes',this.value)" placeholder="Anyone Coris might know in common?">${escapeHtml(c.mutual_connection_notes||'')}</textarea></div>`;
+  h+=`<div class="rq-decide">`;
+  h+=`<button class="rq-btn good" onclick="readyForCoris('${c.id}')">⭐ Ready for Coris</button>`;
+  h+=`<button class="rq-btn ghost" onclick="doneNotNow('${c.id}')">Done — not now</button>`;
+  h+=`</div></div>`;
+  h+=`<button class="rq-skip" onclick="skipRq()">Skip for now →</button>`;
+  h+=`</div>`;
+  return h;
+}
+
+/* ── Ready for Coris ── */
+function moveBackToResearch(id){
+  const c=ALL.find(x=>x.id===id); if(!c) return; const prev={verification_status:c.verification_status};
+  rqPatch(id, {verification_status:'verified'}); buildTabs(); renderCoris();
+  toast('Moved back for more research', ()=>{ rqPatch(id, prev); buildTabs(); renderCoris(); });
+}
+async function renderCoris(){
+  const wrap=document.getElementById('coris-wrap'); if(!wrap) return;
+  await ensureSignalMap();
+  const rows=ALL.filter(c=>c.verification_status==='ready_for_coris')
+    .sort((a,b)=>new Date(b.research_completed_at||b.verified_at||0)-new Date(a.research_completed_at||a.verified_at||0));
+  if(!rows.length){ wrap.innerHTML=`<div class="rq-empty"><div class="rq-big">✅</div><div>Nothing here yet. Verified prospects will appear once research marks them ready.</div></div>`; return; }
+  wrap.innerHTML=`<div class="rc-grid">${rows.map(renderCorisCard).join('')}</div>`;
+}
+function renderCorisCard(c){
+  const li=linkedinUrl(c), co=companyUrl(c), loc=locLine(c), sig=autoSignal(c);
+  const st=c.human_signal_strength;
+  const badge=st?`<span class="rc-badge ${st}">${st}</span>`:'';
+  const why=c.interesting_post_summary||c.news_research_notes||(sig&&sig.working_hypothesis)||'—';
+  let h=`<div class="rc-card">`;
+  h+=`<h3>${escapeHtml(c.name||'Unknown')}${badge}</h3>`;
+  h+=`<div class="rq-sub">${escapeHtml(c.title||'')} · ${escapeHtml(c.company||'')}${loc?' · '+escapeHtml(loc):''}</div>`;
+  h+=`<div class="rc-sec"><span class="rc-h">Why they fit</span>${escapeHtml(why)}</div>`;
+  if(c.linkedin_research_notes) h+=`<div class="rc-sec"><span class="rc-h">LinkedIn</span>${escapeHtml(c.linkedin_research_notes)}</div>`;
+  if(c.news_research_notes && c.news_research_notes!==why) h+=`<div class="rc-sec"><span class="rc-h">News / research</span>${escapeHtml(c.news_research_notes)}</div>`;
+  if(c.mutual_connection_notes) h+=`<div class="rc-sec"><span class="rc-h">Mutual connections</span>${escapeHtml(c.mutual_connection_notes)}</div>`;
+  if(sig) h+=`<div class="rc-auto"><b>Auto signal</b>${sig.total_score!=null?` (score ${sig.total_score})`:''} — ${escapeHtml(sig.working_hypothesis||sig.outreach_angle||sig.source_text||'')}</div>`;
+  const links=[];
+  if(li) links.push(`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">LinkedIn ↗</a>`);
+  if(c.interesting_post_url) links.push(`<a href="${escapeHtml(withScheme(c.interesting_post_url))}" target="_blank" rel="noopener">Best post ↗</a>`);
+  if(c.research_source_url) links.push(`<a href="${escapeHtml(withScheme(c.research_source_url))}" target="_blank" rel="noopener">Source ↗</a>`);
+  if(co) links.push(`<a href="${escapeHtml(co)}" target="_blank" rel="noopener">Site ↗</a>`);
+  if(links.length) h+=`<div class="rc-links">${links.join('')}</div>`;
+  h+=`<div class="rc-meta">Verified ${c.verified_by?escapeHtml(c.verified_by)+' · ':''}${escapeHtml(fmtDate(c.research_completed_at||c.verified_at))}</div>`;
+  h+=`<div class="rc-foot">`;
+  if(li) h+=`<a class="rq-actbtn" href="${escapeHtml(li)}" target="_blank" rel="noopener">Open LinkedIn ↗</a>`;
+  h+=`<button class="rq-actbtn" onclick="(function(){var c=ALL.find(x=>x.id==='${c.id}');openEmailModal(c);})()">✉ Compose outreach</button>`;
+  h+=`<button class="rq-actbtn" onclick="moveBackToResearch('${c.id}')">↩ Back to research</button>`;
+  h+=`</div></div>`;
+  return h;
+}
 
 /* ── Prospect signal scan ── */
 const DISCOVERY_QUERIES=[
