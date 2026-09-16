@@ -388,6 +388,21 @@ tr.dragging{opacity:.4}
 .rc-foot{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
 .rc-foot .rq-actbtn{font-size:11px;padding:8px 11px}
 .rc-meta{font:500 9px 'DM Mono',monospace;color:var(--grey-mid);text-transform:uppercase;letter-spacing:.05em}
+.rc-seg{display:flex;gap:6px;margin:2px 0 16px;flex-wrap:wrap}
+.rc-seg-btn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:600 11px 'DM Sans',sans-serif;cursor:pointer;color:var(--black)}
+.rc-seg-btn span{display:inline-block;margin-left:5px;font:700 9px 'DM Mono',monospace;color:var(--grey-mid)}
+.rc-seg-btn.active{background:var(--black);color:#fff}
+.rc-seg-btn.active span{color:var(--green)}
+.rc-primary{background:var(--green)!important;border-color:var(--green)!important}
+.rc-back{background:none;border:0;color:var(--grey-mid);font:600 10px 'DM Sans';cursor:pointer;text-decoration:underline;padding:4px 0 0;align-self:flex-start}
+.rc-back:hover{color:#b23c22}
+.rc-due{display:inline-block;margin-left:8px;font:700 8px 'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase;background:#ffe0d8;color:#b23c22;border-radius:99px;padding:3px 8px;vertical-align:middle}
+.rc-proc{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.rc-proc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc-proc-foot{display:flex;gap:8px;align-items:center;margin-top:4px}
+.rc-proc .rq-btn{flex:none;min-width:110px;padding:10px 16px}
+.rc-proc input[type=date]{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:400 13px 'DM Sans',sans-serif;background:#fff;box-sizing:border-box}
+@media(max-width:600px){.rc-proc-row{grid-template-columns:1fr}}
 @media(max-width:600px){.rq-decide .rq-btn{min-width:100%}}
 </style>
 </head>
@@ -1044,7 +1059,8 @@ function buildTabs(){
   let html=`<button class="tab ${activeTab==='all'?'active':''}" onclick="switchTab('all',this)">All contacts <span class="badge">${live.length}</span></button>`;
   html+=`<button class="tab ${activeTab==='__replied__'?'active':''}" onclick="switchTab('__replied__',this)">Replied <span class="badge">${live.filter(c=>c.replied).length}</span></button>`;
   const rqCount=live.filter(c=>!c.verification_status||c.verification_status==='unverified').length;
-  const rcCount=live.filter(c=>c.verification_status==='ready_for_coris').length;
+  const _rcToday=toDateInput(new Date());
+  const rcCount=live.filter(c=>c.verification_status==='ready_for_coris' || (c.verification_status==='processed'&&c.coris_check_in_at&&toDateInput(c.coris_check_in_at)<=_rcToday)).length;
   html+=`<button class="tab ${activeTab==='__research__'?'active':''}" onclick="switchTab('__research__',this)" title="Verify prospects and do a quick research pass">🔍 Research queue <span class="badge">${rqCount}</span></button>`;
   html+=`<button class="tab ${activeTab==='__coris__'?'active':''}" onclick="switchTab('__coris__',this)" title="Human-verified prospects worth a look">⭐ Ready for Coris <span class="badge">${rcCount}</span></button>`;
   cats.forEach(cat=>{
@@ -2566,16 +2582,54 @@ function moveBackToResearch(id){
   rqPatch(id, {verification_status:'verified'}); buildTabs(); renderCoris();
   toast('Moved back for more research', ()=>{ rqPatch(id, prev); buildTabs(); renderCoris(); });
 }
+let CORIS_SEG='ready', OPEN_PROCESS=null;
+function setCorisSeg(s){ CORIS_SEG=s; OPEN_PROCESS=null; renderCoris(); }
+function corisLinksHtml(c){
+  const li=linkedinUrl(c), co=companyUrl(c); const links=[];
+  if(li) links.push(`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">LinkedIn ↗</a>`);
+  if(c.interesting_post_url) links.push(`<a href="${escapeHtml(withScheme(c.interesting_post_url))}" target="_blank" rel="noopener">Best post ↗</a>`);
+  if(c.research_source_url) links.push(`<a href="${escapeHtml(withScheme(c.research_source_url))}" target="_blank" rel="noopener">Source ↗</a>`);
+  if(co) links.push(`<a href="${escapeHtml(co)}" target="_blank" rel="noopener">Site ↗</a>`);
+  return links.length?`<div class="rc-links">${links.join('')}</div>`:'';
+}
+function isCheckinDue(c){ return c.coris_check_in_at && toDateInput(c.coris_check_in_at)<=toDateInput(new Date()); }
+function processFormHtml(c){
+  const today=toDateInput(new Date());
+  const actioned=c.coris_actioned_at?toDateInput(c.coris_actioned_at):today;
+  const checkin=c.coris_check_in_at?toDateInput(c.coris_check_in_at):'';
+  return `<div class="rc-proc"><div class="rq-fld"><label>What did you do?</label><textarea id="proc-note" placeholder="e.g. Sent intro email referencing their new-business post">${escapeHtml(c.coris_action_note||'')}</textarea></div><div class="rc-proc-row"><div class="rq-fld"><label>Date actioned</label><input type="date" id="proc-actioned" value="${actioned}"></div><div class="rq-fld"><label>Check in again</label><input type="date" id="proc-checkin" value="${checkin}"></div></div><div class="rc-proc-foot"><button class="rq-btn good" onclick="saveProcessed('${c.id}')">Save</button><button class="rq-actbtn" onclick="closeProcessForm()">Cancel</button></div></div>`;
+}
+function openProcessForm(id){ OPEN_PROCESS=id; renderCoris(); setTimeout(()=>{ const n=document.getElementById('proc-note'); if(n) n.focus(); },30); }
+function closeProcessForm(){ OPEN_PROCESS=null; renderCoris(); }
+function saveProcessed(id){
+  const c=ALL.find(x=>x.id===id); if(!c) return;
+  const note=(document.getElementById('proc-note')||{}).value||'';
+  const actioned=(document.getElementById('proc-actioned')||{}).value||'';
+  const checkin=(document.getElementById('proc-checkin')||{}).value||'';
+  const prev={verification_status:c.verification_status, coris_action_note:c.coris_action_note, coris_actioned_at:c.coris_actioned_at, coris_check_in_at:c.coris_check_in_at};
+  rqPatch(id, {verification_status:'processed', coris_action_note:note||null, coris_actioned_at:actioned||null, coris_check_in_at:checkin||null});
+  OPEN_PROCESS=null; buildTabs(); renderCoris();
+  toast('Marked as processed', ()=>{ rqPatch(id, prev); buildTabs(); renderCoris(); });
+}
+function reopenToReady(id){ const c=ALL.find(x=>x.id===id); if(!c) return; const prev={verification_status:c.verification_status}; rqPatch(id,{verification_status:'ready_for_coris'}); buildTabs(); renderCoris(); toast('Reopened into Ready for Coris', ()=>{ rqPatch(id,prev); buildTabs(); renderCoris(); }); }
+
 async function renderCoris(){
   const wrap=document.getElementById('coris-wrap'); if(!wrap) return;
   await ensureSignalMap();
-  const rows=ALL.filter(c=>c.verification_status==='ready_for_coris')
-    .sort((a,b)=>new Date(b.research_completed_at||b.verified_at||0)-new Date(a.research_completed_at||a.verified_at||0));
-  if(!rows.length){ wrap.innerHTML=`<div class="rq-empty"><div class="rq-big">✅</div><div>Nothing here yet. Verified prospects will appear once research marks them ready.</div></div>`; return; }
-  wrap.innerHTML=`<div class="rc-grid">${rows.map(renderCorisCard).join('')}</div>`;
+  const ready=ALL.filter(c=>c.verification_status==='ready_for_coris').sort((a,b)=>new Date(b.research_completed_at||b.verified_at||0)-new Date(a.research_completed_at||a.verified_at||0));
+  const processed=ALL.filter(c=>c.verification_status==='processed');
+  const due=processed.filter(isCheckinDue).sort((a,b)=>new Date(a.coris_check_in_at||0)-new Date(b.coris_check_in_at||0));
+  const seg=CORIS_SEG||'ready';
+  const segbar=`<div class="rc-seg"><button class="rc-seg-btn ${seg==='ready'?'active':''}" onclick="setCorisSeg('ready')">Ready <span>${ready.length}</span></button><button class="rc-seg-btn ${seg==='due'?'active':''}" onclick="setCorisSeg('due')">Due for check-in <span>${due.length}</span></button><button class="rc-seg-btn ${seg==='processed'?'active':''}" onclick="setCorisSeg('processed')">Processed <span>${processed.length}</span></button></div>`;
+  let list, empty, icon;
+  if(seg==='ready'){ list=ready; empty='Nothing waiting. Verified prospects appear here once research marks them ready.'; icon='✅'; }
+  else if(seg==='due'){ list=due; empty='No check-ins due. Processed prospects with a check-in date land here when the date arrives.'; icon='📅'; }
+  else { list=processed.slice().sort((a,b)=>new Date(b.coris_actioned_at||0)-new Date(a.coris_actioned_at||0)); empty='Nothing processed yet. Prospects you action from Ready move here with your notes.'; icon='☑️'; }
+  const body=list.length?`<div class="rc-grid">${list.map(c=> seg==='ready'?renderCorisCard(c):renderProcessedCard(c)).join('')}</div>`:`<div class="rq-empty"><div class="rq-big">${icon}</div><div>${empty}</div></div>`;
+  wrap.innerHTML=segbar+body;
 }
 function renderCorisCard(c){
-  const li=linkedinUrl(c), co=companyUrl(c), loc=locLine(c), sig=autoSignal(c);
+  const loc=locLine(c), sig=autoSignal(c), li=linkedinUrl(c);
   const st=c.human_signal_strength;
   const badge=st?`<span class="rc-badge ${st}">${st}</span>`:'';
   const why=c.interesting_post_summary||c.news_research_notes||(sig&&sig.working_hypothesis)||'—';
@@ -2587,18 +2641,34 @@ function renderCorisCard(c){
   if(c.news_research_notes && c.news_research_notes!==why) h+=`<div class="rc-sec"><span class="rc-h">News / research</span>${escapeHtml(c.news_research_notes)}</div>`;
   if(c.mutual_connection_notes) h+=`<div class="rc-sec"><span class="rc-h">Mutual connections</span>${escapeHtml(c.mutual_connection_notes)}</div>`;
   if(sig) h+=`<div class="rc-auto"><b>Auto signal</b>${sig.total_score!=null?` (score ${sig.total_score})`:''} — ${escapeHtml(sig.working_hypothesis||sig.outreach_angle||sig.source_text||'')}</div>`;
-  const links=[];
-  if(li) links.push(`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">LinkedIn ↗</a>`);
-  if(c.interesting_post_url) links.push(`<a href="${escapeHtml(withScheme(c.interesting_post_url))}" target="_blank" rel="noopener">Best post ↗</a>`);
-  if(c.research_source_url) links.push(`<a href="${escapeHtml(withScheme(c.research_source_url))}" target="_blank" rel="noopener">Source ↗</a>`);
-  if(co) links.push(`<a href="${escapeHtml(co)}" target="_blank" rel="noopener">Site ↗</a>`);
-  if(links.length) h+=`<div class="rc-links">${links.join('')}</div>`;
+  h+=corisLinksHtml(c);
   h+=`<div class="rc-meta">Verified ${c.verified_by?escapeHtml(c.verified_by)+' · ':''}${escapeHtml(fmtDate(c.research_completed_at||c.verified_at))}</div>`;
   h+=`<div class="rc-foot">`;
   if(li) h+=`<a class="rq-actbtn" href="${escapeHtml(li)}" target="_blank" rel="noopener">Open LinkedIn ↗</a>`;
   h+=`<button class="rq-actbtn" onclick="(function(){var c=ALL.find(x=>x.id==='${c.id}');openEmailModal(c);})()">✉ Compose outreach</button>`;
-  h+=`<button class="rq-actbtn" onclick="moveBackToResearch('${c.id}')">↩ Back to research</button>`;
-  h+=`</div></div>`;
+  h+=`<button class="rq-actbtn rc-primary" onclick="openProcessForm('${c.id}')">✓ Mark as processed</button>`;
+  h+=`</div>`;
+  if(OPEN_PROCESS===c.id) h+=processFormHtml(c);
+  h+=`<button class="rc-back" onclick="moveBackToResearch('${c.id}')">↩ Send back for more research</button>`;
+  h+=`</div>`;
+  return h;
+}
+function renderProcessedCard(c){
+  const loc=locLine(c), li=linkedinUrl(c), due=isCheckinDue(c);
+  let h=`<div class="rc-card">`;
+  h+=`<h3>${escapeHtml(c.name||'Unknown')}${due?'<span class="rc-due">Check-in due</span>':''}</h3>`;
+  h+=`<div class="rq-sub">${escapeHtml(c.title||'')} · ${escapeHtml(c.company||'')}${loc?' · '+escapeHtml(loc):''}</div>`;
+  if(c.coris_action_note) h+=`<div class="rc-sec"><span class="rc-h">What I did</span>${escapeHtml(c.coris_action_note)}</div>`;
+  h+=`<div class="rc-meta">Actioned ${escapeHtml(fmtDate(c.coris_actioned_at))}${c.coris_check_in_at?` · Check in ${escapeHtml(fmtDate(c.coris_check_in_at))}`:''}</div>`;
+  h+=corisLinksHtml(c);
+  h+=`<div class="rc-foot">`;
+  if(li) h+=`<a class="rq-actbtn" href="${escapeHtml(li)}" target="_blank" rel="noopener">Open LinkedIn ↗</a>`;
+  h+=`<button class="rq-actbtn" onclick="(function(){var c=ALL.find(x=>x.id==='${c.id}');openEmailModal(c);})()">✉ Compose outreach</button>`;
+  h+=`<button class="rq-actbtn rc-primary" onclick="openProcessForm('${c.id}')">✎ Log next step</button>`;
+  h+=`<button class="rq-actbtn" onclick="reopenToReady('${c.id}')">↩ Reopen</button>`;
+  h+=`</div>`;
+  if(OPEN_PROCESS===c.id) h+=processFormHtml(c);
+  h+=`</div>`;
   return h;
 }
 
