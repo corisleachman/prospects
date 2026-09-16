@@ -1035,14 +1035,24 @@ async function load(){
   renderSkeleton();
   const rb=document.getElementById('refresh-btn'); rb.classList.add('spinning');
   try{
-    const r=await sb(`${TABLE}?select=*&order=replied.desc,company.asc`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    ALL=await r.json();
+    ALL=await fetchAllContacts();
     buildTabs(); buildCatList(); render(); renderNudge(); loadTemplates(); loadEnquiries();
   }catch(e){
     document.getElementById('loading').innerHTML=`<span style="color:#b23c22">Couldn't load: ${e.message}</span>`;
   }
   rb.classList.remove('spinning');
+}
+async function fetchAllContacts(){
+  const page=1000; let from=0, all=[];
+  while(true){
+    const r=await sb(`${TABLE}?select=*&order=created_at.desc.nullslast&limit=${page}&offset=${from}`);
+    if(!r.ok){ if(from===0) throw new Error('HTTP '+r.status); break; }
+    const chunk=await r.json();
+    all=all.concat(chunk);
+    if(chunk.length<page) break;
+    from+=page;
+  }
+  return all;
 }
 function refresh(){ SELECTED.clear(); load(); }
 
