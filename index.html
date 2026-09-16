@@ -2419,7 +2419,7 @@ async function aiDraftTemplate(){
 
 
 /* ── Research / verification workflow ── */
-let RESEARCH_SESSION={verified:0}, CURRENT_RQ=null, SIGNAL_BY_CONTACT=null;
+let RESEARCH_SESSION={verified:0}, CURRENT_RQ=null, SIGNAL_BY_CONTACT=null, RQ_SKIPPED=new Set();
 
 async function ensureSignalMap(){
   if(SIGNAL_BY_CONTACT) return SIGNAL_BY_CONTACT;
@@ -2443,8 +2443,10 @@ function googleAgencyNewsTrade(c){ const sites='('+RQ_TRADE_SITES.map(s=>'site:'
 
 /* Queue = contacts still unverified, or verified but not yet finished */
 function researchQueueRows(){ return ALL.filter(c=>c.status!=='Archived' && ['unverified','verified'].includes(c.verification_status||'unverified')); }
-function pickNextRQ(rows){
-  return [...rows].sort((a,b)=>{
+function pickNextRQ(rows, excludeId){
+  let pool=rows.filter(r=>r.id!==excludeId && !RQ_SKIPPED.has(r.id));
+  if(!pool.length){ RQ_SKIPPED.clear(); pool=rows.filter(r=>r.id!==excludeId); } // everyone left has been skipped — start the round again
+  return [...pool].sort((a,b)=>{
     const va=(a.verification_status==='verified')?1:0, vb=(b.verification_status==='verified')?1:0; if(va!==vb) return vb-va; // finish in-progress first
     const sa=autoSignal(a)?1:0, sb2=autoSignal(b)?1:0; if(sa!==sb2) return sb2-sa; // then those with an auto signal
     return new Date(b.created_at||0)-new Date(a.created_at||0);
@@ -2482,7 +2484,7 @@ function removeProspect(id){
 }
 function readyForCoris(id){ rqPatch(id, {verification_status:'ready_for_coris', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Sent to Ready for Coris ⭐'); }
 function doneNotNow(id){ rqPatch(id, {verification_status:'research_complete', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Marked research complete'); }
-function skipRq(){ const rows=researchQueueRows().filter(r=>r.id!==CURRENT_RQ); const n=pickNextRQ(rows); if(n){ CURRENT_RQ=n.id; renderResearch(); } }
+function skipRq(){ if(CURRENT_RQ) RQ_SKIPPED.add(CURRENT_RQ); const rows=researchQueueRows(); const n=pickNextRQ(rows, CURRENT_RQ); if(n){ CURRENT_RQ=n.id; renderResearch(); } }
 
 async function renderResearch(){
   const wrap=document.getElementById('research-wrap'); if(!wrap) return;
