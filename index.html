@@ -401,6 +401,32 @@ tr.dragging{opacity:.4}
 .rq-skip{display:block;margin:14px auto 0;background:none;border:0;color:var(--grey-mid);font:600 11px 'DM Sans';cursor:pointer;text-decoration:underline;padding:6px}
 .rq-empty{text-align:center;padding:64px 20px;color:var(--grey-mid);font-size:14px}
 .rq-empty .rq-big{font-size:46px;margin-bottom:10px}
+#research-wrap{max-width:1180px}
+.rqb{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+.rqb-list{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;position:sticky;top:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 210px)}
+.rqb-list-h{font:700 11px 'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);display:flex;align-items:center;gap:8px;padding:2px 4px}
+.rqb-count{background:var(--black);color:var(--green);font-size:9px;border-radius:99px;padding:2px 8px}
+.rqb-tabs{display:flex;flex-wrap:wrap;gap:4px}
+.rqb-tab{border:1px solid var(--line);background:var(--cream);border-radius:99px;padding:5px 9px;font:600 10px 'DM Sans',sans-serif;color:var(--black);cursor:pointer}
+.rqb-tab span{font-family:'DM Mono',monospace;font-size:9px;color:var(--grey-mid);margin-left:3px}
+.rqb-tab.active{background:var(--black);color:#fff}
+.rqb-tab.active span{color:var(--green)}
+.rqb-rows{overflow-y:auto;display:flex;flex-direction:column;gap:2px;flex:1}
+.rqb-row{display:flex;align-items:center;gap:9px;padding:8px 9px;border:0;background:none;width:100%;text-align:left;border-radius:9px;cursor:pointer}
+.rqb-row:hover{background:var(--cream-soft)}
+.rqb-row.sel{background:var(--black)}
+.rqb-row.sel .rqb-name b,.rqb-row.sel .rqb-name span,.rqb-row.sel .rqb-st{color:#fff}
+.rqb-dot{width:8px;height:8px;border-radius:99px;flex:none}
+.rqb-name{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
+.rqb-name b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rqb-name span{font-size:11px;color:var(--grey-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rqb-st{font:600 8px 'DM Mono',monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--grey-mid);flex:none}
+.rqb-none{padding:22px 8px;text-align:center;color:var(--grey-mid);font-size:12px}
+.rqb-next{margin-top:2px;border:1px solid var(--line);background:var(--cream);border-radius:10px;padding:11px;font:700 12px 'DM Sans',sans-serif;color:var(--grey-mid);cursor:pointer}
+.rqb-next.ready{background:var(--green);color:var(--black);border-color:var(--green)}
+.rqb-detail{min-width:0}
+.rqb-detail .rq-card{margin:0}
+@media(max-width:820px){.rqb{grid-template-columns:1fr}.rqb-list{position:static;max-height:none}}
 .rc-wrap{max-width:1160px;margin:0 auto;width:100%;padding:8px 24px 64px}
 .rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(345px,1fr));gap:14px}
 .rc-card{border:1px solid var(--line);background:#fff;border-radius:15px;padding:18px;display:flex;flex-direction:column;gap:11px}
@@ -2481,7 +2507,7 @@ async function aiDraftTemplate(){
 
 
 /* ── Research / verification workflow ── */
-let RESEARCH_SESSION={verified:0}, CURRENT_RQ=null, SIGNAL_BY_CONTACT=null, RQ_SKIPPED=new Set();
+let RESEARCH_SESSION={verified:0}, CURRENT_RQ=null, SIGNAL_BY_CONTACT=null, RQ_SUBFILTER='todo', RQ_LOADING_BATCH=false;
 
 async function ensureSignalMap(){
   if(SIGNAL_BY_CONTACT) return SIGNAL_BY_CONTACT;
@@ -2504,15 +2530,45 @@ const RQ_TRADE_SITES=['thedrum.com','campaignlive.co.uk','prweek.com','designwee
 function googleAgencyNewsTrade(c){ const sites='('+RQ_TRADE_SITES.map(s=>'site:'+s).join(' OR ')+')'; return `https://www.google.com/search?tbs=${encodeURIComponent(newsDateRange())}&q=${gq('"'+(c.company||'')+'" '+sites)}`; }
 
 /* Queue = contacts still unverified, or verified but not yet finished */
-function researchQueueRows(){ return ALL.filter(c=>c.status!=='Archived' && ['unverified','verified'].includes(c.verification_status||'unverified')); }
-function pickNextRQ(rows, excludeId){
-  let pool=rows.filter(r=>r.id!==excludeId && !RQ_SKIPPED.has(r.id));
-  if(!pool.length){ RQ_SKIPPED.clear(); pool=rows.filter(r=>r.id!==excludeId); } // everyone left has been skipped — start the round again
-  return [...pool].sort((a,b)=>{
-    const va=(a.verification_status==='verified')?1:0, vb=(b.verification_status==='verified')?1:0; if(va!==vb) return vb-va; // finish in-progress first
-    const sa=autoSignal(a)?1:0, sb2=autoSignal(b)?1:0; if(sa!==sb2) return sb2-sa; // then those with an auto signal
-    return new Date(b.created_at||0)-new Date(a.created_at||0);
-  })[0]||null;
+const RQ_BATCH_SIZE=25;
+function currentBatchTs(){ let mx=null; ALL.forEach(c=>{ if(c.research_batch_at && (!mx || c.research_batch_at>mx)) mx=c.research_batch_at; }); return mx; }
+function batchMembers(){ const ts=currentBatchTs(); if(!ts) return []; return ALL.filter(c=>c.research_batch_at===ts); }
+function unverifiedPool(){ return ALL.filter(c=>c.status!=='Archived' && (!c.verification_status||c.verification_status==='unverified')); }
+function rqState(c){
+  const v=c.verification_status||'unverified';
+  if(v==='removed') return 'removed';
+  if(v==='needs_coris_review') return 'coris';
+  if(v==='ready_for_coris') return 'ready';
+  if(v==='research_complete') return 'done';
+  if(v==='verified') return 'verified';
+  return c.research_skipped_at ? 'skipped' : 'todo';
+}
+const RQ_STATE_META={ todo:{dot:'#8A8880',label:'To do'}, verified:{dot:'#3E7BCF',label:'Verifying'}, ready:{dot:'#3c9a29',label:'Ready ⭐'}, done:{dot:'#3c9a29',label:'Done'}, coris:{dot:'#d9a400',label:'Check Coris'}, skipped:{dot:'#c2bdb0',label:'Skipped'}, removed:{dot:'#b23c22',label:'Removed'} };
+function rqFilterMatch(c, f){
+  const s=rqState(c);
+  if(f==='all') return true;
+  if(f==='todo') return s==='todo';
+  if(f==='verified') return s==='verified'||s==='ready'||s==='done';
+  if(f==='coris') return s==='coris';
+  if(f==='skipped') return s==='skipped';
+  return true;
+}
+function selectNextTodo(){ const t=batchMembers().filter(c=>rqState(c)==='todo'); CURRENT_RQ = t.length ? t[0].id : null; }
+async function loadNextBatch(){
+  if(RQ_LOADING_BATCH) return; RQ_LOADING_BATCH=true;
+  const carry=batchMembers().filter(c=>(c.verification_status||'unverified')==='unverified'); // unfinished (to do + skipped) roll forward
+  const carryIds=new Set(carry.map(c=>c.id));
+  const fresh=unverifiedPool().filter(c=>!carryIds.has(c.id)).sort((a,b)=>{
+    const sa=autoSignal(a)?1:0, sb2=autoSignal(b)?1:0; if(sa!==sb2) return sb2-sa; // automated-signal prospects first
+    return new Date(b.created_at||0)-new Date(a.created_at||0); // then newest added
+  }).slice(0, Math.max(0, RQ_BATCH_SIZE - carry.length));
+  const pick=[...carry, ...fresh];
+  if(!pick.length){ RQ_LOADING_BATCH=false; toast('No more unverified prospects to load'); return; }
+  const ts=new Date().toISOString();
+  pick.forEach(c=>{ c.research_batch_at=ts; c.research_skipped_at=null; });
+  const ids=pick.map(c=>c.id).join(',');
+  try{ await sb(`${TABLE}?id=in.(${ids})`,{method:'PATCH',body:JSON.stringify({research_batch_at:ts, research_skipped_at:null, updated_at:ts})}); }catch(e){}
+  RQ_LOADING_BATCH=false; RQ_SUBFILTER='todo'; selectNextTodo(); buildTabs(); renderResearch();
 }
 
 function rqPatch(id, payload){
@@ -2537,28 +2593,50 @@ function verifyProspect(id){
     buildTabs(); renderResearch();
   });
 }
-function rqAdvance(){ CURRENT_RQ=null; buildTabs(); renderResearch(); }
-function checkWithCoris(id){ rqPatch(id, {verification_status:'needs_coris_review'}); rqAdvance(); toast('Flagged for Coris to check'); }
+function rqAfterAction(){ selectNextTodo(); buildTabs(); renderResearch(); }
+function checkWithCoris(id){ rqPatch(id, {verification_status:'needs_coris_review'}); rqAfterAction(); toast('Flagged for Coris to check'); }
 function removeProspect(id){
   const c=ALL.find(x=>x.id===id); if(!c) return; const prev={verification_status:c.verification_status, status:c.status};
-  rqPatch(id, {verification_status:'removed', status:'Archived'}); rqAdvance();
+  rqPatch(id, {verification_status:'removed', status:'Archived'}); rqAfterAction();
   toast('Removed & archived', ()=>{ rqPatch(id, prev); buildTabs(); renderResearch(); });
 }
-function readyForCoris(id){ rqPatch(id, {verification_status:'ready_for_coris', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Sent to Ready for Coris ⭐'); }
-function doneNotNow(id){ rqPatch(id, {verification_status:'research_complete', research_completed_at:new Date().toISOString()}); rqAdvance(); toast('Marked research complete'); }
-function skipRq(){ if(CURRENT_RQ) RQ_SKIPPED.add(CURRENT_RQ); const rows=researchQueueRows(); const n=pickNextRQ(rows, CURRENT_RQ); if(n){ CURRENT_RQ=n.id; renderResearch(); } }
+function readyForCoris(id){ rqPatch(id, {verification_status:'ready_for_coris', research_completed_at:new Date().toISOString()}); rqAfterAction(); toast('Sent to Ready for Coris ⭐'); }
+function doneNotNow(id){ rqPatch(id, {verification_status:'research_complete', research_completed_at:new Date().toISOString()}); rqAfterAction(); toast('Marked research complete'); }
+function skipRq(){ if(!CURRENT_RQ) return; const id=CURRENT_RQ; const ts=new Date().toISOString(); rqPatch(id, {research_skipped_at:ts}); selectNextTodo(); buildTabs(); renderResearch(); toast('Skipped — still in this batch under “Skipped”', ()=>{ rqPatch(id,{research_skipped_at:null}); CURRENT_RQ=id; buildTabs(); renderResearch(); }); }
+function selectRq(id){ CURRENT_RQ=id; renderResearch(); }
+function setRqFilter(f){ RQ_SUBFILTER=f; renderResearch(); }
 
 async function renderResearch(){
   const wrap=document.getElementById('research-wrap'); if(!wrap) return;
   await ensureSignalMap();
-  const rows=researchQueueRows();
-  const target=25, done=RESEARCH_SESSION.verified, pct=Math.min(100, Math.round(done/target*100));
-  const remaining=rows.filter(c=>(c.verification_status||'unverified')==='unverified').length;
-  const head=`<div class="rq-progress"><span><b>${done}</b> verified this session · target 15–25</span><div class="rq-bar"><span style="width:${pct}%"></span></div><span><b>${remaining}</b> left to verify</span></div>`;
-  if(!rows.length){ CURRENT_RQ=null; wrap.innerHTML=head+`<div class="rq-empty"><div class="rq-big">🎉</div><div>Queue clear — nothing left to verify right now.</div></div>`; return; }
-  let c=CURRENT_RQ?rows.find(r=>r.id===CURRENT_RQ):null;
-  if(!c){ c=pickNextRQ(rows); CURRENT_RQ=c?c.id:null; }
-  wrap.innerHTML=head+renderResearchCard(c);
+  const members=batchMembers();
+  if(!members.length && unverifiedPool().length && !RQ_LOADING_BATCH){ loadNextBatch(); return; }
+  const done=RESEARCH_SESSION.verified, pct=Math.min(100, Math.round(done/25*100));
+  const todo=members.filter(c=>rqState(c)==='todo').length;
+  const overall=unverifiedPool().length;
+  const head=`<div class="rq-progress"><span><b>${done}</b> verified this session · target 15–25</span><div class="rq-bar"><span style="width:${pct}%"></span></div><span><b>${overall.toLocaleString()}</b> left to verify overall</span></div>`;
+  if(!members.length){ wrap.innerHTML=head+`<div class="rq-empty"><div class="rq-big">🎉</div><div>Nothing left to verify. Great work.</div></div>`; return; }
+
+  const filters=[['todo','To do'],['verified','Verified'],['coris','Check Coris'],['skipped','Skipped'],['all','All']];
+  const count=f=>members.filter(c=>rqFilterMatch(c,f)).length;
+  const tabs=filters.map(([k,l])=>`<button class="rqb-tab ${RQ_SUBFILTER===k?'active':''}" onclick="setRqFilter('${k}')">${l} <span>${count(k)}</span></button>`).join('');
+  const shown=members.filter(c=>rqFilterMatch(c,RQ_SUBFILTER));
+  const rows=shown.map(c=>{
+    const st=rqState(c), meta=RQ_STATE_META[st]||RQ_STATE_META.todo;
+    const strike = st==='removed'?'text-decoration:line-through;opacity:.6':'';
+    return `<button class="rqb-row ${c.id===CURRENT_RQ?'sel':''}" onclick="selectRq('${c.id}')"><span class="rqb-dot" style="background:${meta.dot}"></span><span class="rqb-name" style="${strike}"><b>${escapeHtml(c.name||'Unknown')}</b><span>${escapeHtml(c.company||'')}</span></span><span class="rqb-st">${meta.label}</span></button>`;
+  }).join('') || `<div class="rqb-none">Nothing in “${filters.find(f=>f[0]===RQ_SUBFILTER)[1]}”.</div>`;
+  const nextReady = todo===0;
+  const left=`<div class="rqb-list"><div class="rqb-list-h">This batch <span class="rqb-count">${members.length}</span></div><div class="rqb-tabs">${tabs}</div><div class="rqb-rows">${rows}</div><button class="rqb-next ${nextReady?'ready':''}" onclick="loadNextBatch()">${nextReady?'Load next 25 →':`Load next 25 · ${todo} still to do`}</button></div>`;
+
+  let c=CURRENT_RQ?members.find(m=>m.id===CURRENT_RQ):null;
+  if(!c){ const t=members.filter(m=>rqState(m)==='todo'); c=t[0]||null; CURRENT_RQ=c?c.id:null; }
+  let detail;
+  if(c) detail=renderResearchCard(c);
+  else if(todo===0) detail=`<div class="rq-empty"><div class="rq-big">✅</div><div>Batch done — everyone actioned.<br>Hit “Load next 25”.</div></div>`;
+  else detail=`<div class="rq-empty"><div class="rq-big">👈</div><div>Pick someone from the list to verify.</div></div>`;
+
+  wrap.innerHTML=head+`<div class="rqb">${left}<div class="rqb-detail">${detail}</div></div>`;
 }
 
 function renderResearchCard(c){
