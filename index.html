@@ -1134,6 +1134,8 @@ function buildTabs(){
   html+=`</div>`;
   html+=`<div class="sb-sec"><div class="sb-h">Lists</div>`;
   html+=`<button class="sb-item ${!activeList?'active':''}" onclick="setList('')"><span class="sb-ico">≡</span><span class="sb-lbl">All lists</span></button>`;
+  const liCount=live.filter(isLinkedInSource).length;
+  html+=`<button class="sb-item ${activeList==='__linkedin__'?'active':''}" onclick="setList('__linkedin__')" title="Prospects you added ad-hoc via the LinkedIn Chrome plugin, newest first"><span class="sb-ico">🔗</span><span class="sb-lbl">Recently added</span><span class="sb-count">${liCount}</span></button>`;
   cats.forEach(cat=>{
     const n=live.filter(c=>c.category===cat).length;
     const esc=cat.replace(/'/g,"\\'");
@@ -1176,7 +1178,8 @@ function applyTabView(tab){
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
   else if(tab==='__archived__'){ title.textContent='Archived'; sub.textContent='Do-not-contact — kept on record so re-imports skip them'; }
   else{ title.textContent='Prospects'; sub.textContent='All contacts, most recent first'; }
-  if(activeList) sub.textContent += ` · List: ${activeList}`;
+  if(activeList==='__linkedin__') sub.textContent='Added ad-hoc via the LinkedIn Chrome plugin · newest first';
+  else if(activeList) sub.textContent += ` · List: ${activeList}`;
   render();
 }
 function toggleSidebar(){ const sb=document.getElementById('sidebar'); if(sb) sb.classList.toggle('open'); }
@@ -1196,6 +1199,7 @@ function fmtDate(v){ if(!v) return '—'; const d=new Date(v); if(isNaN(d)) retu
 const FREEMAIL=new Set(['gmail.com','googlemail.com','hotmail.com','hotmail.co.uk','outlook.com','yahoo.com','yahoo.co.uk','icloud.com','me.com','mac.com','aol.com','live.com','live.co.uk','msn.com','protonmail.com','proton.me','btinternet.com','sky.com','virginmedia.com']);
 function withScheme(u){ u=String(u||'').trim(); if(!u) return ''; return /^https?:\/\//i.test(u)?u:'https://'+u.replace(/^\/+/,''); }
 function linkedinUrl(c){ return withScheme(c.linkedin_url); }
+function isLinkedInSource(c){ return String(c.source||'').trim().toLowerCase()==='linkedin'; }
 function companyUrl(c){
   if(c.website) return withScheme(c.website);
   if(c.email && c.email.includes('@')){
@@ -1217,7 +1221,8 @@ function visibleRows(){
     if(arch){ if(!isArch) return false; }
     else if(isArch) return false;
     if(activeTab==='__replied__' && !c.replied) return false;
-    if(activeList && c.category!==activeList) return false;
+    if(activeList==='__linkedin__'){ if(!isLinkedInSource(c)) return false; }
+    else if(activeList && c.category!==activeList) return false;
     if(repliedOnly && !c.replied) return false;
     if(hideBounced && (c.bounced||c.status==='Bounced')) return false;
     if(noContactOnly && c.last_emailed_at) return false;
