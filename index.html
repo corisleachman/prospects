@@ -223,6 +223,31 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 td[data-f]{cursor:text}
 td[data-f="status"],td[data-f="category"]{cursor:pointer}
 td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inset 0 -1px 0 var(--grey)}
+.em-chip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;max-width:230px}
+.em-chip .em-addr{font-family:'DM Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.em-count{font-family:'DM Mono',monospace;font-size:9px;background:var(--grey-light);color:var(--grey-mid);padding:1px 6px;border-radius:100px;flex:none}
+.em-caret{font-style:normal;font-size:9px;color:var(--grey-mid);flex:none}
+.em-chip:hover .em-caret{color:var(--black)}
+.em-gen{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:var(--black);color:var(--green);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
+.em-gen:hover{opacity:.88}
+.em-drawer-btn{margin-top:6px;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
+.em-drawer-btn:hover{border-color:var(--black);color:var(--black)}
+#cand-pop{position:fixed;z-index:1200;background:var(--white);border:1.5px solid var(--black);border-radius:12px;box-shadow:0 12px 34px rgba(14,14,14,.20);padding:6px;width:320px;max-height:70vh;overflow:auto}
+.cp-h{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid);padding:6px 8px 4px}
+.cp-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px}
+.cp-row .cp-ico{width:16px;text-align:center;flex:none;font-size:12px}
+.cp-row .cp-addr{flex:1;font-family:'DM Mono',monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cp-row .cp-tag{font-family:'DM Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.05em;flex:none;padding:2px 6px;border-radius:100px}
+.cp-row .cp-act{display:none;gap:4px;flex:none}
+.cp-row:hover .cp-act{display:flex}
+.cp-act button{border:0;background:var(--grey-light);border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:11px;line-height:1;padding:0}
+.cp-act button:hover{background:var(--black);color:var(--green)}
+.cp-row.active{box-shadow:inset 0 0 0 1.5px var(--grey-light)}
+.cp-row.verified{background:#eaf3de}
+.cp-foot{display:flex;gap:6px;border-top:1px solid var(--grey-light);margin-top:4px;padding:8px 4px 4px}
+.cp-foot button{flex:1;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:6px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
+.cp-foot button:hover{border-color:var(--black);color:var(--black)}
+.cp-foot button.danger:hover{border-color:#b23c22;color:#b23c22}
 .pill.pill-btn{cursor:pointer}
 .pill.pill-btn:hover{box-shadow:0 0 0 1.5px rgba(0,0,0,.14)}
 .inline-input{width:100%;min-width:80px;border:1.5px solid var(--black);border-radius:6px;padding:5px 7px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--black);background:var(--white);outline:none}
@@ -739,7 +764,7 @@ tr.dragging{opacity:.4}
     <div class="mbody">
       <div class="row2">
         <div class="fld"><label>Name <span class="req">*</span></label><input id="f-name" placeholder="e.g. Jane Smith"></div>
-        <div class="fld"><label>Email</label><input id="f-email" type="email" placeholder="name@company.com"></div>
+        <div class="fld"><label>Email</label><input id="f-email" type="email" placeholder="name@company.com"><button type="button" class="em-drawer-btn" onclick="drawerEmailVariations(event)">✉ Email variations</button></div>
       </div>
       <div class="row2">
         <div class="fld"><label>Company</label><input id="f-company" placeholder="e.g. Acme Studio"></div>
@@ -1245,6 +1270,151 @@ function deleteList(cat){
     'Deleted list "'+cat+'" ('+snapshot.length+')'
   );
 }
+/* ── Email candidates (pattern-guess queue) ── */
+function _clean(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+function _domainFor(c){
+  let d=c.company_domain||c.website||'';
+  if(!d && c.email && c.email.indexOf('@')>-1) d=c.email.split('@')[1];
+  d=(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].replace(/\s/g,'');
+  return d.indexOf('.')>-1?d:'';
+}
+function _firstLast(name){ const t=(name||'').trim().split(/\s+/).filter(Boolean); return {first:_clean(t[0]||''), last:t.length>1?_clean(t[t.length-1]):''}; }
+function canGuess(c){ const fl=_firstLast(c.name); return !!(fl.first && _domainFor(c)); }
+function genEmails(name,domain){
+  const fl=_firstLast(name); const first=fl.first, last=fl.last; if(!first) return [];
+  const fi=first[0], li=last?last[0]:'';
+  let pats = last ? [first+'.'+last, first, fi+'.'+last, first+last, fi+last, first+'.'+li] : [first];
+  const seen={}, out=[];
+  pats.forEach(function(p){ const a=p+'@'+domain; if(!seen[a]){ seen[a]=1; out.push({address:a,status:'untried'}); } });
+  return out;
+}
+function _ensureCands(c){ if(!(Array.isArray(c.email_candidates)&&c.email_candidates.length)){ c.email_candidates = c.email ? [{address:c.email,status:'untried'}] : []; } }
+function emailCell(c){
+  const cands=Array.isArray(c.email_candidates)?c.email_candidates:[];
+  if(c.email){
+    let counter='';
+    if(cands.length){ let idx=-1; for(let i=0;i<cands.length;i++){ if(cands[i].address===c.email){ idx=i; break; } } counter='<span class="em-count">'+(idx>=0?idx+1:1)+'/'+cands.length+'</span>'; }
+    return '<span class="em-chip" onclick="openCandidates(event,\''+c.id+'\')" title="Email variations"><span class="em-addr">'+escapeHtml(c.email)+'</span>'+counter+'<i class="em-caret">▾</i></span>';
+  }
+  if(canGuess(c)) return '<span class="em-gen" onclick="generateFor(event,\''+c.id+'\')" title="Generate likely email addresses">⚡ Generate</span>';
+  return '<span style="color:#b23c22;font-style:italic">no email</span>';
+}
+async function saveContactEmail(c, extra){
+  const body=Object.assign({email:c.email||null, email_candidates:c.email_candidates||[], updated_at:new Date().toISOString()}, extra||{});
+  try{ await sb(TABLE+'?id=eq.'+c.id,{method:'PATCH',body:JSON.stringify(body)}); }
+  catch(e){ toast('Save failed — refresh to re-check'); }
+}
+function generateFor(ev,id){
+  if(ev){ ev.stopPropagation(); }
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
+  const domain=_domainFor(c); if(!domain){ toast('Add a company domain first'); return; }
+  const cands=genEmails(c.name,domain); if(!cands.length){ toast('Need a first name to generate'); return; }
+  c.email_candidates=cands; c.email=cands[0].address; if(!c.email_status) c.email_status='Unverified';
+  c.bounced=false; if(c.status==='Bounced') c.status='Not contacted';
+  render(); saveContactEmail(c,{email_status:c.email_status,bounced:false,status:c.status});
+  toast('Generated '+cands.length+' candidates'); refreshCandPop();
+}
+let _candCtx=null;
+function closeCandPop(){ const m=document.getElementById('cand-pop'); if(m) m.remove(); _candCtx=null; document.removeEventListener('click',_candOutside,true); document.removeEventListener('keydown',_candKey,true); }
+function _candOutside(e){ const m=document.getElementById('cand-pop'); if(m && !m.contains(e.target)) closeCandPop(); }
+function _candKey(e){ if(e.key==='Escape') closeCandPop(); }
+function refreshCandPop(){ if(!_candCtx) return; const cur=document.getElementById('cand-pop'); if(!cur) return; cur.remove(); buildCandPop(_candCtx.id,_candCtx.anchor); }
+function openCandidates(ev,id){
+  ev.stopPropagation(); closeCandPop();
+  const anchor=ev.currentTarget.getBoundingClientRect();
+  _candCtx={id:id, anchor:anchor};
+  buildCandPop(id, anchor);
+  setTimeout(function(){ document.addEventListener('click',_candOutside,true); document.addEventListener('keydown',_candKey,true); },0);
+}
+function drawerEmailVariations(ev){ ev.stopPropagation(); if(typeof editingId==='undefined'||!editingId){ toast('Save the contact first'); return; } openCandidates(ev, editingId); }
+function buildCandPop(id, anchor){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
+  let cands=(Array.isArray(c.email_candidates)&&c.email_candidates.length)?c.email_candidates.slice():(c.email?[{address:c.email,status:'untried'}]:[]);
+  const pop=document.createElement('div'); pop.id='cand-pop';
+  const h=document.createElement('div'); h.className='cp-h';
+  const bounced=cands.filter(function(x){return x.status==='bounced';}).length;
+  h.textContent = cands.length ? (cands.length+' candidate'+(cands.length!==1?'s':'')+' · click to make active') : 'No variations yet';
+  pop.appendChild(h);
+  cands.forEach(function(cd){
+    const isActive=(cd.address===c.email);
+    const row=document.createElement('div'); row.className='cp-row'+(isActive?' active':'')+(cd.status==='verified'?' verified':'')+(cd.status==='bounced'?' bounced':'');
+    const ico=document.createElement('span'); ico.className='cp-ico';
+    ico.textContent = cd.status==='verified'?'✓':cd.status==='bounced'?'✗':(isActive?'→':'•');
+    ico.style.color = cd.status==='verified'?'#3b6d11':cd.status==='bounced'?'#993c1d':(isActive?'var(--black)':'var(--grey)');
+    const addr=document.createElement('span'); addr.className='cp-addr'; addr.textContent=cd.address;
+    if(cd.status==='bounced'){ addr.style.color='#b4b2a9'; addr.style.textDecoration='line-through'; addr.style.cursor='default'; }
+    else { addr.onclick=function(){ useCandidate(id,cd.address); }; }
+    const tag=document.createElement('span'); tag.className='cp-tag';
+    if(cd.status==='verified'){ tag.textContent='worked'; tag.style.color='#3b6d11'; tag.style.background='#daf0cf'; }
+    else if(cd.status==='bounced'){ tag.textContent='bounced'; tag.style.color='#993c1d'; tag.style.background='#f3ddd4'; }
+    else if(isActive){ tag.textContent='active'; tag.style.background='var(--black)'; tag.style.color='var(--green)'; }
+    else { tag.textContent='untried'; tag.style.color='var(--grey-mid)'; tag.style.background='var(--grey-light)'; }
+    const act=document.createElement('span'); act.className='cp-act';
+    const bok=document.createElement('button'); bok.title='Mark as working'; bok.textContent='✓'; bok.onclick=function(e){ e.stopPropagation(); markVerified(id,cd.address); };
+    const bno=document.createElement('button'); bno.title='Bounced → try next'; bno.textContent='✗'; bno.onclick=function(e){ e.stopPropagation(); markBounced(id,cd.address); };
+    act.appendChild(bok); act.appendChild(bno);
+    row.appendChild(ico); row.appendChild(addr); row.appendChild(tag); row.appendChild(act);
+    pop.appendChild(row);
+  });
+  const foot=document.createElement('div'); foot.className='cp-foot';
+  const bAdd=document.createElement('button'); bAdd.textContent='+ Add'; bAdd.onclick=function(){ addVariation(id); };
+  const bGen=document.createElement('button'); bGen.textContent = (c.email_candidates&&c.email_candidates.length) ? '↻ Regenerate' : '⚡ Generate'; bGen.onclick=function(){ regenerate(id); };
+  foot.appendChild(bAdd); foot.appendChild(bGen);
+  if(bounced){ const bClr=document.createElement('button'); bClr.className='danger'; bClr.textContent='Clear bounced'; bClr.onclick=function(){ clearBounced(id); }; foot.appendChild(bClr); }
+  pop.appendChild(foot);
+  document.body.appendChild(pop);
+  const pw=pop.offsetWidth||320, ph=pop.offsetHeight||200;
+  let left=anchor.left; if(left+pw>window.innerWidth-8) left=window.innerWidth-pw-8; if(left<8) left=8;
+  let top=anchor.bottom+6; if(top+ph>window.innerHeight-8) top=Math.max(8, anchor.top-ph-6);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+function useCandidate(id,addr){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return; _ensureCands(c);
+  c.email=addr; if(c.bounced){ c.bounced=false; if(c.status==='Bounced') c.status='Not contacted'; }
+  render(); saveContactEmail(c,{bounced:c.bounced,status:c.status}); refreshCandPop();
+}
+function markVerified(id,addr){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return; _ensureCands(c);
+  c.email_candidates=c.email_candidates.map(function(x){ return x.address===addr?Object.assign({},x,{status:'verified'}):x; });
+  c.email=addr; c.email_status='Validated'; c.bounced=false; if(c.status==='Bounced') c.status='Not contacted';
+  render(); saveContactEmail(c,{email_status:'Validated',bounced:false,status:c.status}); refreshCandPop(); toast('Marked working');
+}
+function markBounced(id,addr){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return; _ensureCands(c);
+  c.email_candidates=c.email_candidates.map(function(x){ return x.address===addr?Object.assign({},x,{status:'bounced'}):x; });
+  if(c.email===addr || !c.email){
+    const nxt=c.email_candidates.find(function(x){return x.status==='untried';});
+    if(nxt){ c.email=nxt.address; c.bounced=false; if(c.status==='Bounced') c.status='Not contacted'; toast('Bounced — now trying '+nxt.address); }
+    else { c.email=addr; c.bounced=true; c.status='Bounced'; toast('All candidates bounced'); }
+  }
+  render(); saveContactEmail(c,{bounced:!!c.bounced,status:c.status}); refreshCandPop();
+}
+function addVariation(id){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
+  const a=(window.prompt('Add email address')||'').trim().toLowerCase(); if(!a) return;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)){ toast("That doesn't look like an email"); return; }
+  _ensureCands(c);
+  if(!c.email_candidates.some(function(x){return x.address===a;})) c.email_candidates.push({address:a,status:'untried'});
+  if(!c.email) c.email=a;
+  render(); saveContactEmail(c); refreshCandPop();
+}
+function regenerate(id){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
+  const domain=_domainFor(c); if(!domain){ toast('Add a company domain first'); return; }
+  const fresh=genEmails(c.name,domain); if(!fresh.length){ toast('Need a first name'); return; }
+  const existing=(c.email_candidates||[]); const byAddr={}; existing.forEach(function(x){ byAddr[x.address]=x; });
+  const merged=[], seen={};
+  fresh.forEach(function(f){ merged.push(byAddr[f.address]||f); seen[f.address]=1; });
+  existing.forEach(function(x){ if(!seen[x.address]){ merged.push(x); seen[x.address]=1; } });
+  c.email_candidates=merged;
+  if(!c.email || !merged.some(function(x){return x.address===c.email;})){ const pick=merged.find(function(x){return x.status!=='bounced';})||merged[0]; c.email=pick?pick.address:c.email; }
+  render(); saveContactEmail(c); refreshCandPop(); toast('Regenerated');
+}
+function clearBounced(id){
+  const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
+  c.email_candidates=(c.email_candidates||[]).filter(function(x){return x.status!=='bounced';});
+  render(); saveContactEmail(c); refreshCandPop();
+}
 function buildCatList(){
   const dl=document.getElementById('cat-list');
   dl.innerHTML=categories().map(c=>`<option value="${escapeHtml(c)}">`).join('');
@@ -1311,7 +1481,7 @@ function render(){
       <td><div style="font-weight:600">${liUrl?`<a class="rowlink" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="LinkedIn profile">${escapeHtml(c.name)}<span class="lnkicon">in</span></a>`:escapeHtml(c.name)}</div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
       <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
       <td data-f="title" title="Double-click to edit" style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
-      <td data-f="email" title="Double-click to edit" style="font-size:11px">${c.email?escapeHtml(c.email):'<span style="color:#b23c22;font-style:italic">no email</span>'}</td>
+      <td data-f="email" title="Double-click to edit" style="font-size:11px">${emailCell(c)}</td>
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
       <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
       <td data-f="warmth"><span class="pill pill-btn warm-${c.warmth||'none'}" title="Click to set how warm this prospect is" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','warmth')">${warmthLabel(c.warmth)}</span></td>
