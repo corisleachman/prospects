@@ -268,6 +268,21 @@ tr.dragging{opacity:.4}
 .sb-item .sb-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;background:var(--grey-light);color:var(--grey-mid);padding:1px 7px;border-radius:100px;flex:none}
 .sb-item.active .sb-count{background:rgba(255,255,255,.16);color:var(--green)}
 .sb-item.dragover{background:var(--green);color:var(--black);box-shadow:inset 0 0 0 1.5px var(--black)}
+.sb-row{position:relative;display:flex;align-items:center}
+.sb-row .sb-item{flex:1;min-width:0}
+.sb-row.dragover{background:var(--green);border-radius:9px;box-shadow:inset 0 0 0 1.5px var(--black)}
+.sb-row.dragover .sb-item{background:transparent}
+.sb-row-menu{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:none;width:24px;height:24px;border:0;border-radius:7px;background:var(--cream);color:var(--grey-mid);cursor:pointer;font-size:15px;line-height:1;padding:0;place-items:center}
+.sb-row:hover .sb-row-menu{display:grid}
+.sb-row:hover .sb-item .sb-count{visibility:hidden}
+.sb-row-menu:hover{background:var(--black);color:var(--green)}
+.sb-row:has(.sb-item.active) .sb-row-menu{background:rgba(255,255,255,.16);color:var(--green)}
+.sb-row:has(.sb-item.active) .sb-row-menu:hover{background:rgba(255,255,255,.28);color:var(--green)}
+#list-menu{position:fixed;z-index:1200;background:var(--white);border:1.5px solid var(--black);border-radius:11px;box-shadow:0 12px 34px rgba(14,14,14,.20);padding:5px;min-width:154px;display:flex;flex-direction:column;gap:2px}
+.lm-item{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--black);cursor:pointer}
+.lm-item:hover{background:var(--grey-light)}
+.lm-item.danger{color:#b23c22}
+.lm-item.danger:hover{background:#f7e3dd}
 #sidebar #views-bar{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:0 4px;margin:0;max-width:none;width:100%}
 #sidebar #views-bar .view-lbl{display:none}
 #sidebar #views-bar .view-pill{max-width:100%}
@@ -1139,7 +1154,7 @@ function buildTabs(){
   cats.forEach(cat=>{
     const n=live.filter(c=>c.category===cat).length;
     const esc=cat.replace(/'/g,"\\'");
-    html+=`<button class="sb-item ${activeList===cat?'active':''}" onclick="setList('${esc}')" ondragover="tabDragOver(event,this)" ondragleave="this.classList.remove('dragover')" ondrop="tabDrop(event,'${esc}',this)"><span class="sb-ico">•</span><span class="sb-lbl">${escapeHtml(cat)}</span><span class="sb-count">${n}</span></button>`;
+    html+=`<div class="sb-row" ondragover="tabDragOver(event,this)" ondragleave="this.classList.remove('dragover')" ondrop="tabDrop(event,'${esc}',this)"><button class="sb-item ${activeList===cat?'active':''}" onclick="setList('${esc}')"><span class="sb-ico">•</span><span class="sb-lbl">${escapeHtml(cat)}</span><span class="sb-count">${n}</span></button><button class="sb-row-menu" title="Manage list" onclick="openListMenu(event,'${esc}')">⋯</button></div>`;
   });
   html+=`</div>`;
   html+=`<div class="sb-sec"><div class="sb-h">Saved views</div><div id="views-bar"></div></div>`;
@@ -1187,6 +1202,49 @@ function toggleDrop(id,e){ if(e) e.stopPropagation(); const d=document.getElemen
 function closeDrops(){ document.querySelectorAll('.tb-drop.open').forEach(d=>d.classList.remove('open')); }
 document.addEventListener('click',e=>{ if(!e.target.closest('.tb-drop')) closeDrops(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrops(); });
+/* ── List management (rename / delete a whole category) ── */
+let _listMenuCat=null;
+function closeListMenu(){ const m=document.getElementById('list-menu'); if(m) m.remove(); document.removeEventListener('click',_listMenuOutside,true); document.removeEventListener('keydown',_listMenuKey,true); }
+function _listMenuOutside(e){ const m=document.getElementById('list-menu'); if(m && !m.contains(e.target)) closeListMenu(); }
+function _listMenuKey(e){ if(e.key==='Escape') closeListMenu(); }
+function openListMenu(ev,cat){
+  ev.stopPropagation(); ev.preventDefault(); closeListMenu();
+  const btn=ev.currentTarget, r=btn.getBoundingClientRect();
+  const m=document.createElement('div'); m.id='list-menu';
+  const rn=document.createElement('button'); rn.className='lm-item'; rn.textContent='Rename list'; rn.onclick=()=>{ closeListMenu(); renameList(cat); };
+  const dl=document.createElement('button'); dl.className='lm-item danger'; dl.textContent='Delete list'; dl.onclick=()=>{ closeListMenu(); deleteList(cat); };
+  m.append(rn,dl); document.body.appendChild(m);
+  const mw=m.offsetWidth||154, mh=m.offsetHeight||90;
+  let left=r.right-mw; if(left<8) left=8;
+  let top=r.bottom+6; if(top+mh>window.innerHeight-8) top=Math.max(8, r.top-mh-6);
+  m.style.left=left+'px'; m.style.top=top+'px';
+  setTimeout(()=>{ document.addEventListener('click',_listMenuOutside,true); document.addEventListener('keydown',_listMenuKey,true); },0);
+}
+async function renameList(cat){
+  const next=(window.prompt('Rename list',cat)||'').trim();
+  if(!next || next===cat) return;
+  const rows=ALL.filter(c=>c.category===cat); if(!rows.length) return;
+  if(ALL.some(c=>c.category===next) && !window.confirm('"'+next+'" already exists — merge "'+cat+'" into it?')) return;
+  rows.forEach(c=>{ c.category=next; });
+  if(activeList===cat) activeList=next;
+  buildTabs(); buildCatList(); render();
+  try{ await sb(TABLE+'?category=eq.'+encodeURIComponent(cat),{method:'PATCH',body:JSON.stringify({category:next,updated_at:new Date().toISOString()})}); toast('Renamed to '+next); }
+  catch(e){ toast('Rename failed — refresh to re-check'); }
+}
+function deleteList(cat){
+  const rows=ALL.filter(c=>c.category===cat); if(!rows.length) return;
+  if(!window.confirm('Delete "'+cat+'" and all '+rows.length+' contact'+(rows.length!==1?'s':'')+'?\nYou can undo for a few seconds.')) return;
+  const snapshot=rows.slice();
+  ALL=ALL.filter(c=>c.category!==cat);
+  if(activeList===cat) activeList='';
+  if(typeof SELECTED!=='undefined' && SELECTED.clear) SELECTED.clear();
+  buildTabs(); render(); if(typeof renderNudge==='function') renderNudge();
+  scheduleUndoable(
+    async ()=>{ try{ await sb(TABLE+'?category=eq.'+encodeURIComponent(cat),{method:'DELETE'}); }catch(e){} },
+    ()=>{ ALL.push(...snapshot); buildTabs(); render(); if(typeof renderNudge==='function') renderNudge(); },
+    'Deleted list "'+cat+'" ('+snapshot.length+')'
+  );
+}
 function buildCatList(){
   const dl=document.getElementById('cat-list');
   dl.innerHTML=categories().map(c=>`<option value="${escapeHtml(c)}">`).join('');
