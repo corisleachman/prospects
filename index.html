@@ -305,6 +305,27 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .ag-sugg-empty{padding:6px 0 12px;font-size:12px;color:var(--grey-mid)}
 .ag-sugg-note{padding:8px 0;font-size:11px;color:var(--grey-mid);border-top:1px solid #d9e8cb}
 .ag-sugg-foot{padding:9px 0;border-top:1px solid #d9e8cb}
+.ag-people-h{display:flex;align-items:center;justify-content:space-between}
+.ag-find-btn{border:1.5px solid var(--black);background:var(--white);color:var(--black);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.ag-find-btn:hover{background:var(--black);color:var(--green)}
+.agf-panel{background:var(--white);border:1.5px solid var(--grey-light);border-radius:12px;padding:6px 14px 12px;margin-bottom:16px}
+.agf-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-light)}
+.agf-row .ag-url-label{padding-top:4px}
+.agf-fns{display:flex;flex-wrap:wrap;gap:14px}
+.agf-chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}
+.agf-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px}
+.agf-hint{font-size:11px;color:var(--grey-mid);max-width:60%}
+.agf-cost{font-size:13px;padding:10px 2px}
+.agf-status{font-size:13px;color:var(--grey-mid);padding:12px 2px}
+.agf-results-head{display:flex;align-items:center;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);padding:6px 0 8px;border-bottom:1px solid var(--grey-light);margin-bottom:2px}
+.agf-cand{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--grey-light)}
+.agf-cand:last-child{border-bottom:none}
+.agf-cand-name{font-weight:600;font-size:13px}
+.agf-cand-meta{font-size:11px;color:var(--grey-mid);margin-top:1px}
+.agf-cand-email{font-family:'DM Mono',monospace;font-size:11px;color:#3B6D11;margin-top:2px}
+.agf-cand-act{flex:none}
+.agf-tag{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid)}
+.agf-tag.done{color:#3B6D11}
 @media(max-width:760px){.ag-person{grid-template-columns:1fr auto}.ag-person-email,.ag-person-pills{grid-column:1/-1}}
 .em-drawer-btn{margin-top:6px;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
 .em-drawer-btn:hover{border-color:var(--black);color:var(--black)}
@@ -1531,8 +1552,8 @@ function buildAgencies(){
 function _agLoc(a){ return [a.city,a.country].filter(Boolean).join(', '); }
 function _agKeyArg(k){ return encodeURIComponent(k).replace(/'/g,'%27'); }
 function renderAgencies(){ const wrap=document.getElementById('agencies-wrap'); if(!wrap) return; if(_agencyView==='profile'&&_agencyKey){ renderAgencyProfile(wrap); } else { renderAgencyList(wrap); } }
-function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; _agEnrich=null; _agEnriching=false; renderAgencies(); }
-function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; _agEnrich=null; _agEnriching=false; renderAgencies(); }
+function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; _agEnrich=null; _agEnriching=false; _agFind=null; renderAgencies(); }
+function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; _agEnrich=null; _agEnriching=false; _agFind=null; renderAgencies(); }
 function agencyToggleMin(){ _agencyMinPeople=_agencyMinPeople===1?2:1; renderAgencyList(document.getElementById('agencies-wrap')); }
 function agencySetSort(v){ _agencySort=v; renderAgencyList(document.getElementById('agencies-wrap')); }
 function _agFilteredSorted(){
@@ -1598,7 +1619,8 @@ function renderAgencyProfile(wrap){
     ${meta?`<div class="ag-meta">${meta}</div>`:''}
     ${_agEnrichPanel(a)}
     <div class="ag-urls">${_agUrlRow('Website','website',a.website,true)}${_agUrlRow('LinkedIn','company_linkedin_url',a.linkedin,true)}${_agUrlRow('Domain','company_domain',a.domain,true)}</div>
-    <div class="ag-people-h">People in your system · ${a.people.length}</div>
+    <div class="ag-people-h"><span>People in your system · ${a.people.length}</span><button class="ag-find-btn" onclick="agencyFindToggle()">${_agFind&&_agFind.open?'× Close finder':'✨ Find people'}</button></div>
+    ${_agFindPanel(a)}
     <div class="ag-people">${people}</div>
   </div>`;
   if(_agEditField){ const inp=document.getElementById('ag-edit-input'); if(inp){ inp.focus(); inp.select(); } }
@@ -1655,6 +1677,100 @@ async function agencyApplyAllEnrich(){
   const fields=['website','company_linkedin_url','company_domain','company_industry','company_size'];
   for(const field of fields){ const val=((s[_AG_SK[field]]||'')+'').trim(); if(val && a && !_agCurrent(a,field)){ await _agencyWrite(field,val); } }
   _agEnrich=null; renderAgencies();
+}
+
+/* ── Find people at an agency (LinkedIn via Apify) ── */
+let _agFind=null;
+const _AG_FUNC={operations:{id:'18',label:'Operations'},business_development:{id:'4',label:'Business Development'},marketing:{id:'15',label:'Marketing'},sales:{id:'25',label:'Sales'}};
+function agencyFindToggle(){
+  if(_agFind&&_agFind.open){ _agFind=null; renderAgencies(); return; }
+  _agFind={open:true, phase:'filters', loading:false, functions:['operations','business_development','marketing'], director_plus:true, job_titles:'', max_items:15, estimate:null, results:null, added:{}};
+  renderAgencies();
+}
+function _agFindReadForm(){
+  if(!_agFind) return;
+  const jt=document.getElementById('agf-titles'); if(jt) _agFind.job_titles=jt.value;
+  const dp=document.getElementById('agf-dirplus'); if(dp) _agFind.director_plus=dp.checked;
+  const set=new Set();
+  Object.keys(_AG_FUNC).forEach(function(k){ const el=document.getElementById('agf-fn-'+k); if(el&&el.checked) set.add(k); });
+  _agFind.functions=[...set];
+}
+function _agFindPayload(a){
+  const titles=(_agFind.job_titles||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  return { mode:'full_email', max_items:_agFind.max_items, company:a.name, company_linkedin_url:a.linkedin||'', country:a.country||'', filters:{ functions:_agFind.functions, director_plus:_agFind.director_plus, job_titles:titles } };
+}
+function _agFindFetch(payload){
+  return fetch(`${CONFIG.SUPABASE_URL}/functions/v1/find-people`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+}
+async function agencyFindEstimate(){
+  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind) return;
+  _agFindReadForm();
+  if(!_agFind.functions.length && !(_agFind.job_titles||'').trim()){ toast('Pick at least one function or enter a job title'); return; }
+  _agFind.loading=true; renderAgencies();
+  try{
+    const r=await _agFindFetch(Object.assign({action:'estimate'},_agFindPayload(a)));
+    const d=await r.json().catch(function(){return{};});
+    _agFind.loading=false;
+    if(!r.ok){ toast(d.error||('Estimate failed ('+r.status+')')); renderAgencies(); return; }
+    _agFind.estimate=d; _agFind.phase='estimate'; renderAgencies();
+  }catch(e){ _agFind.loading=false; renderAgencies(); toast('Estimate failed — network error'); }
+}
+function agencyFindBack(){ if(_agFind){ _agFind.phase='filters'; renderAgencies(); } }
+async function agencyFindRun(){
+  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind) return;
+  _agFind.loading=true; _agFind.phase='running'; renderAgencies();
+  try{
+    const r=await _agFindFetch(Object.assign({action:'run',confirm_paid_run:true},_agFindPayload(a)));
+    const d=await r.json().catch(function(){return{};});
+    _agFind.loading=false;
+    if(!r.ok){ toast(d.error||('Search failed ('+r.status+')')); _agFind.phase='estimate'; renderAgencies(); return; }
+    _agFind.results=Array.isArray(d.candidates)?d.candidates:[]; _agFind.added={}; _agFind.phase='results'; renderAgencies();
+  }catch(e){ _agFind.loading=false; _agFind.phase='estimate'; renderAgencies(); toast('Search timed out or failed — try fewer profiles'); }
+}
+async function agencyFindAdd(i){
+  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind||!_agFind.results) return;
+  const cand=_agFind.results[i]; if(!cand||cand.existing||_agFind.added[i]) return;
+  _agFind.added[i]='saving'; renderAgencies();
+  try{
+    const r=await _agFindFetch({action:'add',company:a.name,company_linkedin_url:a.linkedin||'',candidates:[cand]});
+    const d=await r.json().catch(function(){return{};});
+    if(!r.ok){ toast(d.error||'Add failed'); _agFind.added[i]=null; renderAgencies(); return; }
+    (d.inserted||[]).forEach(function(c){ if(c&&c.id) ALL.push(c); });
+    _agFind.added[i]='done'; buildTabs(); renderAgencies();
+  }catch(e){ _agFind.added[i]=null; renderAgencies(); toast('Add failed — network error'); }
+}
+async function agencyFindAddAll(){
+  if(!_agFind||!_agFind.results) return;
+  for(let i=0;i<_agFind.results.length;i++){ const c=_agFind.results[i]; if(c && !c.existing && !_agFind.added[i]){ await agencyFindAdd(i); } }
+}
+function _agFindPanel(a){
+  if(!_agFind||!_agFind.open) return '';
+  let inner='';
+  if(_agFind.loading && _agFind.phase!=='results'){ inner=`<div class="agf-status">${_agFind.phase==='running'?'Searching LinkedIn… this can take up to a minute.':'Estimating cost…'}</div>`; }
+  else if(_agFind.phase==='filters'){
+    const fns=Object.keys(_AG_FUNC).map(function(k){ const on=_agFind.functions.indexOf(k)>-1; return `<label class="agf-chk"><input type="checkbox" id="agf-fn-${k}" ${on?'checked':''}> ${_AG_FUNC[k].label}</label>`; }).join('');
+    inner=`<div class="agf-row"><span class="ag-url-label">Function</span><div class="agf-fns">${fns}</div></div>
+      <div class="agf-row"><span class="ag-url-label">Seniority</span><label class="agf-chk"><input type="checkbox" id="agf-dirplus" ${_agFind.director_plus?'checked':''}> Director and above</label></div>
+      <div class="agf-row"><span class="ag-url-label">Title</span><input class="ag-url-input" id="agf-titles" value="${escapeHtml(_agFind.job_titles||'')}" placeholder="Optional, e.g. New Business, Growth (comma-separated)"></div>
+      <div class="agf-foot"><span class="agf-hint">${a.linkedin?'Scoped to this agency’s LinkedIn page.':'No LinkedIn page on file — searches by name + location (less precise). Tip: run ✨ Find with AI first to add it.'}</span><button class="ag-mini" onclick="agencyFindEstimate()">Search LinkedIn →</button></div>`;
+  }
+  else if(_agFind.phase==='estimate'){
+    const e=_agFind.estimate||{};
+    inner=`<div class="agf-cost">This runs a paid LinkedIn search via Apify — up to <b>$${(Number(e.recommendedCapUsd)||0).toFixed(2)}</b> for up to ${e.maxItems||_agFind.max_items} profiles, with email lookup.</div><div class="agf-foot"><button class="ag-mini ghost" onclick="agencyFindBack()">← Back</button><button class="ag-mini" onclick="agencyFindRun()">Run search</button></div>`;
+  }
+  else if(_agFind.phase==='results'){
+    const res=_agFind.results||[];
+    const newCount=res.filter(function(c){return !c.existing;}).length;
+    const rows=res.length? res.map(function(c,i){
+      const li=c.linkedin_url?withScheme(c.linkedin_url):'';
+      const meta=[c.title,c.location].filter(Boolean).join(' · ');
+      const st=_agFind.added[i];
+      const btn=c.existing?`<span class="agf-tag">In your list</span>`:(st==='done'?`<span class="agf-tag done">✓ Added</span>`:(st==='saving'?`<button class="ag-mini" disabled>Adding…</button>`:`<button class="ag-mini" onclick="agencyFindAdd(${i})">Add</button>`));
+      return `<div class="agf-cand"><div class="agf-cand-main"><div class="agf-cand-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="agf-cand-meta">${escapeHtml(meta)}</div>${c.email?`<div class="agf-cand-email">${escapeHtml(c.email)}</div>`:''}</div><div class="agf-cand-act">${btn}</div></div>`;
+    }).join(''):`<div class="agf-status">No matching people found. Try different functions, add a title, or drop the Director filter.</div>`;
+    inner=`<div class="agf-results-head"><span>${res.length} found · ${newCount} new</span><span>${newCount>1?`<button class="ag-mini" onclick="agencyFindAddAll()">Add all new</button>`:''} <button class="ag-mini ghost" onclick="agencyFindBack()">New search</button></span></div>${rows}`;
+  }
+  return `<div class="agf-panel">${inner}</div>`;
 }
 
 function buildCatList(){
