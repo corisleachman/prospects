@@ -326,6 +326,19 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .agf-cand-act{flex:none}
 .agf-tag{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid)}
 .agf-tag.done{color:#3B6D11}
+.agf-scope{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--grey-light)}
+.agf-scope-body{flex:1;min-width:0}
+.agf-scope-note{font-size:12px;color:var(--grey-mid);margin-top:2px}
+.agf-scope-note.ok{color:#3B6D11}
+.agf-scope.warn{background:#fff7ed;border:1.5px solid #f0d9b8;border-radius:10px;padding:12px;margin:2px 0}
+.agf-url-actions{margin-top:8px}
+.agf-url-paste{display:flex;gap:6px;margin-top:8px}
+.agf-url-paste .ag-url-input{flex:1}
+.agf-harvest{background:#eef5fb;border:1.5px solid #c5ddef;border-radius:10px;padding:11px 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+.agf-harvest .ag-mini{align-self:flex-start}
+.agf-cand.isoff{opacity:.55}
+.agf-cand-co{display:inline-block;font-size:11px;color:var(--grey-mid);margin-top:2px}
+.agf-cand-co.off{color:#993c1d}
 @media(max-width:760px){.ag-person{grid-template-columns:1fr auto}.ag-person-email,.ag-person-pills{grid-column:1/-1}}
 .em-drawer-btn{margin-top:6px;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
 .em-drawer-btn:hover{border-color:var(--black);color:var(--black)}
@@ -1682,28 +1695,51 @@ async function agencyApplyAllEnrich(){
 /* ── Find people at an agency (LinkedIn via Apify) ── */
 let _agFind=null;
 const _AG_FUNC={operations:{id:'18',label:'Operations'},business_development:{id:'4',label:'Business Development'},marketing:{id:'15',label:'Marketing'},sales:{id:'25',label:'Sales'}};
+function _agCoSlug(u){ const m=String(u||'').toLowerCase().match(/linkedin\.com\/company\/([^/?#]+)/); return m?m[1].replace(/\/+$/,''):''; }
+function _agCurAgency(){ return buildAgencies().find(function(x){return x.key===_agencyKey;}); }
 function agencyFindToggle(){
   if(_agFind&&_agFind.open){ _agFind=null; renderAgencies(); return; }
-  _agFind={open:true, phase:'filters', loading:false, functions:['operations','business_development','marketing'], director_plus:true, job_titles:'', max_items:15, estimate:null, results:null, added:{}};
+  const a=_agCurAgency()||{};
+  _agFind={open:true, phase:'filters', loading:false, functions:['operations','business_development','marketing'], director_plus:true, job_titles:'', location:(a.country||''), max_items:15, estimate:null, results:null, added:{}, company_url:(a.linkedin||''), finding_company:false, url_input:''};
   renderAgencies();
 }
 function _agFindReadForm(){
   if(!_agFind) return;
   const jt=document.getElementById('agf-titles'); if(jt) _agFind.job_titles=jt.value;
+  const lo=document.getElementById('agf-loc'); if(lo) _agFind.location=lo.value;
   const dp=document.getElementById('agf-dirplus'); if(dp) _agFind.director_plus=dp.checked;
-  const set=new Set();
-  Object.keys(_AG_FUNC).forEach(function(k){ const el=document.getElementById('agf-fn-'+k); if(el&&el.checked) set.add(k); });
-  _agFind.functions=[...set];
+  const set=new Set(); Object.keys(_AG_FUNC).forEach(function(k){ const el=document.getElementById('agf-fn-'+k); if(el&&el.checked) set.add(k); }); _agFind.functions=[...set];
+  const ui=document.getElementById('agf-url'); if(ui) _agFind.url_input=ui.value;
 }
 function _agFindPayload(a){
   const titles=(_agFind.job_titles||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
-  return { mode:'full_email', max_items:_agFind.max_items, company:a.name, company_linkedin_url:a.linkedin||'', country:a.country||'', filters:{ functions:_agFind.functions, director_plus:_agFind.director_plus, job_titles:titles } };
+  return { mode:'full_email', max_items:_agFind.max_items, company:a.name, company_linkedin_url:_agFind.company_url||'', location:(_agFind.location||'').trim(), filters:{ functions:_agFind.functions, director_plus:_agFind.director_plus, job_titles:titles } };
 }
 function _agFindFetch(payload){
   return fetch(`${CONFIG.SUPABASE_URL}/functions/v1/find-people`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify(payload)});
 }
+async function agencyFindCompany(){
+  const a=_agCurAgency(); if(!a||!_agFind) return;
+  _agFindReadForm(); _agFind.finding_company=true; renderAgencies();
+  try{
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify({company:a.name,city:a.city,country:a.country,website:a.website})});
+    const d=await r.json().catch(function(){return{};});
+    _agFind.finding_company=false;
+    if(!r.ok){ toast(d.error||'Lookup failed'); renderAgencies(); return; }
+    const url=(((d.suggestion||{}).linkedin_url)||'').trim();
+    if(_agCoSlug(url)){ _agFind.company_url=url; renderAgencies(); await _agencyWrite('company_linkedin_url',url); toast('Found the LinkedIn page'); }
+    else { toast('Couldn’t find the page — paste it, or search broadly'); renderAgencies(); }
+  }catch(e){ _agFind.finding_company=false; renderAgencies(); toast('Lookup failed — network error'); }
+}
+async function agencyFindUseUrl(){
+  if(!_agFind) return; _agFindReadForm();
+  const u=(_agFind.url_input||'').trim();
+  if(!_agCoSlug(u)){ toast('Enter a LinkedIn company URL (linkedin.com/company/…)'); return; }
+  _agFind.company_url=u; renderAgencies(); await _agencyWrite('company_linkedin_url',u); toast('Company page set');
+}
+function agencyFindClearUrl(){ if(_agFind){ _agFind.company_url=''; renderAgencies(); } }
 async function agencyFindEstimate(){
-  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind) return;
+  const a=_agCurAgency(); if(!a||!_agFind) return;
   _agFindReadForm();
   if(!_agFind.functions.length && !(_agFind.job_titles||'').trim()){ toast('Pick at least one function or enter a job title'); return; }
   _agFind.loading=true; renderAgencies();
@@ -1717,7 +1753,7 @@ async function agencyFindEstimate(){
 }
 function agencyFindBack(){ if(_agFind){ _agFind.phase='filters'; renderAgencies(); } }
 async function agencyFindRun(){
-  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind) return;
+  const a=_agCurAgency(); if(!a||!_agFind) return;
   _agFind.loading=true; _agFind.phase='running'; renderAgencies();
   try{
     const r=await _agFindFetch(Object.assign({action:'run',confirm_paid_run:true},_agFindPayload(a)));
@@ -1727,12 +1763,24 @@ async function agencyFindRun(){
     _agFind.results=Array.isArray(d.candidates)?d.candidates:[]; _agFind.added={}; _agFind.phase='results'; renderAgencies();
   }catch(e){ _agFind.loading=false; _agFind.phase='estimate'; renderAgencies(); toast('Search timed out or failed — try fewer profiles'); }
 }
+async function agencyFindHarvest(url){
+  if(!_agFind||!_agCoSlug(url)) return;
+  _agFind.company_url=url; await _agencyWrite('company_linkedin_url',url);
+  toast('Company page set — re-searching'); agencyFindRun();
+}
+function _agFindOff(c){ const t=_agCoSlug(_agFind&&_agFind.company_url); if(!t) return false; return _agCoSlug(c.company_linkedin_url)!==t; }
+function _agFindHarvestPick(){
+  const res=(_agFind&&_agFind.results)||[]; const tally={}; const info={};
+  res.forEach(function(c){ const s=_agCoSlug(c.company_linkedin_url); if(s){ tally[s]=(tally[s]||0)+1; info[s]={url:c.company_linkedin_url,name:c.company||s}; } });
+  let best='',bn=0; Object.keys(tally).forEach(function(s){ if(tally[s]>bn){ bn=tally[s]; best=s; } });
+  return best?{slug:best,count:bn,url:info[best].url,name:info[best].name}:null;
+}
 async function agencyFindAdd(i){
-  const a=buildAgencies().find(function(x){return x.key===_agencyKey;}); if(!a||!_agFind||!_agFind.results) return;
+  const a=_agCurAgency(); if(!a||!_agFind||!_agFind.results) return;
   const cand=_agFind.results[i]; if(!cand||cand.existing||_agFind.added[i]) return;
   _agFind.added[i]='saving'; renderAgencies();
   try{
-    const r=await _agFindFetch({action:'add',company:a.name,company_linkedin_url:a.linkedin||'',candidates:[cand]});
+    const r=await _agFindFetch({action:'add',company:a.name,company_linkedin_url:a.linkedin||_agFind.company_url||'',candidates:[cand]});
     const d=await r.json().catch(function(){return{};});
     if(!r.ok){ toast(d.error||'Add failed'); _agFind.added[i]=null; renderAgencies(); return; }
     (d.inserted||[]).forEach(function(c){ if(c&&c.id) ALL.push(c); });
@@ -1741,18 +1789,27 @@ async function agencyFindAdd(i){
 }
 async function agencyFindAddAll(){
   if(!_agFind||!_agFind.results) return;
-  for(let i=0;i<_agFind.results.length;i++){ const c=_agFind.results[i]; if(c && !c.existing && !_agFind.added[i]){ await agencyFindAdd(i); } }
+  for(let i=0;i<_agFind.results.length;i++){ const c=_agFind.results[i]; if(c && !c.existing && !_agFindOff(c) && !_agFind.added[i]){ await agencyFindAdd(i); } }
 }
 function _agFindPanel(a){
   if(!_agFind||!_agFind.open) return '';
   let inner='';
   if(_agFind.loading && _agFind.phase!=='results'){ inner=`<div class="agf-status">${_agFind.phase==='running'?'Searching LinkedIn… this can take up to a minute.':'Estimating cost…'}</div>`; }
   else if(_agFind.phase==='filters'){
+    let scope;
+    if(_agCoSlug(_agFind.company_url)){
+      scope=`<div class="agf-scope ok"><span class="ag-url-label">Company</span><div class="agf-scope-body"><a class="rowlink" href="${escapeHtml(withScheme(_agFind.company_url))}" target="_blank" rel="noopener">${escapeHtml(_agFind.company_url)}<span class="lnkicon">↗</span></a><div class="agf-scope-note ok">✓ Scoped to this LinkedIn company — only people who work here.</div></div><button class="ag-edit" title="Change" onclick="agencyFindClearUrl()">✎</button></div>`;
+    } else {
+      scope=`<div class="agf-scope warn"><span class="ag-url-label">Company</span><div class="agf-scope-body"><div class="agf-scope-note">No LinkedIn company page on file, so results can’t be limited to ${escapeHtml(a.name)} — a broad search will match the name across LinkedIn. Get the page first:</div><div class="agf-url-actions"><button class="ag-mini" onclick="agencyFindCompany()" ${_agFind.finding_company?'disabled':''}>${_agFind.finding_company?'Finding…':'✨ Find it automatically'}</button></div><div class="agf-url-paste"><input class="ag-url-input" id="agf-url" value="${escapeHtml(_agFind.url_input||'')}" placeholder="…or paste linkedin.com/company/…"><button class="ag-mini ghost" onclick="agencyFindUseUrl()">Use</button></div></div></div>`;
+    }
     const fns=Object.keys(_AG_FUNC).map(function(k){ const on=_agFind.functions.indexOf(k)>-1; return `<label class="agf-chk"><input type="checkbox" id="agf-fn-${k}" ${on?'checked':''}> ${_AG_FUNC[k].label}</label>`; }).join('');
-    inner=`<div class="agf-row"><span class="ag-url-label">Function</span><div class="agf-fns">${fns}</div></div>
+    const scoped=!!_agCoSlug(_agFind.company_url);
+    inner=`${scope}
+      <div class="agf-row"><span class="ag-url-label">Location</span><input class="ag-url-input" id="agf-loc" value="${escapeHtml(_agFind.location||'')}" placeholder="e.g. United Kingdom (full name, not “UK”)"></div>
+      <div class="agf-row"><span class="ag-url-label">Function</span><div class="agf-fns">${fns}</div></div>
       <div class="agf-row"><span class="ag-url-label">Seniority</span><label class="agf-chk"><input type="checkbox" id="agf-dirplus" ${_agFind.director_plus?'checked':''}> Director and above</label></div>
       <div class="agf-row"><span class="ag-url-label">Title</span><input class="ag-url-input" id="agf-titles" value="${escapeHtml(_agFind.job_titles||'')}" placeholder="Optional, e.g. New Business, Growth (comma-separated)"></div>
-      <div class="agf-foot"><span class="agf-hint">${a.linkedin?'Scoped to this agency’s LinkedIn page.':'No LinkedIn page on file — searches by name + location (less precise). Tip: run ✨ Find with AI first to add it.'}</span><button class="ag-mini" onclick="agencyFindEstimate()">Search LinkedIn →</button></div>`;
+      <div class="agf-foot"><span class="agf-hint">${scoped?'':'Tip: without the company page you’ll see people from other firms. Set a location to at least keep it in-country.'}</span><button class="ag-mini" onclick="agencyFindEstimate()">${scoped?'Search this company →':'Search by name + location →'}</button></div>`;
   }
   else if(_agFind.phase==='estimate'){
     const e=_agFind.estimate||{};
@@ -1760,15 +1817,20 @@ function _agFindPanel(a){
   }
   else if(_agFind.phase==='results'){
     const res=_agFind.results||[];
-    const newCount=res.filter(function(c){return !c.existing;}).length;
+    const scoped=!!_agCoSlug(_agFind.company_url);
+    const addable=res.filter(function(c){return !c.existing && !_agFindOff(c);}).length;
+    let harvest='';
+    if(!scoped){ const h=_agFindHarvestPick(); if(h && h.count>=2){ harvest=`<div class="agf-harvest"><div>Most of these work at <b>${escapeHtml(h.name)}</b> — <a class="rowlink" href="${escapeHtml(withScheme(h.url))}" target="_blank" rel="noopener">${escapeHtml(h.url)}</a></div><button class="ag-mini" onclick="agencyFindHarvest('${escapeHtml(h.url)}')">Set as ${escapeHtml(a.name)}’s page &amp; re-search</button></div>`; } }
     const rows=res.length? res.map(function(c,i){
       const li=c.linkedin_url?withScheme(c.linkedin_url):'';
+      const off=_agFindOff(c);
       const meta=[c.title,c.location].filter(Boolean).join(' · ');
+      const co=c.company?`<span class="agf-cand-co${off?' off':''}">${escapeHtml(c.company)}${off?' · other company':''}</span>`:'';
       const st=_agFind.added[i];
-      const btn=c.existing?`<span class="agf-tag">In your list</span>`:(st==='done'?`<span class="agf-tag done">✓ Added</span>`:(st==='saving'?`<button class="ag-mini" disabled>Adding…</button>`:`<button class="ag-mini" onclick="agencyFindAdd(${i})">Add</button>`));
-      return `<div class="agf-cand"><div class="agf-cand-main"><div class="agf-cand-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="agf-cand-meta">${escapeHtml(meta)}</div>${c.email?`<div class="agf-cand-email">${escapeHtml(c.email)}</div>`:''}</div><div class="agf-cand-act">${btn}</div></div>`;
-    }).join(''):`<div class="agf-status">No matching people found. Try different functions, add a title, or drop the Director filter.</div>`;
-    inner=`<div class="agf-results-head"><span>${res.length} found · ${newCount} new</span><span>${newCount>1?`<button class="ag-mini" onclick="agencyFindAddAll()">Add all new</button>`:''} <button class="ag-mini ghost" onclick="agencyFindBack()">New search</button></span></div>${rows}`;
+      const btn=c.existing?`<span class="agf-tag">In your list</span>`:(st==='done'?`<span class="agf-tag done">✓ Added</span>`:(st==='saving'?`<button class="ag-mini" disabled>Adding…</button>`:`<button class="ag-mini${off?' ghost':''}" onclick="agencyFindAdd(${i})">Add</button>`));
+      return `<div class="agf-cand${off?' isoff':''}"><div class="agf-cand-main"><div class="agf-cand-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="agf-cand-meta">${escapeHtml(meta)}</div>${co}${c.email?`<div class="agf-cand-email">${escapeHtml(c.email)}</div>`:''}</div><div class="agf-cand-act">${btn}</div></div>`;
+    }).join(''):`<div class="agf-status">No matching people found. Try a broader location, different functions, or drop the Director filter.</div>`;
+    inner=`${harvest}<div class="agf-results-head"><span>${res.length} found · ${addable} at ${escapeHtml(a.name)}</span><span>${addable>1?`<button class="ag-mini" onclick="agencyFindAddAll()">Add all</button>`:''} <button class="ag-mini ghost" onclick="agencyFindBack()">New search</button></span></div>${rows}`;
   }
   return `<div class="agf-panel">${inner}</div>`;
 }
