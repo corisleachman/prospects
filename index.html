@@ -243,6 +243,57 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .em-chip:hover .em-caret{color:var(--black)}
 .em-gen{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:var(--black);color:var(--green);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
 .em-gen:hover{opacity:.88}
+/* Agencies */
+.ag-toolbar{display:flex;align-items:center;gap:10px;margin:2px 0 12px;flex-wrap:wrap}
+.ag-search{flex:1;min-width:180px;padding:9px 13px;border:1.5px solid var(--grey-light);border-radius:9px;background:var(--white);font-family:inherit;font-size:13px;color:var(--black)}
+.ag-search:focus{outline:none;border-color:var(--black)}
+.ag-toolbar-right{display:flex;gap:8px}
+.ag-tgl{border:1.5px solid var(--grey-light);background:var(--white);border-radius:9px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
+.ag-tgl.on{background:var(--black);color:var(--green);border-color:var(--black)}
+.ag-listcount{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey-mid);margin:0 2px 8px}
+#tbl.ag-tbl,table.ag-tbl{table-layout:auto}
+.ag-tbl .ag-row{cursor:pointer}
+.ag-tbl .ag-row:hover td{background:rgba(0,0,0,.025)}
+.ag-tbl .ag-name{font-weight:600}
+.ag-tbl .ag-meta-cell{color:var(--grey-mid);font-size:11px}
+.ag-tbl .ag-count-cell{text-align:right}
+.ag-count-pill{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:var(--black);color:var(--green);padding:2px 9px;border-radius:100px}
+.ag-count-pill.lg{font-size:11px;padding:4px 12px}
+.ag-linkchip{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-right:5px;border-radius:6px;background:var(--grey-light);color:var(--black);font-family:'DM Mono',monospace;font-size:10px;text-decoration:none}
+.ag-linkchip:hover{background:var(--black);color:var(--green)}
+.ag-profile{max-width:860px}
+.ag-back{border:0;background:none;color:var(--grey-mid);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;cursor:pointer;padding:2px 0;margin-bottom:10px}
+.ag-back:hover{color:var(--black)}
+.ag-phead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ag-title{font-size:24px;font-weight:700;margin:0;letter-spacing:-.01em}
+.ag-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.ag-metachip{font-size:11px;color:var(--grey-mid);background:var(--white);border:1px solid var(--grey-light);border-radius:100px;padding:3px 10px}
+.ag-metachip b{color:var(--black);font-weight:600;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.ag-urls{background:var(--white);border:1.5px solid var(--grey-light);border-radius:12px;padding:4px 14px;margin-bottom:20px}
+.ag-url-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--grey-light)}
+.ag-url-row:last-child{border-bottom:none}
+.ag-url-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);width:78px;flex:none}
+.ag-url-val{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-empty{color:#c9c4b8;font-style:italic;font-size:12px}
+.ag-edit{border:0;background:none;color:var(--grey-mid);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:6px;flex:none}
+.ag-edit:hover{background:var(--grey-light);color:var(--black)}
+.ag-url-input{flex:1;padding:7px 10px;border:1.5px solid var(--black);border-radius:8px;font-family:'DM Mono',monospace;font-size:12px}
+.ag-url-input:focus{outline:none}
+.ag-url-actions{display:flex;gap:6px;flex:none}
+.ag-mini{border:1.5px solid var(--black);background:var(--black);color:var(--green);border-radius:7px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.ag-mini.ghost{background:var(--white);color:var(--grey-mid);border-color:var(--grey-light)}
+.ag-mini.ghost:hover{color:var(--black)}
+.ag-people-h{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey-mid);margin:0 2px 8px}
+.ag-people{display:flex;flex-direction:column;border:1.5px solid var(--grey-light);border-radius:12px;overflow:hidden;background:var(--white)}
+.ag-person{display:grid;grid-template-columns:1.4fr 1.6fr auto auto;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--grey-light)}
+.ag-person:last-child{border-bottom:none}
+.ag-person:hover{background:rgba(0,0,0,.015)}
+.ag-person-name{font-weight:600;font-size:13px}
+.ag-person-title{font-size:11px;color:var(--grey-mid);margin-top:1px}
+.ag-person-email{font-size:11px;min-width:0;overflow:hidden}
+.ag-person-pills{display:flex;gap:5px;flex:none}
+.ag-person-act{display:flex;gap:4px;align-items:center;flex:none}
+@media(max-width:760px){.ag-person{grid-template-columns:1fr auto}.ag-person-email,.ag-person-pills{grid-column:1/-1}}
 .em-drawer-btn{margin-top:6px;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
 .em-drawer-btn:hover{border-color:var(--black);color:var(--black)}
 #cand-pop{position:fixed;z-index:1200;background:var(--white);border:1.5px solid var(--black);border-radius:12px;box-shadow:0 12px 34px rgba(14,14,14,.20);padding:6px;width:320px;max-height:70vh;overflow:auto}
@@ -642,6 +693,7 @@ tr.dragging{opacity:.4}
       <div id="enquiries-wrap" style="display:none;margin-top:4px"></div>
       <div id="research-wrap" class="rq-wrap" style="display:none"></div>
       <div id="coris-wrap" class="rc-wrap" style="display:none"></div>
+      <div id="agencies-wrap" style="display:none;margin-top:4px"></div>
     </div>
   </div>
 </div>
@@ -1183,6 +1235,7 @@ function buildTabs(){
   html+=`<button class="sb-item" onclick="toggleNudge()"><span class="sb-ico">⏰</span><span class="sb-lbl">Follow-ups due</span><span class="sb-count" id="nudge-count" style="display:none"></span></button>`;
   html+=item('__replied__','↩','Replied',live.filter(c=>c.replied).length);
   html+=item('__enquiries__','✉','Enquiries',ENQUIRIES.length);
+  html+=item('__agencies__','🏢','Agencies',agencyCount(live));
   if(archived) html+=item('__archived__','🗄','Archived',archived);
   html+=`</div>`;
   html+=`<div class="sb-sec"><div class="sb-h">Lists</div>`;
@@ -1208,7 +1261,7 @@ function switchTab(tab){
 }
 function setList(cat){
   activeList=(activeList===cat?'':cat);
-  if(activeList && ['__research__','__coris__','__enquiries__'].includes(activeTab)) activeTab='all';
+  if(activeList && ['__research__','__coris__','__enquiries__','__agencies__'].includes(activeTab)) activeTab='all';
   applyTabView(activeTab);
   buildTabs();
   const sb=document.getElementById('sidebar'); if(sb&&window.innerWidth<=820) sb.classList.remove('open');
@@ -1218,15 +1271,18 @@ function applyTabView(tab){
   const isEnq=tab==='__enquiries__';
   const isResearch=tab==='__research__';
   const isCoris=tab==='__coris__';
-  const isSpecial=isEnq||isResearch||isCoris;
+  const isAgencies=tab==='__agencies__';
+  const isSpecial=isEnq||isResearch||isCoris||isAgencies;
   document.getElementById('contact-controls').style.display=isSpecial?'none':'';
   document.getElementById('enquiries-wrap').style.display=isEnq?'block':'none';
   document.getElementById('research-wrap').style.display=isResearch?'block':'none';
   document.getElementById('coris-wrap').style.display=isCoris?'block':'none';
+  document.getElementById('agencies-wrap').style.display=isAgencies?'block':'none';
   if(isSpecial){ document.getElementById('table-wrap').style.display='none'; document.getElementById('setup').style.display='none'; }
   if(isEnq){ title.textContent='Enquiries'; sub.textContent='Messages from your build guide'; renderEnquiries(); return; }
   if(isResearch){ title.textContent='Research queue'; sub.textContent='Verify each prospect, spend 2–3 minutes, move on'; renderResearch(); return; }
   if(isCoris){ title.textContent='Ready for Coris'; sub.textContent='Human-verified prospects worth a look'; renderCoris(); return; }
+  if(isAgencies){ title.textContent='Agencies'; sub.textContent='Every company in your pipeline, with its people'; renderAgencies(); return; }
   if(tab==='all'){ title.textContent='Prospects'; sub.textContent='All contacts, most recent first'; }
   else if(tab==='__replied__'){ title.textContent='Replied'; sub.textContent='People who replied to your outreach'; }
   else if(tab==='__archived__'){ title.textContent='Archived'; sub.textContent='Do-not-contact — kept on record so re-imports skip them'; }
@@ -1437,6 +1493,115 @@ function clearBounced(id){
   c.email_candidates=(c.email_candidates||[]).filter(function(x){return x.status!=='bounced';});
   render(); saveContactEmail(c); refreshCandPop();
 }
+/* ── Agencies directory ── */
+let _agencyView='list', _agencyKey=null, _agencySearch='', _agencyMinPeople=1, _agencySort='people', _agEditField=null;
+function _agNorm(s){ return (s||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase(); }
+function _agLiveContacts(){ return ALL.filter(function(c){ return c.status!=='Archived' && (c.company||'').trim(); }); }
+function _agPick(people,field){ const m={}; let best='',bn=0; people.forEach(function(p){ const v=((p[field]==null?'':p[field])+'').trim(); if(v){ m[v]=(m[v]||0)+1; if(m[v]>bn){ bn=m[v]; best=v; } } }); return best; }
+function _agDomainFromWebsite(w){ if(!w) return ''; return (w+'').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0]; }
+function agencyCount(live){ const s={}; (live||_agLiveContacts()).forEach(function(c){ const k=_agNorm(c.company); if(k) s[k]=1; }); return Object.keys(s).length; }
+function buildAgencies(){
+  const map={};
+  _agLiveContacts().forEach(function(c){ const k=_agNorm(c.company); if(!k) return; if(!map[k]) map[k]={key:k,name:(c.company||'').trim(),people:[]}; map[k].people.push(c); });
+  return Object.keys(map).map(function(k){ const a=map[k];
+    a.website=_agPick(a.people,'website');
+    a.linkedin=_agPick(a.people,'company_linkedin_url');
+    a.domain=_agPick(a.people,'company_domain')||_agDomainFromWebsite(a.website);
+    a.industry=_agPick(a.people,'company_industry');
+    a.size=_agPick(a.people,'company_size');
+    a.ownership=_agPick(a.people,'ownership');
+    a.city=_agPick(a.people,'company_city')||_agPick(a.people,'city');
+    a.country=_agPick(a.people,'company_country')||_agPick(a.people,'country');
+    return a;
+  });
+}
+function _agLoc(a){ return [a.city,a.country].filter(Boolean).join(', '); }
+function _agKeyArg(k){ return encodeURIComponent(k).replace(/'/g,'%27'); }
+function renderAgencies(){ const wrap=document.getElementById('agencies-wrap'); if(!wrap) return; if(_agencyView==='profile'&&_agencyKey){ renderAgencyProfile(wrap); } else { renderAgencyList(wrap); } }
+function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; renderAgencies(); }
+function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; renderAgencies(); }
+function agencyToggleMin(){ _agencyMinPeople=_agencyMinPeople===1?2:1; renderAgencyList(document.getElementById('agencies-wrap')); }
+function agencySetSort(v){ _agencySort=v; renderAgencyList(document.getElementById('agencies-wrap')); }
+function _agFilteredSorted(){
+  let ags=buildAgencies();
+  const q=_agNorm(_agencySearch);
+  if(q) ags=ags.filter(function(a){ return _agNorm(a.name).indexOf(q)>-1; });
+  if(_agencyMinPeople>1) ags=ags.filter(function(a){ return a.people.length>=_agencyMinPeople; });
+  ags.sort(function(a,b){ return _agencySort==='name'?a.name.localeCompare(b.name):(b.people.length-a.people.length)||a.name.localeCompare(b.name); });
+  return ags;
+}
+function _agRows(ags){
+  if(!ags.length) return `<tr><td colspan="4" style="padding:24px;color:var(--grey-mid)">No agencies match.</td></tr>`;
+  return ags.map(function(a){
+    const site=a.website?withScheme(a.website):(a.domain?withScheme(a.domain):'');
+    const li=a.linkedin?withScheme(a.linkedin):'';
+    const meta=[a.industry,_agLoc(a)].filter(Boolean).join(' · ');
+    return `<tr class="ag-row" onclick="agencyOpen('${_agKeyArg(a.key)}')">
+      <td class="ag-name">${escapeHtml(a.name)}</td>
+      <td class="ag-meta-cell">${escapeHtml(meta||'—')}</td>
+      <td class="ag-links-cell">${site?`<a class="ag-linkchip" href="${escapeHtml(site)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Website">↗</a>`:''}${li?`<a class="ag-linkchip" href="${escapeHtml(li)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="LinkedIn">in</a>`:''}</td>
+      <td class="ag-count-cell"><span class="ag-count-pill">${a.people.length}</span></td>
+    </tr>`;
+  }).join('');
+}
+function renderAgencyList(wrap){
+  const ags=_agFilteredSorted();
+  wrap.innerHTML=`<div class="ag-toolbar">
+    <input class="ag-search" placeholder="Search agencies…" value="${escapeHtml(_agencySearch)}" oninput="agencySearchLive(this.value)">
+    <div class="ag-toolbar-right">
+      <button class="ag-tgl ${_agencyMinPeople>1?'on':''}" onclick="agencyToggleMin()" title="Show only agencies with 2+ people">2+ people</button>
+      <button class="ag-tgl ${_agencySort==='name'?'on':''}" onclick="agencySetSort('${_agencySort==='name'?'people':'name'}')">Sort: ${_agencySort==='name'?'A–Z':'People'}</button>
+    </div></div>
+    <div class="ag-listcount" id="ag-count">${ags.length} agenc${ags.length===1?'y':'ies'}</div>
+    <div class="table-wrap"><table class="tbl ag-tbl"><thead><tr><th>Agency</th><th>Industry / location</th><th>Links</th><th>People</th></tr></thead><tbody id="ag-tbody">${_agRows(ags)}</tbody></table></div>`;
+}
+function agencySearchLive(v){ _agencySearch=v; const ags=_agFilteredSorted(); const tb=document.getElementById('ag-tbody'); if(tb) tb.innerHTML=_agRows(ags); const cc=document.getElementById('ag-count'); if(cc) cc.textContent=`${ags.length} agenc${ags.length===1?'y':'ies'}`; }
+function _agUrlRow(label,field,val,isLink){
+  if(_agEditField===field){
+    return `<div class="ag-url-row editing"><span class="ag-url-label">${label}</span><input class="ag-url-input" id="ag-edit-input" value="${escapeHtml(val||'')}" placeholder="${label}…" onkeydown="if(event.key==='Enter')agencySaveField('${field}');if(event.key==='Escape')agencyCancelEdit()"><span class="ag-url-actions"><button class="ag-mini" onclick="agencySaveField('${field}')">Save</button><button class="ag-mini ghost" onclick="agencyCancelEdit()">Cancel</button></span></div>`;
+  }
+  const shown = val ? (isLink?`<a class="rowlink" href="${escapeHtml(withScheme(val))}" target="_blank" rel="noopener">${escapeHtml(val)}<span class="lnkicon">↗</span></a>`:escapeHtml(val)) : `<span class="ag-empty">Not set</span>`;
+  return `<div class="ag-url-row"><span class="ag-url-label">${label}</span><span class="ag-url-val">${shown}</span><button class="ag-edit" title="Edit" onclick="agencyEditField('${field}')">✎</button></div>`;
+}
+function renderAgencyProfile(wrap){
+  const a=buildAgencies().find(function(x){ return x.key===_agencyKey; });
+  if(!a){ agencyBack(); return; }
+  const meta=[['Industry',a.industry],['Size',a.size],['Ownership',a.ownership],['Location',_agLoc(a)]].filter(function(m){return m[1];}).map(function(m){ return `<span class="ag-metachip"><b>${m[0]}</b> ${escapeHtml(m[1])}</span>`; }).join('');
+  const wt={hot:2,warm:1};
+  const ppl=a.people.slice().sort(function(x,y){ return ((wt[y.warmth]||0)-(wt[x.warmth]||0))||((x.name||'').localeCompare(y.name||'')); });
+  const people=ppl.map(function(c){
+    const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
+    const li=linkedinUrl(c); const mailable=c.email&&!c.bounced;
+    return `<div class="ag-person">
+      <div class="ag-person-main"><div class="ag-person-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="ag-person-title">${escapeHtml(c.title||'')}</div></div>
+      <div class="ag-person-email">${emailCell(c)}</div>
+      <div class="ag-person-pills"><span class="pill ${statusClass(c)}">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span><span class="pill warm-${c.warmth||'none'}">${warmthLabel(c.warmth)}</span></div>
+      <div class="ag-person-act">${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}<button class="iconbtn" title="Edit" onclick='openEditModal(${cdata})'><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg></button></div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="ag-profile">
+    <button class="ag-back" onclick="agencyBack()">← All agencies</button>
+    <div class="ag-phead"><h2 class="ag-title">${escapeHtml(a.name)}</h2><span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span></div>
+    ${meta?`<div class="ag-meta">${meta}</div>`:''}
+    <div class="ag-urls">${_agUrlRow('Website','website',a.website,true)}${_agUrlRow('LinkedIn','company_linkedin_url',a.linkedin,true)}${_agUrlRow('Domain','company_domain',a.domain,true)}</div>
+    <div class="ag-people-h">People in your system · ${a.people.length}</div>
+    <div class="ag-people">${people}</div>
+  </div>`;
+  if(_agEditField){ const inp=document.getElementById('ag-edit-input'); if(inp){ inp.focus(); inp.select(); } }
+}
+function agencyEditField(f){ _agEditField=f; renderAgencies(); }
+function agencyCancelEdit(){ _agEditField=null; renderAgencies(); }
+async function agencySaveField(field){
+  const inp=document.getElementById('ag-edit-input'); if(!inp) return;
+  const val=inp.value.trim(); const key=_agencyKey; const ids=[];
+  ALL.forEach(function(c){ if(_agNorm(c.company)===key){ c[field]=val; ids.push(c.id); } });
+  _agEditField=null; renderAgencies(); buildTabs();
+  if(!ids.length) return;
+  const body={}; body[field]=val; body.updated_at=new Date().toISOString();
+  try{ await sb(TABLE+'?id=in.('+ids.join(',')+')',{method:'PATCH',body:JSON.stringify(body)}); toast('Updated '+ids.length+' contact'+(ids.length!==1?'s':'')); }
+  catch(e){ toast('Save failed — refresh to re-check'); }
+}
+
 function buildCatList(){
   const dl=document.getElementById('cat-list');
   dl.innerHTML=categories().map(c=>`<option value="${escapeHtml(c)}">`).join('');
@@ -1484,6 +1649,7 @@ function visibleRows(){
 }
 function render(){
   if(!isConfigured()) return;
+  if(activeTab==='__agencies__'){ renderAgencies(); return; }
   document.getElementById('loading').style.display='none';
   const rows=visibleRows();
   const miss=rows.filter(c=>!c.email||c.bounced).length;
