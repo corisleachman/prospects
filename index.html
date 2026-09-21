@@ -296,6 +296,15 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .ag-person-email{font-size:11px;min-width:0;overflow:hidden}
 .ag-person-pills{display:flex;gap:5px;flex:none}
 .ag-person-act{display:flex;gap:4px;align-items:center;flex:none}
+.ag-ai-btn{margin-left:auto;border:1.5px solid var(--black);background:var(--black);color:var(--green);border-radius:9px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.ag-ai-btn:hover{background:#1a1a1a}
+.ag-ai-btn:disabled{opacity:.6;cursor:default}
+.ag-sugg{background:#f2f7ec;border:1.5px solid #cfe3bf;border-radius:12px;padding:4px 14px;margin-bottom:18px}
+.ag-sugg-head{display:flex;align-items:center;justify-content:space-between;padding:9px 0 7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#3B6D11}
+.ag-sugg-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #d9e8cb}
+.ag-sugg-empty{padding:6px 0 12px;font-size:12px;color:var(--grey-mid)}
+.ag-sugg-note{padding:8px 0;font-size:11px;color:var(--grey-mid);border-top:1px solid #d9e8cb}
+.ag-sugg-foot{padding:9px 0;border-top:1px solid #d9e8cb}
 @media(max-width:760px){.ag-person{grid-template-columns:1fr auto}.ag-person-email,.ag-person-pills{grid-column:1/-1}}
 .em-drawer-btn{margin-top:6px;border:1px solid var(--grey-light);background:none;border-radius:7px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey-mid);cursor:pointer}
 .em-drawer-btn:hover{border-color:var(--black);color:var(--black)}
@@ -1498,6 +1507,7 @@ function clearBounced(id){
 }
 /* ── Agencies directory ── */
 let _agencyView='list', _agencyKey=null, _agencySearch='', _agencyMinPeople=1, _agencySort='people', _agEditField=null;
+let _agEnriching=false, _agEnrich=null;
 function _agNorm(s){ return (s||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase(); }
 function _agLiveContacts(){ return ALL.filter(function(c){ return c.status!=='Archived' && (c.company||'').trim(); }); }
 function _agPick(people,field){ const m={}; let best='',bn=0; people.forEach(function(p){ const v=((p[field]==null?'':p[field])+'').trim(); if(v){ m[v]=(m[v]||0)+1; if(m[v]>bn){ bn=m[v]; best=v; } } }); return best; }
@@ -1521,8 +1531,8 @@ function buildAgencies(){
 function _agLoc(a){ return [a.city,a.country].filter(Boolean).join(', '); }
 function _agKeyArg(k){ return encodeURIComponent(k).replace(/'/g,'%27'); }
 function renderAgencies(){ const wrap=document.getElementById('agencies-wrap'); if(!wrap) return; if(_agencyView==='profile'&&_agencyKey){ renderAgencyProfile(wrap); } else { renderAgencyList(wrap); } }
-function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; renderAgencies(); }
-function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; renderAgencies(); }
+function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; _agEnrich=null; _agEnriching=false; renderAgencies(); }
+function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; _agEnrich=null; _agEnriching=false; renderAgencies(); }
 function agencyToggleMin(){ _agencyMinPeople=_agencyMinPeople===1?2:1; renderAgencyList(document.getElementById('agencies-wrap')); }
 function agencySetSort(v){ _agencySort=v; renderAgencyList(document.getElementById('agencies-wrap')); }
 function _agFilteredSorted(){
@@ -1584,8 +1594,9 @@ function renderAgencyProfile(wrap){
   }).join('');
   wrap.innerHTML=`<div class="ag-profile">
     <button class="ag-back" onclick="agencyBack()">← All agencies</button>
-    <div class="ag-phead"><h2 class="ag-title">${escapeHtml(a.name)}</h2><span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span></div>
+    <div class="ag-phead"><h2 class="ag-title">${escapeHtml(a.name)}</h2><span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span><button class="ag-ai-btn" onclick="agencyEnrich()" ${_agEnriching?'disabled':''}>${_agEnriching?'Searching…':'✨ Find with AI'}</button></div>
     ${meta?`<div class="ag-meta">${meta}</div>`:''}
+    ${_agEnrichPanel(a)}
     <div class="ag-urls">${_agUrlRow('Website','website',a.website,true)}${_agUrlRow('LinkedIn','company_linkedin_url',a.linkedin,true)}${_agUrlRow('Domain','company_domain',a.domain,true)}</div>
     <div class="ag-people-h">People in your system · ${a.people.length}</div>
     <div class="ag-people">${people}</div>
@@ -1594,15 +1605,56 @@ function renderAgencyProfile(wrap){
 }
 function agencyEditField(f){ _agEditField=f; renderAgencies(); }
 function agencyCancelEdit(){ _agEditField=null; renderAgencies(); }
-async function agencySaveField(field){
-  const inp=document.getElementById('ag-edit-input'); if(!inp) return;
-  const val=inp.value.trim(); const key=_agencyKey; const ids=[];
+async function _agencyWrite(field,val){
+  const key=_agencyKey; const ids=[];
   ALL.forEach(function(c){ if(_agNorm(c.company)===key){ c[field]=val; ids.push(c.id); } });
-  _agEditField=null; renderAgencies(); buildTabs();
+  renderAgencies(); buildTabs();
   if(!ids.length) return;
   const body={}; body[field]=val; body.updated_at=new Date().toISOString();
   try{ await sb(TABLE+'?id=in.('+ids.join(',')+')',{method:'PATCH',body:JSON.stringify(body)}); toast('Updated '+ids.length+' contact'+(ids.length!==1?'s':'')); }
   catch(e){ toast('Save failed — refresh to re-check'); }
+}
+async function agencySaveField(field){ const inp=document.getElementById('ag-edit-input'); if(!inp) return; _agEditField=null; await _agencyWrite(field, inp.value.trim()); }
+const _AG_SK={website:'website',company_linkedin_url:'linkedin_url',company_domain:'domain',company_industry:'industry',company_size:'size'};
+function _agCurrent(a,field){ return ({website:a.website,company_linkedin_url:a.linkedin,company_domain:a.domain,company_industry:a.industry,company_size:a.size})[field]||''; }
+function _agEnrichPanel(a){
+  if(!_agEnrich) return '';
+  const s=_agEnrich;
+  const map=[['website','Website',true],['company_linkedin_url','LinkedIn',true],['company_domain','Domain',true],['company_industry','Industry',false],['company_size','Size',false]];
+  const rows=map.map(function(m){
+    const field=m[0], label=m[1], isLink=m[2];
+    const val=((s[_AG_SK[field]]||'')+'').trim();
+    if(!val || _agCurrent(a,field)) return '';
+    const shown=isLink?`<a class="rowlink" href="${escapeHtml(withScheme(val))}" target="_blank" rel="noopener">${escapeHtml(val)}<span class="lnkicon">↗</span></a>`:escapeHtml(val);
+    return `<div class="ag-sugg-row"><span class="ag-url-label">${label}</span><span class="ag-url-val">${shown}</span><button class="ag-mini" onclick="agencyApplyEnrich('${field}')">Accept</button></div>`;
+  }).filter(Boolean).join('');
+  const note=s.notes?`<div class="ag-sugg-note">${escapeHtml((s.notes||'')+'')}${s.confidence?' · confidence: '+escapeHtml((s.confidence||'')+''):''}</div>`:'';
+  const head=`<div class="ag-sugg-head"><span>✨ AI suggestions</span><button class="ag-mini ghost" onclick="agencyDismissEnrich()">Dismiss</button></div>`;
+  if(!rows) return `<div class="ag-sugg">${head}<div class="ag-sugg-empty">Nothing new to add — those fields already have values, or nothing could be verified.</div></div>`;
+  return `<div class="ag-sugg">${head}${rows}${note}<div class="ag-sugg-foot"><button class="ag-mini" onclick="agencyApplyAllEnrich()">Accept all</button></div></div>`;
+}
+async function agencyEnrich(){
+  const a=buildAgencies().find(function(x){ return x.key===_agencyKey; }); if(!a) return;
+  _agEnriching=true; _agEnrich=null; renderAgencies();
+  try{
+    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify({company:a.name,city:a.city,country:a.country,website:a.website})});
+    const d=await r.json().catch(function(){ return {}; });
+    _agEnriching=false;
+    if(!r.ok){ toast(d.error||('Enrich failed ('+r.status+')')); renderAgencies(); return; }
+    _agEnrich=d.suggestion||{}; renderAgencies();
+  }catch(e){ _agEnriching=false; renderAgencies(); toast('Enrich failed — network error'); }
+}
+function agencyDismissEnrich(){ _agEnrich=null; renderAgencies(); }
+async function agencyApplyEnrich(field){
+  const val=(((_agEnrich||{})[_AG_SK[field]]||'')+'').trim(); if(!val) return;
+  if(_agEnrich) delete _agEnrich[_AG_SK[field]];
+  await _agencyWrite(field,val);
+}
+async function agencyApplyAllEnrich(){
+  const s=_agEnrich||{}; const a=buildAgencies().find(function(x){ return x.key===_agencyKey; });
+  const fields=['website','company_linkedin_url','company_domain','company_industry','company_size'];
+  for(const field of fields){ const val=((s[_AG_SK[field]]||'')+'').trim(); if(val && a && !_agCurrent(a,field)){ await _agencyWrite(field,val); } }
+  _agEnrich=null; renderAgencies();
 }
 
 function buildCatList(){
