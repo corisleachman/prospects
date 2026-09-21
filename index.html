@@ -81,6 +81,19 @@ table.tbl{width:100%;border-collapse:collapse;background:var(--white);font-size:
 .tbl tbody tr:last-child td{border-bottom:none}
 .tbl tbody tr:hover td{background:rgba(0,0,0,0.018)}
 .tbl td a{color:var(--black)}
+table#tbl{table-layout:fixed}
+#tbl th:nth-child(1),#tbl td:nth-child(1){width:34px}
+#tbl th:nth-child(2),#tbl td:nth-child(2){width:158px}
+#tbl th:nth-child(3),#tbl td:nth-child(3){width:150px}
+#tbl th:nth-child(4),#tbl td:nth-child(4){width:150px}
+#tbl th:nth-child(5),#tbl td:nth-child(5){width:210px}
+#tbl th:nth-child(6),#tbl td:nth-child(6){width:120px}
+#tbl th:nth-child(7),#tbl td:nth-child(7){width:110px}
+#tbl th:nth-child(8),#tbl td:nth-child(8){width:92px}
+#tbl th:nth-child(9),#tbl td:nth-child(9){width:104px}
+#tbl th:nth-child(10),#tbl td:nth-child(10){width:52px}
+#tbl td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tbl td>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .rowlink{color:inherit;text-decoration:none;border-bottom:1px solid var(--grey);transition:border-color .12s}
 .rowlink:hover{border-bottom-color:var(--black)}
 .rowlink .lnkicon{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle;opacity:0;transition:opacity .12s}
@@ -1279,11 +1292,18 @@ function _domainFor(c){
   return d.indexOf('.')>-1?d:'';
 }
 function _firstLast(name){ const t=(name||'').trim().split(/\s+/).filter(Boolean); return {first:_clean(t[0]||''), last:t.length>1?_clean(t[t.length-1]):''}; }
-function canGuess(c){ const fl=_firstLast(c.name); return !!(fl.first && _domainFor(c)); }
+function canGuess(c){ return !!_firstLast(c.name).first; }
+function _promptDomain(c){
+  const raw=window.prompt('No company domain on file for '+((c&&c.name)||'this contact')+'.\nEnter it to generate email addresses (e.g. studio.com):');
+  if(raw===null) return '';
+  const d=raw.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].replace(/\s/g,'');
+  if(!d || d.indexOf('.')<0){ if(d) toast("That doesn't look like a domain"); return ''; }
+  return d;
+}
 function genEmails(name,domain){
   const fl=_firstLast(name); const first=fl.first, last=fl.last; if(!first) return [];
   const fi=first[0], li=last?last[0]:'';
-  let pats = last ? [first+'.'+last, first, fi+'.'+last, first+last, fi+last, first+'.'+li] : [first];
+  let pats = last ? [first+'.'+last, first, fi+'.'+last, first+last, fi+last, first+'.'+li, first+'_'+last, last+'.'+first] : [first];
   const seen={}, out=[];
   pats.forEach(function(p){ const a=p+'@'+domain; if(!seen[a]){ seen[a]=1; out.push({address:a,status:'untried'}); } });
   return out;
@@ -1307,11 +1327,12 @@ async function saveContactEmail(c, extra){
 function generateFor(ev,id){
   if(ev){ ev.stopPropagation(); }
   const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
-  const domain=_domainFor(c); if(!domain){ toast('Add a company domain first'); return; }
+  let domain=_domainFor(c);
+  if(!domain){ const d=_promptDomain(c); if(!d) return; c.company_domain=d; domain=d; }
   const cands=genEmails(c.name,domain); if(!cands.length){ toast('Need a first name to generate'); return; }
   c.email_candidates=cands; c.email=cands[0].address; if(!c.email_status) c.email_status='Unverified';
   c.bounced=false; if(c.status==='Bounced') c.status='Not contacted';
-  render(); saveContactEmail(c,{email_status:c.email_status,bounced:false,status:c.status});
+  render(); saveContactEmail(c,{email_status:c.email_status,bounced:false,status:c.status,company_domain:c.company_domain});
   toast('Generated '+cands.length+' candidates'); refreshCandPop();
 }
 let _candCtx=null;
@@ -1400,7 +1421,8 @@ function addVariation(id){
 }
 function regenerate(id){
   const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
-  const domain=_domainFor(c); if(!domain){ toast('Add a company domain first'); return; }
+  let domain=_domainFor(c);
+  if(!domain){ const d=_promptDomain(c); if(!d) return; c.company_domain=d; domain=d; }
   const fresh=genEmails(c.name,domain); if(!fresh.length){ toast('Need a first name'); return; }
   const existing=(c.email_candidates||[]); const byAddr={}; existing.forEach(function(x){ byAddr[x.address]=x; });
   const merged=[], seen={};
@@ -1408,7 +1430,7 @@ function regenerate(id){
   existing.forEach(function(x){ if(!seen[x.address]){ merged.push(x); seen[x.address]=1; } });
   c.email_candidates=merged;
   if(!c.email || !merged.some(function(x){return x.address===c.email;})){ const pick=merged.find(function(x){return x.status!=='bounced';})||merged[0]; c.email=pick?pick.address:c.email; }
-  render(); saveContactEmail(c); refreshCandPop(); toast('Regenerated');
+  render(); saveContactEmail(c,{company_domain:c.company_domain}); refreshCandPop(); toast('Regenerated');
 }
 function clearBounced(id){
   const c=ALL.find(function(x){return x.id===id;}); if(!c) return;
