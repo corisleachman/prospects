@@ -1672,7 +1672,7 @@ async function agencyEnrich(){
   const a=buildAgencies().find(function(x){ return x.key===_agencyKey; }); if(!a) return;
   _agEnriching=true; _agEnrich=null; renderAgencies();
   try{
-    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify({company:a.name,city:a.city,country:a.country,website:a.website})});
+    const r=await _authedFetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{company:a.name,city:a.city,country:a.country,website:a.website});
     const d=await r.json().catch(function(){ return {}; });
     _agEnriching=false;
     if(!r.ok){ toast(d.error||('Enrich failed ('+r.status+')')); renderAgencies(); return; }
@@ -1715,14 +1715,19 @@ function _agFindPayload(a){
   const titles=(_agFind.job_titles||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
   return { mode:'full_email', max_items:_agFind.max_items, company:a.name, company_linkedin_url:_agFind.company_url||'', location:(_agFind.location||'').trim(), filters:{ functions:_agFind.functions, director_plus:_agFind.director_plus, job_titles:titles } };
 }
-function _agFindFetch(payload){
-  return fetch(`${CONFIG.SUPABASE_URL}/functions/v1/find-people`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify(payload)});
+async function _authedFetch(url,payload){
+  if(AUTH.token && !authValid() && AUTH.refresh){ try{ await authRefresh(); }catch(e){} }
+  const call=function(){ return fetch(url,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify(payload)}); };
+  let r=await call();
+  if(r.status===401 && AUTH.refresh){ const ok=await authRefresh().catch(function(){return false;}); if(ok) r=await call(); }
+  return r;
 }
+function _agFindFetch(payload){ return _authedFetch(`${CONFIG.SUPABASE_URL}/functions/v1/find-people`,payload); }
 async function agencyFindCompany(){
   const a=_agCurAgency(); if(!a||!_agFind) return;
   _agFindReadForm(); _agFind.finding_company=true; renderAgencies();
   try{
-    const r=await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{method:'POST',headers:{apikey:CONFIG.SUPABASE_ANON,Authorization:'Bearer '+(AUTH.token||''),'Content-Type':'application/json'},body:JSON.stringify({company:a.name,city:a.city,country:a.country,website:a.website})});
+    const r=await _authedFetch(`${CONFIG.SUPABASE_URL}/functions/v1/enrich-company`,{company:a.name,city:a.city,country:a.country,website:a.website});
     const d=await r.json().catch(function(){return{};});
     _agFind.finding_company=false;
     if(!r.ok){ toast(d.error||'Lookup failed'); renderAgencies(); return; }
