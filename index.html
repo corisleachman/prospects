@@ -3232,8 +3232,17 @@ async function loadNextBatch(){
 
 function rqPatch(id, payload){
   const c=ALL.find(x=>x.id===id); if(!c) return;
+  const prev={}; Object.keys(payload).forEach(k=>{ prev[k]=c[k]; });
   Object.assign(c, payload);
-  sb(`${TABLE}?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({...payload, updated_at:new Date().toISOString()})}).catch(()=>{});
+  // Ask for the updated id back: RLS denials return 200 with zero rows, so an empty result is a failure too.
+  sb(`${TABLE}?id=eq.${id}&select=id`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify({...payload, updated_at:new Date().toISOString()})})
+    .then(async r=>{ const rows=r.ok?await r.json().catch(()=>[]):[]; if(!r.ok||!rows.length) throw new Error('HTTP '+r.status); })
+    .catch(()=>{
+      Object.assign(c, prev);
+      buildTabs();
+      if(activeTab==='__research__') renderResearch(); else if(activeTab==='__coris__') renderCoris();
+      toast('Couldn’t save that change, so it has been undone. Check you’re still signed in, then try again.');
+    });
 }
 function saveResearchField(id, field, val){ rqPatch(id, {[field]: (val===''?null:val)}); }
 function setStrength(id, val){
