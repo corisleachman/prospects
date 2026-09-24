@@ -90,8 +90,9 @@ table#tbl{table-layout:fixed}
 #tbl th:nth-child(6),#tbl td:nth-child(6){width:120px}
 #tbl th:nth-child(7),#tbl td:nth-child(7){width:110px}
 #tbl th:nth-child(8),#tbl td:nth-child(8){width:92px}
-#tbl th:nth-child(9),#tbl td:nth-child(9){width:104px}
-#tbl th:nth-child(10),#tbl td:nth-child(10){width:176px}
+#tbl th:nth-child(9),#tbl td:nth-child(9){width:128px}
+#tbl th:nth-child(10),#tbl td:nth-child(10){width:104px}
+#tbl th:nth-child(11),#tbl td:nth-child(11){width:176px}
 #tbl td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tbl td>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 #tbl th:last-child,#tbl td:last-child{position:sticky;right:0;overflow:visible;box-shadow:-10px 0 12px -10px rgba(14,14,14,.18)}
@@ -486,6 +487,7 @@ tr.dragging{opacity:.4}
 .pill.warm-nurture{background:#d9ecd2;color:#3f6b34}
 .pill.warm-cold{background:#dfe4ee;color:#4a5570}
 .pill.warm-none{background:#efe9db;color:#9a927f}
+.pill.stage-none{background:#efe9db;color:#9a927f}.pill.stage-1,.pill.stage-2{background:#ece7dc;color:#4a463e}.pill.stage-3,.pill.stage-4{background:#dcebd5;color:#2f5a25}.pill.stage-5{background:#0e0e0e;color:#fff}.pill.stage-6{background:#0e0e0e;color:#87FB66}
 .np-hot{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:12px;background:rgba(255,107,74,0.20);color:#FF8A63;margin-left:4px}
 .imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
 .imp-mode-btn{border:none;background:none;padding:7px 16px;border-radius:100px;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
@@ -700,6 +702,18 @@ tr.dragging{opacity:.4}
             <option value="__unrated__">Unrated</option>
           </select>
         </label>
+        <label class="selpill">Stage:
+          <select id="stage-filter" onchange="render()">
+            <option value="">All</option>
+            <option value="1">01 Recognition</option>
+            <option value="2">02 Relevance</option>
+            <option value="3">03 Value</option>
+            <option value="4">04 Conversation</option>
+            <option value="5">05 Proof</option>
+            <option value="6">06 Opportunity</option>
+            <option value="__unset__">Not set</option>
+          </select>
+        </label>
         <button class="toggle" id="replied-toggle" onclick="toggleReplied()">Replied only</button>
         <button class="toggle" id="hidebounced-toggle" onclick="toggleHideBounced()">Hide bounced</button>
         <button class="toggle" id="nocontact-toggle" onclick="toggleNoContact()">No last contact</button>
@@ -731,7 +745,7 @@ tr.dragging{opacity:.4}
           <thead><tr>
             <th style="width:34px"><input type="checkbox" id="select-all" onchange="toggleSelectAllVisible(this)"></th>
             <th>Name</th><th>Company</th><th>Title</th><th>Email</th>
-            <th>Category</th><th>Status</th><th>Warmth</th><th>Last contact</th><th></th>
+            <th>Category</th><th>Status</th><th>Warmth</th><th title="Relationship stage from the Outreach Playbook">Stage</th><th>Last contact</th><th></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -898,6 +912,17 @@ tr.dragging{opacity:.4}
           <select id="f-replied"><option value="false">No</option><option value="true">Yes</option></select>
         </div>
         <div class="fld"><label>LinkedIn URL</label><input id="f-linkedin" type="url" placeholder="https://linkedin.com/in/…"></div>
+      </div>
+      <div class="fld"><label>Relationship stage</label>
+        <select id="f-stage">
+          <option value="">Not set</option>
+          <option value="1">01 Recognition · they know your name</option>
+          <option value="2">02 Relevance · you understand their world</option>
+          <option value="3">03 Value · you've given something useful</option>
+          <option value="4">04 Conversation · a real exchange has happened</option>
+          <option value="5">05 Proof · they've seen relevant work</option>
+          <option value="6">06 Opportunity · a genuine commercial reason exists</option>
+        </select>
       </div>
       <div class="fld"><label>Company website</label><input id="f-website" placeholder="e.g. acme.com — leave blank to use the email domain"></div>
 
@@ -1864,10 +1889,15 @@ function companyUrl(c){
 function toDateInput(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function statusClass(c){ if(c.status==='Archived')return'p-archived'; if(c.replied)return'p-replied'; if(c.bounced||c.status==='Bounced')return'p-bounced'; if(c.status==='Contacted')return'p-contacted'; return'p-none'; }
 function warmthLabel(w){ return ({hot:'🔥 Hot',warm:'🌤 Warm',nurture:'🌱 Nurture',cold:'🧊 Cold'})[w]||'—'; }
+// Relationship stages mirror the Outreach Playbook nurture model (playbook/#nurture).
+const REL_STAGES=[[1,'Recognition'],[2,'Relevance'],[3,'Value'],[4,'Conversation'],[5,'Proof'],[6,'Opportunity']];
+function stageLabel(n){ const x=REL_STAGES.find(s=>s[0]===Number(n)); return x?`0${x[0]} ${x[1]}`:'—'; }
+function stageTitle(c){ return c.relationship_stage ? `Relationship stage · set ${c.relationship_stage_changed_at?fmtDate(c.relationship_stage_changed_at):'recently'} · click to change` : 'Click to set the relationship stage'; }
 function visibleRows(){
   const q=(document.getElementById('search').value||'').toLowerCase();
   const sf=document.getElementById('status-filter').value;
   const wfv=(document.getElementById('warmth-filter')||{}).value||'';
+  const stf=(document.getElementById('stage-filter')||{}).value||'';
   const arch=activeTab==='__archived__';
   return ALL.filter(c=>{
     const isArch=c.status==='Archived';
@@ -1881,6 +1911,7 @@ function visibleRows(){
     if(noContactOnly && c.last_emailed_at) return false;
     if(sf){ if(sf==='Replied'&&!c.replied) return false; if(sf==='Bounced'&&!(c.bounced||c.status==='Bounced')) return false; if(sf==='Contacted'&&!(c.status==='Contacted'&&!c.replied)) return false; }
     if(wfv){ if(wfv==='__unrated__'){ if(c.warmth) return false; } else if(c.warmth!==wfv) return false; }
+    if(stf){ if(stf==='__unset__'){ if(c.relationship_stage) return false; } else if(Number(c.relationship_stage)!==Number(stf)) return false; }
     if(q){ const hay=`${c.name} ${c.company} ${c.email} ${c.title} ${c.category}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
@@ -1911,6 +1942,7 @@ function render(){
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
       <td data-f="status"><span class="pill pill-btn ${statusClass(c)}" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','status')">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span></td>
       <td data-f="warmth"><span class="pill pill-btn warm-${c.warmth||'none'}" title="Click to set how warm this prospect is" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','warmth')">${warmthLabel(c.warmth)}</span></td>
+      <td data-f="relationship_stage"><span class="pill pill-btn stage-${c.relationship_stage||'none'}" title="${stageTitle(c)}" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','relationship_stage')">${stageLabel(c.relationship_stage)}</span></td>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${c.last_emailed_at?fmtDate(c.last_emailed_at):'<span style="color:#c9c4b8">—</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         ${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}
@@ -1962,6 +1994,7 @@ function openAddModal(){
   document.getElementById('f-category').value=(activeTab!=='all'&&activeTab!=='__replied__')?activeTab:'';
   document.getElementById('f-status').value='Not contacted';
   document.getElementById('f-replied').value='false';
+  document.getElementById('f-stage').value='';
   document.getElementById('edit-status').textContent='';
   document.getElementById('edit-modal').classList.add('open');
   setTimeout(()=>document.getElementById('f-name').focus(),80);
@@ -2006,6 +2039,7 @@ function openEditModal(c){
   document.getElementById('f-category').value=full.category||'';
   document.getElementById('f-status').value=full.status||'Not contacted';
   document.getElementById('f-replied').value=String(!!full.replied);
+  document.getElementById('f-stage').value=full.relationship_stage?String(full.relationship_stage):'';
   document.getElementById('f-linkedin').value=full.linkedin_url||'';
   document.getElementById('f-website').value=full.website||'';
   document.getElementById('f-email-status').value=full.email_status||'';
@@ -2044,6 +2078,7 @@ async function saveContact(){
     category:document.getElementById('f-category').value.trim()||null,
     status:document.getElementById('f-status').value,
     replied:document.getElementById('f-replied').value==='true',
+    relationship_stage:document.getElementById('f-stage').value?Number(document.getElementById('f-stage').value):null,
     linkedin_url:document.getElementById('f-linkedin').value.trim()||null,
     website:document.getElementById('f-website').value.trim()||null,
     email_status:document.getElementById('f-email-status').value||null,
@@ -3041,6 +3076,8 @@ function renderSkeleton(){
     <td><div class="skel-cell" style="width:56px"></div></td>
     <td><div class="skel-cell" style="width:60px"></div></td>
     <td><div class="skel-cell" style="width:48px"></div></td>
+    <td><div class="skel-cell" style="width:64px"></div></td>
+    <td><div class="skel-cell" style="width:48px"></div></td>
     <td></td></tr>`; }
   tb.innerHTML=rows;
 }
@@ -3049,7 +3086,7 @@ function renderSkeleton(){
 function startInlineEdit(td, id, field){
   if(!td || td.querySelector('.inline-input')) return;
   const c=ALL.find(x=>x.id===id); if(!c) return;
-  const cur = field==='status' ? (c.replied?'Replied':(c.bounced?'Bounced':(c.status||'Not contacted'))) : (c[field]||'');
+  const cur = field==='status' ? (c.replied?'Replied':(c.bounced?'Bounced':(c.status||'Not contacted'))) : field==='relationship_stage' ? String(c.relationship_stage||'') : (c[field]||'');
   let el;
   if(field==='status'){
     el=document.createElement('select'); el.className='inline-input';
@@ -3059,6 +3096,9 @@ function startInlineEdit(td, id, field){
   } else if(field==='warmth'){
     el=document.createElement('select'); el.className='inline-input';
     [['','—'],['hot','🔥 Hot'],['warm','🌤 Warm'],['nurture','🌱 Nurture'],['cold','🧊 Cold']].forEach(([v,lab])=>{ const op=document.createElement('option'); op.value=v; op.textContent=lab; if(v===cur) op.selected=true; el.appendChild(op); });
+  } else if(field==='relationship_stage'){
+    el=document.createElement('select'); el.className='inline-input';
+    [['','— Not set'],...REL_STAGES.map(([n,l])=>[String(n),`0${n} ${l}`])].forEach(([v,lab])=>{ const op=document.createElement('option'); op.value=v; op.textContent=lab; if(v===cur) op.selected=true; el.appendChild(op); });
   } else {
     el=document.createElement('input'); el.className='inline-input'; el.value=cur; if(field==='email') el.type='email';
   }
@@ -3068,7 +3108,7 @@ function startInlineEdit(td, id, field){
   const cancel=()=>{ if(done) return; done=true; render(); };
   el.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); commit(); } else if(ev.key==='Escape'){ ev.preventDefault(); cancel(); } });
   el.addEventListener('blur', commit);
-  if(field==='status'||field==='warmth') el.addEventListener('change', commit);
+  if(field==='status'||field==='warmth'||field==='relationship_stage') el.addEventListener('change', commit);
 }
 async function applyInlineEdit(c, field, val){
   const patch={updated_at:new Date().toISOString()};
@@ -3080,6 +3120,10 @@ async function applyInlineEdit(c, field, val){
     if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Invalid email — not saved'); render(); return; }
     if((c.email||'')===(v||'')){ render(); return; }
     c.email=v||null; patch.email=c.email;
+  } else if(field==='relationship_stage'){
+    const n=val?Number(val):null;
+    if((c.relationship_stage||null)===n){ render(); return; }
+    c.relationship_stage=n; c.relationship_stage_changed_at=n?new Date().toISOString():null; patch.relationship_stage=n;
   } else {
     if((c[field]||'')===(val||'')){ render(); return; }
     c[field]=val||null; patch[field]=c[field];
@@ -3695,7 +3739,7 @@ function renderViews(){
   html+='<span class="view-pill add" onclick="saveCurrentView()">＋ Save view</span>';
   bar.innerHTML=html;
 }
-function currentViewState(){ return { tab:activeTab, list:activeList, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), warmth:(document.getElementById('warmth-filter')||{}).value||'', repliedOnly, hideBounced, noContactOnly }; }
+function currentViewState(){ return { tab:activeTab, list:activeList, search:(document.getElementById('search').value||''), status:(document.getElementById('status-filter').value||''), warmth:(document.getElementById('warmth-filter')||{}).value||'', stage:(document.getElementById('stage-filter')||{}).value||'', repliedOnly, hideBounced, noContactOnly }; }
 function saveCurrentView(){ const name=(window.prompt('Name this view')||'').trim(); if(!name) return; const views=loadViews(); views.push({name, ...currentViewState()}); saveViews(views); renderViews(); toast('View saved'); }
 function applyView(i){
   const v=loadViews()[i]; if(!v) return;
@@ -3706,6 +3750,7 @@ function applyView(i){
   document.getElementById('search').value=v.search||'';
   document.getElementById('status-filter').value=v.status||'';
   const _wf=document.getElementById('warmth-filter'); if(_wf) _wf.value=v.warmth||'';
+  const _sf=document.getElementById('stage-filter'); if(_sf) _sf.value=v.stage||'';
   repliedOnly=!!v.repliedOnly; hideBounced=!!v.hideBounced; noContactOnly=!!v.noContactOnly;
   const rt=document.getElementById('replied-toggle'); if(rt) rt.classList.toggle('on',repliedOnly);
   const hb=document.getElementById('hidebounced-toggle'); if(hb) hb.classList.toggle('on',hideBounced);
