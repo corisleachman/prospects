@@ -53,7 +53,7 @@ html,body{background:var(--cream);color:var(--black);font-family:'DM Sans',syste
 .tab:hover{color:var(--black)}
 .tab.active{color:var(--black);border-bottom-color:var(--black)}
 .tab .badge{display:inline-block;margin-left:6px;font-family:'DM Mono',monospace;font-size:9px;background:var(--grey-light);color:var(--grey-mid);padding:1px 6px;border-radius:100px}
-.tab.active .badge{background:var(--black);color:var(--green)}
+.tab.active .badge{background:var(--black);color:#fff}
 
 /* BODY */
 .body{flex:1;overflow:auto;position:relative}
@@ -111,8 +111,8 @@ table#tbl{table-layout:fixed}
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:1px solid var(--grey-light);background:var(--white);cursor:pointer;color:var(--grey-mid);transition:all .12s;margin-left:4px}
 .iconbtn:hover{border-color:var(--black);color:var(--black)}
 .iconbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
-.email-btn{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;background:rgba(232,69,32,0.12);border:1px solid rgba(232,69,32,0.25);border-radius:100px;color:var(--orange-deep);font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .12s;white-space:nowrap}
-.email-btn:hover{background:rgba(232,69,32,0.22)}
+.email-btn{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;background:rgba(47,122,59,0.08);border:1px solid rgba(47,122,59,0.35);border-radius:100px;color:var(--ok);font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .12s;white-space:nowrap}
+.email-btn:hover{background:rgba(47,122,59,0.16)}
 .email-btn:disabled{opacity:.3;cursor:not-allowed}
 .loading{display:flex;align-items:center;gap:10px;padding:64px 0;justify-content:center;font-size:13px;color:var(--grey-mid)}
 .spinner{width:16px;height:16px;border:2px solid var(--grey-light);border-top-color:var(--black);border-radius:50%;animation:spin .7s linear infinite}
@@ -264,7 +264,7 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .em-count{font-family:'DM Mono',monospace;font-size:9px;background:var(--grey-light);color:var(--grey-mid);padding:1px 6px;border-radius:100px;flex:none}
 .em-caret{font-style:normal;font-size:9px;color:var(--grey-mid);flex:none}
 .em-chip:hover .em-caret{color:var(--black)}
-.em-gen{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:var(--black);color:var(--green);border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
+.em-gen{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:var(--black);color:#fff;border-radius:100px;padding:3px 10px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
 .em-gen:hover{opacity:.88}
 /* Agencies */
 .ag-toolbar{display:flex;align-items:center;gap:10px;margin:2px 0 12px;flex-wrap:wrap}
@@ -280,7 +280,7 @@ td[data-f]:not([data-f="status"]):not([data-f="category"]):hover{box-shadow:inse
 .ag-tbl .ag-name{font-weight:600}
 .ag-tbl .ag-meta-cell{color:var(--grey-mid);font-size:11px}
 .ag-tbl .ag-count-cell{text-align:right}
-.ag-count-pill{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:var(--black);color:var(--green);padding:2px 9px;border-radius:100px}
+.ag-count-pill{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:var(--black);color:#fff;padding:2px 9px;border-radius:100px}
 .ag-count-pill.lg{font-size:11px;padding:4px 12px}
 .ag-linkchip{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-right:5px;border-radius:6px;background:var(--grey-light);color:var(--black);font-family:'DM Mono',monospace;font-size:10px;text-decoration:none}
 .ag-linkchip:hover{background:var(--black);color:var(--green)}
@@ -545,7 +545,7 @@ tr.dragging{opacity:.4}
 .rq-links a:hover,.rq-actbtn:hover{background:var(--cream-soft)}
 .rq-notes{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:14px;white-space:pre-wrap}
 .rq-auto{border:1px dashed #b3aea2;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;line-height:1.5;background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(0,0,0,.014) 8px,rgba(0,0,0,.014) 16px)}
-.rq-auto .rq-tag{display:inline-block;font:700 8px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;background:var(--black);color:var(--green);border-radius:99px;padding:3px 8px;margin-bottom:6px}
+.rq-auto .rq-tag{display:inline-block;font:700 8px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;background:var(--black);color:#fff;border-radius:99px;padding:3px 8px;margin-bottom:6px}
 .rq-stage{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
 .rq-stage-h{font:700 10px 'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:12px}
 .rq-check{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:14px;border-bottom:1px solid var(--grey-light)}
@@ -576,7 +576,7 @@ tr.dragging{opacity:.4}
 .rqb{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
 .rqb-list{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;position:sticky;top:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 210px)}
 .rqb-list-h{font:700 11px 'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-mid);display:flex;align-items:center;gap:8px;padding:2px 4px}
-.rqb-count{background:var(--black);color:var(--green);font-size:9px;border-radius:99px;padding:2px 8px}
+.rqb-count{background:var(--black);color:#fff;font-size:9px;border-radius:99px;padding:2px 8px}
 .rqb-tabs{display:flex;flex-wrap:wrap;gap:4px}
 .rqb-tab{border:1px solid var(--line);background:var(--cream);border-radius:99px;padding:5px 9px;font:600 10px 'DM Sans',sans-serif;color:var(--black);cursor:pointer}
 .rqb-tab span{font-family:'DM Mono',monospace;font-size:9px;color:var(--grey-mid);margin-left:3px}
