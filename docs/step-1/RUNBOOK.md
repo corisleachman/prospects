@@ -9,7 +9,7 @@ Owner key: **C** = Coris · **AI** = Claude (via the Supabase connector, only af
 | Stage | Who | Action | Done when |
 |---|---|---|---|
 | 0 | C | Review this branch (`foundation/step-1`). | You're happy with the plan. |
-| 1 | CC | Merge the branch into `main`. Then, once: `supabase init` (only if `supabase/config.toml` doesn't exist), `supabase login`, `./scripts/pull-edge-functions.sh`, commit `supabase/functions/`. | Six functions in the repo, no secret literals. |
+| 1 | C + AI | Merged (PR #10). Edge functions: Coris adds the `SUPABASE_ACCESS_TOKEN` repository secret once; Claude runs the **Pull edge functions from Supabase** Action, which opens a PR. | Six functions in the repo, no secret literals. |
 | 2 | AI | Register `20260715000000` and `20260920000000` as already applied (history rows only, nothing run). Apply `20260923100000` → `20260923100400` in order, recording each under its repo version. Run `docs/step-1/checks.sql` and report. | Checks 1, 2 and 5 clean; review lists 3 and 4 sent to you. |
 | 3 | C | 10-minute smoke test (below). | Everything still works. |
 | 4 | AI | Move `supabase/pending/20260923100500_remove_legacy_policies.sql` into `supabase/migrations/`, apply it, re-run checks. | Access depends only on workspace membership. |

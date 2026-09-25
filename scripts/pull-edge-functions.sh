@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Pulls the six live edge functions into supabase/functions/ so the repo holds
 # the server code. Downloads only: it never deploys.
-# Needs: Supabase CLI, and `supabase login` done once on this machine.
+# Needs: Supabase CLI, plus `supabase login` or SUPABASE_ACCESS_TOKEN in the environment.
+# Normally run by .github/workflows/pull-edge-functions.yml (token kept as a GitHub secret).
 set -euo pipefail
 PROJECT_REF="paprxejgeepvtbqmfgvt"
 FUNCTIONS=(prospect-signal-scan find-people enrich-company save-prospect suggest-reply notify-enquiry)
@@ -9,7 +10,7 @@ cd "$(dirname "$0")/.."
 
 for fn in "${FUNCTIONS[@]}"; do
   echo "→ downloading $fn"
-  supabase functions download "$fn" --project-ref "$PROJECT_REF"
+  supabase functions download "$fn" --project-ref "$PROJECT_REF" --use-api
 done
 
 # save-prospect has its shared secret written into the source. Replace it with
