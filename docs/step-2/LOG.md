@@ -14,3 +14,9 @@
 - Needs tidying: duplicate pairs (keep A / keep B / different agencies), odd names (rename / exclude / looks fine), no-website list.
 - Research queue: new batches skip Excluded agencies and take Focus, then Watch, first.
 - Tested in headless Chrome against mocked data: list, filters, tier, edit, rename + clash, notes, merge + undo toast, tidy. No JS errors.
+
+**25 Sep 2026: Stage 2b checkpoint fixes (from Coris's test)**
+- *Needs tidying stuck on "Checking…"*: the suggestion query took ~10 s on 1,053 agencies (function call on every pair) and hit the API's 8 s timeout. Migration `20260925110000` adds a stored, indexed `agencies.loose_key` and uses index range scans, so it now takes ~0.2 s on live. `import_suggest` uses the same column. The screen now shows "Couldn't load, Retry" on failure instead of waiting.
+- *Merge undo* rewritten to insert with an explicit column list (the new generated column can't be copied).
+- *"No company domain on file" when generating emails*: people only carried company details from their own record. The same migration copies the agency's website, domain, LinkedIn, industry, size and location onto people where theirs is blank (never overwrites): people without a company domain went from 1,177 to 336. Email guessing now prefers the most common real work-email domain among colleagues at the same agency (free mail and bounces ignored), then the company or agency domain, then the website. Example: Human After All → humanafterall.co.uk (from Rob), not the .studio website.
+- *Split view*: an agency profile now has a left rail of agencies, using the same filters and sort as the list, with an instant filter; ↑/↓ switch agency, Enter opens the top match, Esc clears. Hidden below 1,000 px width.
