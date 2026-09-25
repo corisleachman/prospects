@@ -31,3 +31,13 @@ The front-end change (`index.html`, Research queue save errors) is safe to go li
 Stages 2 and 4 are additive or reversible without data loss:
 - Stage 4: recreate the six dropped policies (definitions in `20260715000000` and `20260908*`).
 - Stage 2: the new columns, tables and triggers can be dropped. No existing column is changed or removed. The only rewritten object is `notify_enquiry_fn`, whose secret now lives in Vault as `notify_enquiry_webhook_secret`.
+
+## Log
+**25 Sep 2026: Stage 2 applied to live (Claude via Supabase connector)**
+- History registered: `20260715000000`, `20260920120000` (bookkeeping only).
+- Applied in order, each in one transaction with its history row: `20260924120000` → `20260924120400`. Ran after `20260924001358` (relationship stage), matching repo order.
+- Result: 1 workspace (owner membership ✓). 1,401 rows stamped with `workspace_id` (0 missing). **1,053 agencies**, 1,279 contacts linked, 0 unlinked, 33 contacts with no company. 739 agencies have a domain.
+- Live schema, policies, triggers and functions match the locally tested build. The only difference is two comment lines in `private.link_contact_agency`; the code is identical.
+- Live access test as owner (rolled back): reads, insert + auto workspace + agency link, new-agency creation, relationship-stage trigger and research-style update all passed.
+- Security advisor: definer-function and search-path warnings cleared. Remaining: leaked-password protection (dashboard toggle), `pg_net` in public (pre-existing, low risk).
+- Next: Stage 3 smoke test (Coris), then Stage 4.
