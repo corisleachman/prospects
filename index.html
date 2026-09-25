@@ -630,6 +630,48 @@ tr.dragging{opacity:.4}
 .rc-proc input[type=date]{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:400 13px 'DM Sans',sans-serif;background:#fff;box-sizing:border-box}
 @media(max-width:600px){.rc-proc-row{grid-template-columns:1fr}}
 @media(max-width:600px){.rq-decide .rq-btn{min-width:100%}}
+
+/* ── Agencies · Step 2 ── */
+.ag-filterbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.ag-segs{display:inline-flex;border:1.5px solid var(--grey-light);border-radius:9px;overflow:hidden;background:var(--white)}
+.ag-seg{border:none;background:transparent;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer;border-right:1px solid var(--grey-light)}
+.ag-seg:last-child{border-right:none}
+.ag-seg.on{background:var(--black);color:#fff}
+.ag-seg.on.t-focus{background:var(--green);color:#fff}
+.ag-seg.on.t-watch{background:var(--black);color:#fff}
+.ag-seg.on.t-excluded{background:var(--grey-mid);color:#fff}
+.ag-toggles{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ag-tgl.on{border-color:var(--black);color:var(--black);background:var(--cream-soft)}
+.ag-sort{border:1.5px solid var(--grey-light);background:var(--white);border-radius:9px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--black)}
+.ag-tier{display:inline-block;margin-left:6px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:100px;vertical-align:middle}
+.ag-tier-focus{background:var(--green);color:#fff}
+.ag-tier-watch{background:var(--black);color:#fff}
+.ag-tier-excluded{background:var(--grey-light);color:var(--grey-mid)}
+.ag-dm{display:inline-block;margin-left:6px;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--orange-deep);border:1px solid var(--green);border-radius:100px;padding:1px 6px;vertical-align:middle}
+.ag-stage-cell,.ag-last-cell{white-space:nowrap;font-size:12px;color:var(--grey-mid)}
+.ag-tidy-btn{border:1.5px solid var(--green);background:var(--white);color:var(--orange-deep);border-radius:9px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.ag-tidy-btn b{background:var(--green);color:#fff;border-radius:100px;padding:1px 7px;margin-left:4px}
+.ag-phead-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.ag-rename{max-width:360px;font-size:18px}
+.ag-tierpick{display:flex;align-items:center;gap:14px;margin:12px 0}
+.ag-merge{border:1.5px solid var(--black);border-radius:12px;background:var(--white);padding:14px 16px;margin:12px 0;display:flex;flex-direction:column;gap:8px}
+.ag-merge-h{font-weight:600}
+.ag-merge-sub{font-size:12px;color:var(--grey-mid);margin:2px 0 8px}
+.ag-merge-list{display:flex;flex-direction:column;gap:6px}
+.ag-merge-opt{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--grey-light)}
+.ag-notes{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.ag-note{position:relative;background:var(--white);border:1px solid var(--grey-light);border-radius:10px;padding:10px 34px 10px 12px}
+.ag-note-meta{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:3px}
+.ag-note-body{font-size:13px;line-height:1.45}
+.ag-note-x{position:absolute;top:6px;right:8px;border:none;background:none;color:var(--grey-mid);font-size:16px;cursor:pointer}
+.ag-note-form{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-width:560px}
+.ag-tidy-card{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--white);border:1px solid var(--grey-light);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ag-tidy-side{display:flex;flex-direction:column;gap:2px;min-width:180px}
+.ag-tidy-side a{cursor:pointer;font-weight:600}
+.ag-tidy-vs{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;color:var(--grey-mid)}
+.ag-tidy-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.ag-nosite{display:flex;flex-wrap:wrap;gap:6px}
+.ag-nosite .ag-metachip{cursor:pointer}
 </style>
 </head>
 <body>
@@ -1285,6 +1327,7 @@ async function load(){
   try{
     ALL=await fetchAllContacts();
     buildTabs(); buildCatList(); render(); renderNudge(); loadTemplates(); loadEnquiries();
+    loadAgencies();
   }catch(e){
     document.getElementById('loading').innerHTML=`<span style="color:#A8201A">Couldn't load: ${e.message}</span>`;
   }
@@ -1590,61 +1633,148 @@ function _agNorm(s){ return (s||'').normalize('NFKC').trim().replace(/\s+/g,' ')
 function _agLiveContacts(){ return ALL.filter(function(c){ return c.status!=='Archived' && (c.company||'').trim(); }); }
 function _agPick(people,field){ const m={}; let best='',bn=0; people.forEach(function(p){ const v=((p[field]==null?'':p[field])+'').trim(); if(v){ m[v]=(m[v]||0)+1; if(m[v]>bn){ bn=m[v]; best=v; } } }); return best; }
 function _agDomainFromWebsite(w){ if(!w) return ''; return (w+'').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0]; }
-function agencyCount(live){ const s={}; (live||_agLiveContacts()).forEach(function(c){ const k=_agNorm(c.company); if(k) s[k]=1; }); return Object.keys(s).length; }
-function buildAgencies(){
+/* ── Agencies · Step 2: backed by the agencies table ──────────────────────────
+   AGENCIES comes from the agency_summary view. People, decision-makers, stage and
+   last-contacted are computed from ALL so they're always current. If the table
+   can't be loaded, everything falls back to the old contact-grouping behaviour. */
+let AGENCIES=null, _agLoading=false, _agTierMap={};
+let _agencyTier='active', _agencyDM=false, _agencyQuiet=false;
+let _agNotes={}, _agNoteForm=false, _agRenaming=false, _agMerge=null, _agTidy=null, _agTidyCount=null, _agTidyShowAllNoSite=false;
+const AG_TIERS=[['focus','Focus'],['watch','Watch'],['excluded','Excluded']];
+const AG_COL={website:'website',company_linkedin_url:'linkedin_url',company_domain:'domain',company_industry:'industry',company_size:'size_band',ownership:'ownership',company_city:'city',company_country:'country',company_description:'description'};
+const AG_DM_RE=/(founder|\bceo\b|chief exec|managing director|\bmd\b|owner|managing partner|founding partner|\bpresident\b)/i;
+function _agIsDM(c){ return AG_DM_RE.test(c.title||''); }
+function _agTierLabel(t){ const x=AG_TIERS.find(function(y){return y[0]===t;}); return x?x[1]:''; }
+function _agTierOf(c){ return (c&&c.agency_id&&_agTierMap[c.agency_id])||''; }
+function _agTierRank(c){ const t=_agTierOf(c); return t==='focus'?0:t==='watch'?1:2; }
+function _agAgo(ms){ if(!ms) return '—'; const d=Math.floor((Date.now()-ms)/86400000); if(d<1) return 'today'; if(d<31) return d+'d ago'; if(d<365) return Math.floor(d/30)+'mo ago'; return Math.floor(d/365)+'y ago'; }
+
+async function loadAgencies(){
+  if(_agLoading) return; _agLoading=true;
+  try{
+    const page=1000; let from=0, all=[];
+    while(true){
+      const r=await sb(`agency_summary?select=*&order=name.asc&limit=${page}&offset=${from}`);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const chunk=await r.json(); all=all.concat(chunk);
+      if(chunk.length<page) break; from+=page;
+    }
+    AGENCIES=all; _agTierMap={}; all.forEach(function(a){ if(a.tier) _agTierMap[a.id]=a.tier; });
+    _agLoadTidyCount();
+  }catch(e){ console.warn('Agencies table unavailable, using contact grouping', e); }
+  _agLoading=false; buildTabs(); if(activeTab==='__agencies__') renderAgencies();
+}
+async function _agLoadTidyCount(){
+  try{ const r=await sb('rpc/agency_tidy_suggestions',{method:'POST',body:'{}'}); if(!r.ok) return;
+    const rows=await r.json(); _agTidy=rows; _agTidyCount=rows.filter(function(x){return x.kind!=='no_website';}).length;
+    if(activeTab==='__agencies__' && _agencyView==='list') renderAgencies();
+  }catch(e){}
+}
+async function _agRefreshAll(){ try{ ALL=await fetchAllContacts(); }catch(e){} await loadAgencies(); buildTabs(); render(); }
+
+function agencyCount(live){
+  if(AGENCIES) return AGENCIES.filter(function(a){ return a.tier!=='excluded'; }).length;
+  const s={}; (live||_agLiveContacts()).forEach(function(c){ const k=_agNorm(c.company); if(k) s[k]=1; }); return Object.keys(s).length;
+}
+function _buildAgenciesLegacy(){
   const map={};
   _agLiveContacts().forEach(function(c){ const k=_agNorm(c.company); if(!k) return; if(!map[k]) map[k]={key:k,name:(c.company||'').trim(),people:[]}; map[k].people.push(c); });
   return Object.keys(map).map(function(k){ const a=map[k];
-    a.website=_agPick(a.people,'website');
-    a.linkedin=_agPick(a.people,'company_linkedin_url');
+    a.website=_agPick(a.people,'website'); a.linkedin=_agPick(a.people,'company_linkedin_url');
     a.domain=_agPick(a.people,'company_domain')||_agDomainFromWebsite(a.website);
-    a.industry=_agPick(a.people,'company_industry');
-    a.size=_agPick(a.people,'company_size');
-    a.ownership=_agPick(a.people,'ownership');
-    a.city=_agPick(a.people,'company_city')||_agPick(a.people,'city');
-    a.country=_agPick(a.people,'company_country')||_agPick(a.people,'country');
+    a.industry=_agPick(a.people,'company_industry'); a.size=_agPick(a.people,'company_size'); a.ownership=_agPick(a.people,'ownership');
+    a.city=_agPick(a.people,'company_city')||_agPick(a.people,'city'); a.country=_agPick(a.people,'company_country')||_agPick(a.people,'country');
+    a.tier=''; a.dms=a.people.filter(_agIsDM).length; a.stage=0; a.last=0; a.legacy=true;
     return a;
+  });
+}
+function buildAgencies(){
+  if(!AGENCIES) return _buildAgenciesLegacy();
+  const by={};
+  ALL.forEach(function(c){ if(c.agency_id && c.status!=='Archived'){ (by[c.agency_id]=by[c.agency_id]||[]).push(c); } });
+  return AGENCIES.map(function(r){
+    const people=by[r.id]||[];
+    let stage=0, last=0;
+    people.forEach(function(c){ stage=Math.max(stage, Number(c.relationship_stage)||0);
+      last=Math.max(last, c.last_emailed_at?Date.parse(c.last_emailed_at):0, c.coris_actioned_at?Date.parse(c.coris_actioned_at):0); });
+    return {key:r.id, id:r.id, name:r.name, tier:r.tier||'', website:r.website||'', linkedin:r.linkedin_url||'',
+      domain:r.domain||_agDomainFromWebsite(r.website), industry:r.industry||'', size:r.size_band||'', ownership:r.ownership||'',
+      city:r.city||'', country:r.country||'', description:r.description||'', notes_count:r.notes_count||0,
+      people:people, dms:people.filter(_agIsDM).length, stage:stage, last:last};
   });
 }
 function _agLoc(a){ return [a.city,a.country].filter(Boolean).join(', '); }
 function _agKeyArg(k){ return encodeURIComponent(k).replace(/'/g,'%27'); }
-function renderAgencies(){ const wrap=document.getElementById('agencies-wrap'); if(!wrap) return; if(_agencyView==='profile'&&_agencyKey){ renderAgencyProfile(wrap); } else { renderAgencyList(wrap); } }
-function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agEditField=null; _agEnrich=null; _agEnriching=false; _agFind=null; renderAgencies(); }
-function agencyBack(){ _agencyView='list'; _agencyKey=null; _agEditField=null; _agEnrich=null; _agEnriching=false; _agFind=null; renderAgencies(); }
+function renderAgencies(){
+  const wrap=document.getElementById('agencies-wrap'); if(!wrap) return;
+  if(_agencyView==='tidy') renderAgencyTidy(wrap);
+  else if(_agencyView==='profile'&&_agencyKey) renderAgencyProfile(wrap);
+  else renderAgencyList(wrap);
+}
+function _agResetProfileState(){ _agEditField=null; _agEnrich=null; _agEnriching=false; _agFind=null; _agRenaming=false; _agMerge=null; _agNoteForm=false; }
+function agencyOpen(k){ _agencyKey=decodeURIComponent(k); _agencyView='profile'; _agResetProfileState(); renderAgencies(); _agLoadNotes(_agencyKey); }
+function agencyBack(){ _agencyView='list'; _agencyKey=null; _agResetProfileState(); renderAgencies(); }
 function agencyToggleMin(){ _agencyMinPeople=_agencyMinPeople===1?2:1; renderAgencyList(document.getElementById('agencies-wrap')); }
 function agencySetSort(v){ _agencySort=v; renderAgencyList(document.getElementById('agencies-wrap')); }
+function agencySetTierFilter(t){ _agencyTier=t; renderAgencyList(document.getElementById('agencies-wrap')); }
+function agencyToggleDM(){ _agencyDM=!_agencyDM; renderAgencyList(document.getElementById('agencies-wrap')); }
+function agencyToggleQuiet(){ _agencyQuiet=!_agencyQuiet; renderAgencyList(document.getElementById('agencies-wrap')); }
 function _agFilteredSorted(){
   let ags=buildAgencies();
+  if(_agencyTier==='active') ags=ags.filter(function(a){ return a.tier!=='excluded'; });
+  else if(_agencyTier==='none') ags=ags.filter(function(a){ return !a.tier; });
+  else if(_agencyTier!=='all') ags=ags.filter(function(a){ return a.tier===_agencyTier; });
   const q=_agNorm(_agencySearch);
-  if(q) ags=ags.filter(function(a){ return _agNorm(a.name).indexOf(q)>-1; });
+  if(q) ags=ags.filter(function(a){ return _agNorm(a.name).indexOf(q)>-1 || _agNorm(a.domain).indexOf(q)>-1; });
   if(_agencyMinPeople>1) ags=ags.filter(function(a){ return a.people.length>=_agencyMinPeople; });
-  ags.sort(function(a,b){ return _agencySort==='name'?a.name.localeCompare(b.name):(b.people.length-a.people.length)||a.name.localeCompare(b.name); });
+  if(_agencyDM) ags=ags.filter(function(a){ return a.dms>0; });
+  if(_agencyQuiet){ const cut=Date.now()-90*86400000; ags=ags.filter(function(a){ return a.people.length && (!a.last || a.last<cut); }); }
+  const tr={focus:0,watch:1,'':2,excluded:3};
+  ags.sort(function(a,b){
+    if(_agencySort==='name') return a.name.localeCompare(b.name);
+    if(_agencySort==='stage') return (b.stage-a.stage)||(b.people.length-a.people.length)||a.name.localeCompare(b.name);
+    if(_agencySort==='recent') return (b.last-a.last)||a.name.localeCompare(b.name);
+    if(_agencySort==='tier') return (tr[a.tier]-tr[b.tier])||(b.people.length-a.people.length)||a.name.localeCompare(b.name);
+    return (b.people.length-a.people.length)||a.name.localeCompare(b.name);
+  });
   return ags;
 }
+function _agTierBadge(t){ return t?`<span class="ag-tier ag-tier-${t}">${_agTierLabel(t)}</span>`:''; }
 function _agRows(ags){
-  if(!ags.length) return `<tr><td colspan="4" style="padding:24px;color:var(--grey-mid)">No agencies match.</td></tr>`;
+  if(!ags.length) return `<tr><td colspan="6" style="padding:24px;color:var(--grey-mid)">No agencies match.</td></tr>`;
   return ags.map(function(a){
     const site=a.website?withScheme(a.website):(a.domain?withScheme(a.domain):'');
     const li=a.linkedin?withScheme(a.linkedin):'';
     const meta=[a.industry,_agLoc(a)].filter(Boolean).join(' · ');
     return `<tr class="ag-row" onclick="agencyOpen('${_agKeyArg(a.key)}')">
-      <td class="ag-name">${escapeHtml(a.name)}</td>
+      <td class="ag-name">${escapeHtml(a.name)} ${_agTierBadge(a.tier)}</td>
       <td class="ag-meta-cell">${escapeHtml(meta||'—')}</td>
       <td class="ag-links-cell">${site?`<a class="ag-linkchip" href="${escapeHtml(site)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Website">↗</a>`:''}${li?`<a class="ag-linkchip" href="${escapeHtml(li)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="LinkedIn">in</a>`:''}</td>
-      <td class="ag-count-cell"><span class="ag-count-pill">${a.people.length}</span></td>
+      <td class="ag-count-cell"><span class="ag-count-pill">${a.people.length}</span>${a.dms?`<span class="ag-dm" title="Decision-makers (founder, CEO, MD, owner, partner)">${a.dms} DM</span>`:''}</td>
+      <td class="ag-stage-cell">${a.stage?`<span class="pill stage-${a.stage}">${escapeHtml(stageLabel(a.stage))}</span>`:'<span class="ag-empty">—</span>'}</td>
+      <td class="ag-last-cell">${escapeHtml(_agAgo(a.last))}</td>
     </tr>`;
   }).join('');
 }
 function renderAgencyList(wrap){
   const ags=_agFilteredSorted();
+  const tb=function(v,l){ return `<button class="ag-seg ${_agencyTier===v?'on':''}" onclick="agencySetTierFilter('${v}')">${l}</button>`; };
+  const tidyBtn = AGENCIES ? `<button class="ag-tidy-btn" onclick="agencyOpenTidy()">Needs tidying${_agTidyCount!=null?` <b>${_agTidyCount}</b>`:''}</button>` : '';
   wrap.innerHTML=`<div class="ag-toolbar">
-    <input class="ag-search" placeholder="Search agencies…" value="${escapeHtml(_agencySearch)}" oninput="agencySearchLive(this.value)">
-    <div class="ag-toolbar-right">
-      <button class="ag-tgl ${_agencyMinPeople>1?'on':''}" onclick="agencyToggleMin()" title="Show only agencies with 2+ people">2+ people</button>
-      <button class="ag-tgl ${_agencySort==='name'?'on':''}" onclick="agencySetSort('${_agencySort==='name'?'people':'name'}')">Sort: ${_agencySort==='name'?'A–Z':'People'}</button>
-    </div></div>
+    <input class="ag-search" placeholder="Search agencies or websites…" value="${escapeHtml(_agencySearch)}" oninput="agencySearchLive(this.value)">
+    <div class="ag-toolbar-right">${tidyBtn}</div></div>
+    ${AGENCIES?`<div class="ag-filterbar">
+      <div class="ag-segs">${tb('active','All')}${tb('focus','Focus')}${tb('watch','Watch')}${tb('none','Untiered')}${tb('excluded','Excluded')}</div>
+      <div class="ag-toggles">
+        <button class="ag-tgl ${_agencyDM?'on':''}" onclick="agencyToggleDM()" title="Only agencies where you have a founder, CEO, MD, owner or partner">Has decision-maker</button>
+        <button class="ag-tgl ${_agencyQuiet?'on':''}" onclick="agencyToggleQuiet()" title="No email or processed outreach in 90+ days">Quiet 90d+</button>
+        <button class="ag-tgl ${_agencyMinPeople>1?'on':''}" onclick="agencyToggleMin()">2+ people</button>
+        <select class="ag-sort" onchange="agencySetSort(this.value)">
+          ${[['people','Sort: People'],['tier','Sort: Tier'],['stage','Sort: Stage'],['recent','Sort: Last contact'],['name','Sort: A–Z']].map(function(o){return `<option value="${o[0]}" ${_agencySort===o[0]?'selected':''}>${o[1]}</option>`;}).join('')}
+        </select>
+      </div></div>`:`<div class="ag-toolbar-right"><button class="ag-tgl ${_agencyMinPeople>1?'on':''}" onclick="agencyToggleMin()">2+ people</button></div>`}
     <div class="ag-listcount" id="ag-count">${ags.length} agenc${ags.length===1?'y':'ies'}</div>
-    <div class="table-wrap"><table class="tbl ag-tbl"><thead><tr><th>Agency</th><th>Industry / location</th><th>Links</th><th>People</th></tr></thead><tbody id="ag-tbody">${_agRows(ags)}</tbody></table></div>`;
+    <div class="table-wrap"><table class="tbl ag-tbl"><thead><tr><th>Agency</th><th>Industry / location</th><th>Links</th><th>People</th><th>Furthest stage</th><th>Last contact</th></tr></thead><tbody id="ag-tbody">${_agRows(ags)}</tbody></table></div>`;
 }
 function agencySearchLive(v){ _agencySearch=v; const ags=_agFilteredSorted(); const tb=document.getElementById('ag-tbody'); if(tb) tb.innerHTML=_agRows(ags); const cc=document.getElementById('ag-count'); if(cc) cc.textContent=`${ags.length} agenc${ags.length===1?'y':'ies'}`; }
 function _agUrlRow(label,field,val,isLink){
@@ -1654,45 +1784,206 @@ function _agUrlRow(label,field,val,isLink){
   const shown = val ? (isLink?`<a class="rowlink" href="${escapeHtml(withScheme(val))}" target="_blank" rel="noopener">${escapeHtml(val)}<span class="lnkicon">↗</span></a>`:escapeHtml(val)) : `<span class="ag-empty">Not set</span>`;
   return `<div class="ag-url-row"><span class="ag-url-label">${label}</span><span class="ag-url-val">${shown}</span><button class="ag-edit" title="Edit" onclick="agencyEditField('${field}')">✎</button></div>`;
 }
+function _agTierPicker(a){
+  if(a.legacy) return '';
+  const b=function(v,l){ return `<button class="ag-seg ${a.tier===v?'on':''} ${v?'t-'+v:''}" onclick="agencySetTier('${v}')">${l}</button>`; };
+  return `<div class="ag-tierpick"><span class="ag-url-label">Tier</span><div class="ag-segs">${b('focus','Focus')}${b('watch','Watch')}${b('excluded','Excluded')}${b('','None')}</div></div>`;
+}
+function _agMergePanel(a){
+  if(!_agMerge) return '';
+  const q=_agNorm(_agMerge.q||'');
+  const opts=q.length<2?[]:buildAgencies().filter(function(x){ return x.id!==a.id && (_agNorm(x.name).indexOf(q)>-1 || _agNorm(x.domain).indexOf(q)>-1); }).slice(0,8);
+  return `<div class="ag-merge">
+    <div class="ag-merge-h">Merge another agency into <b>${escapeHtml(a.name)}</b></div>
+    <div class="ag-merge-sub">Its people, details and notes move here and it's removed. You can undo straight afterwards.</div>
+    <input class="ag-url-input" id="ag-merge-q" placeholder="Search for the duplicate…" value="${escapeHtml(_agMerge.q||'')}" oninput="agencyMergeSearch(this.value)">
+    <div class="ag-merge-list">${opts.map(function(x){ return `<div class="ag-merge-opt"><span>${escapeHtml(x.name)} <span class="ag-empty">· ${x.people.length} ${x.people.length===1?'person':'people'}${x.domain?' · '+escapeHtml(x.domain):''}</span></span><button class="ag-mini" onclick="agencyMerge('${x.id}','${a.id}')">Merge into this</button></div>`; }).join('') || (q.length<2?'':'<div class="ag-empty">No matches</div>')}</div>
+    <button class="ag-mini ghost" onclick="agencyMergeToggle()">Close</button></div>`;
+}
+function _agNotesPanel(a){
+  if(a.legacy) return '';
+  const notes=_agNotes[a.id];
+  const list = notes==null ? '<div class="ag-empty">Loading notes…</div>' : (!notes.length ? '<div class="ag-empty">No notes yet. Imported intel and anything you add will appear here, newest first.</div>' :
+    notes.map(function(n){ return `<div class="ag-note"><div class="ag-note-meta">${escapeHtml(fmtDate(n.noted_on))}${n.source?' · '+escapeHtml(n.source):''}</div><div class="ag-note-body">${escapeHtml(n.body)}${n.link?` <a class="rowlink" href="${escapeHtml(withScheme(n.link))}" target="_blank" rel="noopener">source<span class="lnkicon">↗</span></a>`:''}</div><button class="ag-note-x" title="Delete note" onclick="agencyDeleteNote('${n.id}')">×</button></div>`; }).join(''));
+  const form = _agNoteForm ? `<div class="ag-note-form">
+      <input type="date" id="ag-note-date" class="ag-url-input" value="${todayStr()}">
+      <textarea id="ag-note-body" class="ag-url-input" rows="2" placeholder="What happened? e.g. Won the Kerrygold global account"></textarea>
+      <input id="ag-note-link" class="ag-url-input" placeholder="Link (optional)">
+      <div><button class="ag-mini" onclick="agencySaveNote()">Save note</button> <button class="ag-mini ghost" onclick="agencyNoteToggle()">Cancel</button></div></div>` : '';
+  return `<div class="ag-people-h"><span>Notes${notes&&notes.length?' · '+notes.length:''}</span><button class="ag-find-btn" onclick="agencyNoteToggle()">${_agNoteForm?'×':'+ Add note'}</button></div>${form}<div class="ag-notes">${list}</div>`;
+}
 function renderAgencyProfile(wrap){
   const a=buildAgencies().find(function(x){ return x.key===_agencyKey; });
   if(!a){ agencyBack(); return; }
   const meta=[['Industry',a.industry],['Size',a.size],['Ownership',a.ownership],['Location',_agLoc(a)]].filter(function(m){return m[1];}).map(function(m){ return `<span class="ag-metachip"><b>${m[0]}</b> ${escapeHtml(m[1])}</span>`; }).join('');
   const wt={hot:2,warm:1};
-  const ppl=a.people.slice().sort(function(x,y){ return ((wt[y.warmth]||0)-(wt[x.warmth]||0))||((x.name||'').localeCompare(y.name||'')); });
+  const ppl=a.people.slice().sort(function(x,y){ return ((_agIsDM(y)?1:0)-(_agIsDM(x)?1:0))||((wt[y.warmth]||0)-(wt[x.warmth]||0))||((x.name||'').localeCompare(y.name||'')); });
   const people=ppl.map(function(c){
     const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
     const li=linkedinUrl(c); const mailable=c.email&&!c.bounced;
     return `<div class="ag-person">
-      <div class="ag-person-main"><div class="ag-person-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="ag-person-title">${escapeHtml(c.title||'')}</div></div>
+      <div class="ag-person-main"><div class="ag-person-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}${_agIsDM(c)?' <span class="ag-dm">DM</span>':''}</div><div class="ag-person-title">${escapeHtml(c.title||'')}</div></div>
       <div class="ag-person-email">${emailCell(c)}</div>
-      <div class="ag-person-pills"><span class="pill ${statusClass(c)}">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span><span class="pill warm-${c.warmth||'none'}">${warmthLabel(c.warmth)}</span></div>
+      <div class="ag-person-pills"><span class="pill ${statusClass(c)}">${c.replied?'Replied':escapeHtml(c.bounced?'Bounced':(c.status||'—'))}</span><span class="pill warm-${c.warmth||'none'}">${warmthLabel(c.warmth)}</span>${c.relationship_stage?`<span class="pill stage-${c.relationship_stage}">${escapeHtml(stageLabel(c.relationship_stage))}</span>`:''}</div>
       <div class="ag-person-act">${mailable?`<button class="email-btn" onclick='openEmailModal(${cdata})'>✉ Email</button>`:''}<button class="iconbtn" title="Edit" onclick='openEditModal(${cdata})'><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg></button></div>
     </div>`;
   }).join('');
+  const title = _agRenaming && !a.legacy
+    ? `<input class="ag-url-input ag-rename" id="ag-rename-input" value="${escapeHtml(a.name)}" onkeydown="if(event.key==='Enter')agencySaveRename();if(event.key==='Escape')agencyRenameToggle()"><button class="ag-mini" onclick="agencySaveRename()">Save</button><button class="ag-mini ghost" onclick="agencyRenameToggle()">Cancel</button>`
+    : `<h2 class="ag-title">${escapeHtml(a.name)}</h2>${a.legacy?'':`<button class="ag-edit" title="Rename agency" onclick="agencyRenameToggle()">✎</button>`}`;
   wrap.innerHTML=`<div class="ag-profile">
     <button class="ag-back" onclick="agencyBack()">← All agencies</button>
-    <div class="ag-phead"><h2 class="ag-title">${escapeHtml(a.name)}</h2><span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span><button class="ag-ai-btn" onclick="agencyEnrich()" ${_agEnriching?'disabled':''}>${_agEnriching?'Searching…':'✨ Find with AI'}</button></div>
+    <div class="ag-phead">${title}<span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span>${_agTierBadge(a.tier)}
+      <span class="ag-phead-actions">${a.legacy?'':`<button class="ag-tgl" onclick="agencyMergeToggle()">${_agMerge?'× Merge':'Merge…'}</button>`}<button class="ag-ai-btn" onclick="agencyEnrich()" ${_agEnriching?'disabled':''}>${_agEnriching?'Searching…':'✨ Find with AI'}</button></span></div>
     ${meta?`<div class="ag-meta">${meta}</div>`:''}
+    ${_agMergePanel(a)}
     ${_agEnrichPanel(a)}
+    ${_agTierPicker(a)}
     <div class="ag-urls">${_agUrlRow('Website','website',a.website,true)}${_agUrlRow('LinkedIn','company_linkedin_url',a.linkedin,true)}${_agUrlRow('Domain','company_domain',a.domain,true)}</div>
-    <div class="ag-people-h"><span>People in your system · ${a.people.length}</span><button class="ag-find-btn" onclick="agencyFindToggle()">${_agFind&&_agFind.open?'× Close finder':'✨ Find people'}</button></div>
+    ${_agNotesPanel(a)}
+    <div class="ag-people-h"><span>People in your system · ${a.people.length}${a.dms?` · ${a.dms} decision-maker${a.dms===1?'':'s'}`:''}</span><button class="ag-find-btn" onclick="agencyFindToggle()">${_agFind&&_agFind.open?'× Close finder':'✨ Find people'}</button></div>
     ${_agFindPanel(a)}
-    <div class="ag-people">${people}</div>
+    <div class="ag-people">${people||'<div class="ag-empty" style="padding:10px 2px">No people yet. Use Find people to add some.</div>'}</div>
   </div>`;
   if(_agEditField){ const inp=document.getElementById('ag-edit-input'); if(inp){ inp.focus(); inp.select(); } }
+  if(_agRenaming){ const inp=document.getElementById('ag-rename-input'); if(inp){ inp.focus(); inp.select(); } }
+  if(_agMerge){ const inp=document.getElementById('ag-merge-q'); if(inp){ inp.focus(); const v=inp.value; inp.value=''; inp.value=v; } }
 }
 function agencyEditField(f){ _agEditField=f; renderAgencies(); }
 function agencyCancelEdit(){ _agEditField=null; renderAgencies(); }
-async function _agencyWrite(field,val){
-  const key=_agencyKey; const ids=[];
-  ALL.forEach(function(c){ if(_agNorm(c.company)===key){ c[field]=val; ids.push(c.id); } });
-  renderAgencies(); buildTabs();
-  if(!ids.length) return;
-  const body={}; body[field]=val; body.updated_at=new Date().toISOString();
-  try{ await sb(TABLE+'?id=in.('+ids.join(',')+')',{method:'PATCH',body:JSON.stringify(body)}); toast('Updated '+ids.length+' contact'+(ids.length!==1?'s':'')); }
-  catch(e){ toast('Save failed — refresh to re-check'); }
+
+/* ── Saving agency edits ── */
+async function _agPatch(id, body){
+  try{
+    const r=await sb(`agencies?id=eq.${id}&select=*`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(body)});
+    if(r.status===409){ toast('An agency with that name already exists. Use Merge instead.'); return null; }
+    const rows=r.ok?await r.json().catch(function(){return[];}):[];
+    if(!r.ok||!rows.length) throw new Error('HTTP '+r.status);
+    const i=AGENCIES.findIndex(function(a){return a.id===id;}); if(i>-1) Object.assign(AGENCIES[i], rows[0]);
+    if(rows[0].tier) _agTierMap[id]=rows[0].tier; else delete _agTierMap[id];
+    return rows[0];
+  }catch(e){ toast('Couldn’t save. Check you’re still signed in, then try again.'); return null; }
 }
+async function _agencyWrite(field,val){
+  if(!AGENCIES){  // fallback: old behaviour, write to each contact
+    const key=_agencyKey; const ids=[];
+    ALL.forEach(function(c){ if(_agNorm(c.company)===key){ c[field]=val; ids.push(c.id); } });
+    renderAgencies(); buildTabs(); if(!ids.length) return;
+    const body={}; body[field]=val; body.updated_at=new Date().toISOString();
+    try{ await sb(TABLE+'?id=in.('+ids.join(',')+')',{method:'PATCH',body:JSON.stringify(body)}); toast('Updated '+ids.length+' contact'+(ids.length!==1?'s':'')); }
+    catch(e){ toast('Save failed — refresh to re-check'); }
+    return;
+  }
+  const id=_agencyKey; const col=AG_COL[field]||field; const body={}; body[col]=val||null;
+  const saved=await _agPatch(id, body); if(!saved) { renderAgencies(); return; }
+  // The database copies agency details onto its people; mirror that locally.
+  ALL.forEach(function(c){ if(c.agency_id===id){ c[field]=val||null; if(col==='website' && saved.domain) c.company_domain=saved.domain; } });
+  const n=ALL.filter(function(c){return c.agency_id===id;}).length;
+  renderAgencies(); buildTabs(); toast('Saved'+(n?` · ${n} ${n===1?'person':'people'} updated`:''));
+}
+async function agencySetTier(t){
+  const id=_agencyKey; const a=AGENCIES&&AGENCIES.find(function(x){return x.id===id;}); if(!a) return;
+  const prev=a.tier||'';
+  if(!(await _agPatch(id,{tier:t||null}))) return;
+  renderAgencies(); buildTabs();
+  toast(t?`Marked ${_agTierLabel(t)}`:'Tier cleared', async function(){ await _agPatch(id,{tier:prev||null}); renderAgencies(); buildTabs(); });
+}
+function agencyRenameToggle(){ _agRenaming=!_agRenaming; renderAgencies(); }
+async function agencySaveRename(){
+  const inp=document.getElementById('ag-rename-input'); if(!inp) return;
+  const name=inp.value.trim(); const id=_agencyKey; const a=AGENCIES.find(function(x){return x.id===id;});
+  if(!name||!a||name===a.name){ _agRenaming=false; renderAgencies(); return; }
+  const prev=a.name;
+  const saved=await _agPatch(id,{name:name}); if(!saved) return;
+  ALL.forEach(function(c){ if(c.agency_id===id) c.company=saved.name; });
+  _agRenaming=false; renderAgencies(); buildTabs(); buildCatList && buildCatList();
+  toast(`Renamed to ${saved.name}`, async function(){ const back=await _agPatch(id,{name:prev}); if(back){ ALL.forEach(function(c){ if(c.agency_id===id) c.company=back.name; }); renderAgencies(); } });
+}
+
+/* ── Merge ── */
+function agencyMergeToggle(){ _agMerge=_agMerge?null:{q:''}; renderAgencies(); }
+function agencyMergeSearch(v){ if(_agMerge){ _agMerge.q=v; renderAgencies(); } }
+async function agencyMerge(dropId, keepId){
+  const all=buildAgencies(); const keep=all.find(function(x){return x.id===keepId;}); const drop=all.find(function(x){return x.id===dropId;});
+  if(!keep||!drop) return;
+  if(!confirm(`Merge “${drop.name}” into “${keep.name}”?\n\n${drop.people.length} ${drop.people.length===1?'person moves':'people move'} across, notes come too, and “${drop.name}” is removed. You can undo straight afterwards.`)) return;
+  const r=await sb('rpc/merge_agencies',{method:'POST',body:JSON.stringify({keep_id:keepId,drop_id:dropId})});
+  if(!r.ok){ const t=await r.text().catch(function(){return'';}); toast('Merge failed'+(t?': '+t.slice(0,80):'')); return; }
+  const d=await r.json();
+  _agMerge=null; if(_agencyKey===dropId) _agencyKey=keepId;
+  await _agRefreshAll(); renderAgencies(); if(_agencyView==='profile') _agLoadNotes(_agencyKey);
+  toast(`Merged ${drop.name} into ${keep.name}`, async function(){
+    const u=await sb('rpc/unmerge_agencies',{method:'POST',body:JSON.stringify({merge_id:d.merge_id})});
+    if(u.ok){ await _agRefreshAll(); renderAgencies(); toast('Merge undone'); } else toast('Undo failed');
+  });
+}
+
+/* ── Notes ── */
+async function _agLoadNotes(id){
+  if(!AGENCIES||!id) return;
+  try{ const r=await sb(`agency_notes?agency_id=eq.${id}&select=*&order=noted_on.desc,created_at.desc`); _agNotes[id]=r.ok?await r.json():[]; }
+  catch(e){ _agNotes[id]=[]; }
+  if(_agencyView==='profile'&&_agencyKey===id) renderAgencies();
+}
+function agencyNoteToggle(){ _agNoteForm=!_agNoteForm; renderAgencies(); if(_agNoteForm){ const b=document.getElementById('ag-note-body'); if(b) b.focus(); } }
+async function agencySaveNote(){
+  const id=_agencyKey; const body=(document.getElementById('ag-note-body').value||'').trim(); if(!body){ toast('Write the note first'); return; }
+  const payload={agency_id:id, body:body, noted_on:document.getElementById('ag-note-date').value||todayStr(), link:(document.getElementById('ag-note-link').value||'').trim()||null, source:'Manual'};
+  const r=await sb('agency_notes?select=*',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+  if(!r.ok){ toast('Couldn’t save the note'); return; }
+  _agNoteForm=false; await _agLoadNotes(id); const a=AGENCIES.find(function(x){return x.id===id;}); if(a) a.notes_count=(a.notes_count||0)+1; toast('Note saved');
+}
+async function agencyDeleteNote(nid){
+  const id=_agencyKey; const n=(_agNotes[id]||[]).find(function(x){return x.id===nid;}); if(!n) return;
+  const r=await sb(`agency_notes?id=eq.${nid}`,{method:'DELETE'}); if(!r.ok){ toast('Couldn’t delete the note'); return; }
+  _agNotes[id]=(_agNotes[id]||[]).filter(function(x){return x.id!==nid;}); renderAgencies();
+  toast('Note deleted', async function(){ const {id:_x, created_at:_c, ...rest}=n; await sb('agency_notes',{method:'POST',body:JSON.stringify(rest)}); _agLoadNotes(id); });
+}
+
+/* ── Needs tidying ── */
+async function agencyOpenTidy(){ _agencyView='tidy'; renderAgencies(); await _agLoadTidyCount(); renderAgencies(); }
+function _agTidyPair(x){
+  const all=buildAgencies(); const A=all.find(function(a){return a.id===x.agency_id;}); const B=all.find(function(a){return a.id===x.other_id;});
+  if(!A||!B) return '';
+  const card=function(a){ return `<div class="ag-tidy-side"><a class="rowlink" onclick="agencyOpen('${a.id}')">${escapeHtml(a.name)}</a><span class="ag-empty">${a.people.length} ${a.people.length===1?'person':'people'}${a.domain?' · '+escapeHtml(a.domain):''}</span></div>`; };
+  return `<div class="ag-tidy-card">${card(A)}<span class="ag-tidy-vs">and</span>${card(B)}
+    <div class="ag-tidy-acts"><button class="ag-mini" onclick="agencyTidyMerge('${B.id}','${A.id}')">Keep “${escapeHtml(A.name)}”</button><button class="ag-mini" onclick="agencyTidyMerge('${A.id}','${B.id}')">Keep “${escapeHtml(B.name)}”</button><button class="ag-mini ghost" onclick="agencyTidyDismiss('${x.kind}','${x.agency_id}','${x.other_id}')">Different agencies</button></div></div>`;
+}
+function renderAgencyTidy(wrap){
+  const rows=_agTidy;
+  const head=`<button class="ag-back" onclick="agencyBack()">← All agencies</button><h2 class="ag-title" style="margin:6px 0 4px">Needs tidying</h2>`;
+  if(!rows){ wrap.innerHTML=`<div class="ag-profile">${head}<div class="ag-empty">Checking…</div></div>`; return; }
+  const by=function(k){ return rows.filter(function(x){return x.kind===k;}); };
+  const live={}; buildAgencies().forEach(function(a){ live[a.id]=1; });
+  const pairs=by('same_website').concat(by('similar_name')).filter(function(x){ return live[x.agency_id]&&live[x.other_id]; });
+  const odd=by('odd_name').filter(function(x){ return live[x.agency_id]; }), nosite=by('no_website').filter(function(x){ return live[x.agency_id]; });
+  const nosShown=_agTidyShowAllNoSite?nosite:nosite.slice(0,30);
+  wrap.innerHTML=`<div class="ag-profile">${head}
+    <div class="ag-merge-sub">Suggestions only. Nothing changes until you click. “Different agencies” and “Looks fine” hide a suggestion for good.</div>
+    <div class="ag-people-h"><span>Possible duplicates · ${pairs.length}</span></div>
+    ${pairs.map(_agTidyPair).join('')||'<div class="ag-empty">None</div>'}
+    <div class="ag-people-h" style="margin-top:18px"><span>Odd names · ${odd.length}</span></div>
+    ${odd.map(function(x){ return `<div class="ag-tidy-card"><div class="ag-tidy-side"><a class="rowlink" onclick="agencyOpen('${x.agency_id}')">${escapeHtml(x.agency_name)}</a></div>
+      <div class="ag-tidy-acts"><button class="ag-mini" onclick="agencyOpen('${x.agency_id}');agencyRenameToggle()">Rename</button><button class="ag-mini" onclick="agencyTidyExclude('${x.agency_id}')">Exclude</button><button class="ag-mini ghost" onclick="agencyTidyDismiss('odd_name','${x.agency_id}','')">Looks fine</button></div></div>`; }).join('')||'<div class="ag-empty">None</div>'}
+    <div class="ag-people-h" style="margin-top:18px"><span>No website · ${nosite.length}</span></div>
+    <div class="ag-merge-sub">Open one and use ✨ Find with AI to fill it in.</div>
+    <div class="ag-nosite">${nosShown.map(function(x){ return `<a class="ag-metachip" onclick="agencyOpen('${x.agency_id}')">${escapeHtml(x.agency_name)}</a>`; }).join(' ')}
+    ${nosite.length>30&&!_agTidyShowAllNoSite?`<button class="ag-tgl" onclick="_agTidyShowAllNoSite=true;renderAgencies()">Show all ${nosite.length}</button>`:''}</div>
+  </div>`;
+}
+async function agencyTidyMerge(dropId, keepId){ await agencyMerge(dropId, keepId); if(_agencyView!=='profile'){ _agencyView='tidy'; await _agLoadTidyCount(); renderAgencies(); } }
+async function agencyTidyDismiss(kind, a, b){
+  const r=await sb('agency_tidy_dismissals',{method:'POST',body:JSON.stringify({kind:kind, agency_id:a, other_id:b||null})});
+  if(!r.ok&&r.status!==409){ toast('Couldn’t save that'); return; }
+  _agTidy=(_agTidy||[]).filter(function(x){ return !(x.kind===kind && x.agency_id===a && (x.other_id||'')===(b||'')); });
+  _agTidyCount=_agTidy.filter(function(x){return x.kind!=='no_website';}).length; renderAgencies();
+}
+async function agencyTidyExclude(id){
+  if(!(await _agPatch(id,{tier:'excluded'}))) return;
+  _agTidy=(_agTidy||[]).filter(function(x){ return x.agency_id!==id; });
+  _agTidyCount=_agTidy.filter(function(x){return x.kind!=='no_website';}).length; renderAgencies(); buildTabs(); toast('Excluded');
+}
+
 async function agencySaveField(field){ const inp=document.getElementById('ag-edit-input'); if(!inp) return; _agEditField=null; await _agencyWrite(field, inp.value.trim()); }
 const _AG_SK={website:'website',company_linkedin_url:'linkedin_url',company_domain:'domain',company_industry:'industry',company_size:'size'};
 function _agCurrent(a,field){ return ({website:a.website,company_linkedin_url:a.linkedin,company_domain:a.domain,company_industry:a.industry,company_size:a.size})[field]||''; }
@@ -3281,7 +3572,8 @@ async function loadNextBatch(){
   if(RQ_LOADING_BATCH) return; RQ_LOADING_BATCH=true;
   const carry=batchMembers().filter(c=>(c.verification_status||'unverified')==='unverified'); // unfinished (to do + skipped) roll forward
   const carryIds=new Set(carry.map(c=>c.id));
-  const fresh=unverifiedPool().filter(c=>!carryIds.has(c.id)).sort((a,b)=>{
+  const fresh=unverifiedPool().filter(c=>!carryIds.has(c.id) && _agTierOf(c)!=='excluded').sort((a,b)=>{
+    const ta=_agTierRank(a), tb=_agTierRank(b); if(ta!==tb) return ta-tb; // Focus agencies first, then Watch
     const sa=autoSignal(a)?1:0, sb2=autoSignal(b)?1:0; if(sa!==sb2) return sb2-sa; // automated-signal prospects first
     return new Date(b.created_at||0)-new Date(a.created_at||0); // then newest added
   }).slice(0, Math.max(0, RQ_BATCH_SIZE - carry.length));
