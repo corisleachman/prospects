@@ -15,7 +15,7 @@
 --   "anon can insert contacts") are not recreated: their definitions are not
 --   recoverable and 20260824081859 drops them with IF EXISTS.
 -- * The live notify_enquiry_fn held a webhook secret literal. It is redacted
---   here and moved to Supabase Vault by 20260923100400_security_hardening.sql.
+--   here and moved to Supabase Vault by 20260924120400_security_hardening.sql.
 -- * The ensure_rls event trigger needs superuser; on a fresh Supabase project
 --   the platform may already provide it.
 -- ============================================================================

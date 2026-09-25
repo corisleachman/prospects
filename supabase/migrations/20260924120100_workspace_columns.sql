@@ -26,7 +26,7 @@ declare
   t text;
   ws uuid := (select id from public.workspaces where is_legacy_default);
 begin
-  if ws is null then raise exception 'Legacy default workspace missing – run 20260923100000 first'; end if;
+  if ws is null then raise exception 'Legacy default workspace missing – run 20260924120000 first'; end if;
   foreach t in array array['contacts','email_templates','prospect_signal_runs',
                            'prospect_signals','prospect_discoveries','signal_copy_templates']
   loop
