@@ -4,7 +4,7 @@
 
 | Step | Scope | Status |
 |---|---|---|
-| 1 Foundation | Repo holds DB history + server code; workspaces; **agencies table** linked to every contact; security fixes; Research-queue save errors | Ready for review |
+| 1 Foundation | Repo holds DB history + server code; workspaces; **agencies table** linked to every contact; security fixes; Research-queue save errors | ✅ Live 25 Sep 2026 |
 | 2 Agency-aware import | Upload → staging → review screen → agencies, people and notes land in the right places. Agencies screen reads the agencies table. **Focus / watch / excluded** tier on agencies. First load: Creative Boom file. | Next |
 | 3 Insights engine | A daily **"Who to speak to"** list for focus agencies. It runs the existing LinkedIn scan plus a news/web check per focus agency, and accepts pasted items (e.g. newsletters). Each suggestion shows one line of *why*, the link and date it's based on, and a short draft opener. Done / snooze / dismiss feed the existing follow-up dates. | After 2 |
 | Later | Evidence history per agency, multiple campaigns, voice learning, client workspaces, full-UK bulk loads (Companies House) | Parked |

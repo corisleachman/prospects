@@ -41,3 +41,10 @@ Stages 2 and 4 are additive or reversible without data loss:
 - Live access test as owner (rolled back): reads, insert + auto workspace + agency link, new-agency creation, relationship-stage trigger and research-style update all passed.
 - Security advisor: definer-function and search-path warnings cleared. Remaining: leaked-password protection (dashboard toggle), `pg_net` in public (pre-existing, low risk).
 - Next: Stage 3 smoke test (Coris), then Stage 4.
+
+**25 Sep 2026: Stage 3 + Stage 4 (Step 1 complete)**
+- Stage 3 smoke test (Coris): counts, add/edit/archive, Research queue, Ready for Coris, Agencies edit, Chrome extension, Signals review all passed. Enquiry path tested by Claude via the public form route: insert 201, anon read refused, notify-enquiry 200 using the Vault secret; test row deleted.
+- Found during the test, pre-existing and unrelated to Step 1: toast Undo buttons were unclickable (`#toast` kept `pointer-events:none` while shown). Fixed in `842136b`.
+- Agency clean-up: merged malka media group, 10 Days, Art of the Possible; removed 5 empty agency records (incl. two left by the manual Studio Output fix). Kept separate on Coris's call: Together / Together Agency, Southpaw / Southpaw media. Carousel / Carousel (Manchester) held back (different domains). 1,048 agencies.
+- Auth settings (Coris): leaked-password protection on, public sign-ups off. Advisor: only `pg_net` in public remains (pre-existing).
+- Stage 4 applied as `20260924120500`, with an in-transaction owner-visibility check (passed). Live isolation check: a signed-in non-member sees 0 rows on every product table and cannot insert (42501).

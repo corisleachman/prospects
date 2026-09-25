@@ -1,7 +1,7 @@
 -- ============================================================================
 -- STEP 1 · STAGE 4 · Remove the legacy access policies
--- HELD BACK: do not move into supabase/migrations until Stage 3 (dashboard
--- smoke test) has passed. After this, access to prospect data depends only on
+-- Applied 25 Sep 2026 after the Stage 3 dashboard smoke test passed.
+-- After this, access to prospect data depends only on
 -- workspace membership. Enquiries (public guide inbox) keep their own policies.
 -- ============================================================================
 drop policy if exists "owner all contacts"                     on public.contacts;
