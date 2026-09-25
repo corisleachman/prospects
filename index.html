@@ -672,6 +672,23 @@ tr.dragging{opacity:.4}
 .ag-tidy-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 .ag-nosite{display:flex;flex-wrap:wrap;gap:6px}
 .ag-nosite .ag-metachip{cursor:pointer}
+
+/* Agency rail (split view) */
+.ag-split{display:grid;grid-template-columns:268px minmax(0,1fr);gap:24px;align-items:start}
+.ag-split.no-rail{grid-template-columns:minmax(0,1fr)}
+.ag-rail{position:sticky;top:calc(var(--header-h) + 14px);height:calc(100vh - var(--header-h) - 36px);display:flex;flex-direction:column;background:var(--white);border:1px solid var(--grey-light);border-radius:12px;overflow:hidden}
+.ag-rail-search{border:none;border-bottom:1px solid var(--grey-light);padding:12px 14px;font-size:13px;background:var(--white);outline:none;font-family:inherit}
+.ag-rail-search:focus{background:var(--cream-soft)}
+.ag-rail-scope{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);padding:8px 14px;border-bottom:1px solid var(--grey-light)}
+.ag-rail-list{overflow-y:auto;flex:1;padding:4px 0}
+.ag-rail-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:none;background:transparent;text-align:left;padding:7px 14px;font-size:13px;color:var(--black);cursor:pointer;border-left:3px solid transparent}
+.ag-rail-item:hover{background:var(--cream-soft)}
+.ag-rail-item.on{background:var(--cream-soft);border-left-color:var(--green);font-weight:600}
+.ag-rail-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-rail-meta{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);flex-shrink:0}
+.ag-rail-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.ag-rail-dot.t-focus{background:var(--green)} .ag-rail-dot.t-watch{background:var(--black)} .ag-rail-dot.t-excluded{background:var(--grey)}
+@media (max-width:1000px){ .ag-split{grid-template-columns:minmax(0,1fr)} .ag-rail{display:none} }
 </style>
 </head>
 <body>
@@ -1474,11 +1491,23 @@ function deleteList(cat){
 }
 /* ── Email candidates (pattern-guess queue) ── */
 function _clean(s){ return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,''); }
+const FREE_MAIL_RE=/^(gmail|googlemail|hotmail|outlook|live|yahoo|icloud|me|mac|aol|proton|protonmail|msn|btinternet|sky)\./i;
+function _cleanDomain(d){ d=(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].replace(/\s/g,''); return d.indexOf('.')>-1?d:''; }
+/* The most common work-email domain among colleagues at the same agency (ignores free mail and bounces). */
+function _colleagueEmailDomain(c){
+  if(!c||!c.agency_id) return '';
+  const counts={};
+  ALL.forEach(function(x){ if(x.id!==c.id && x.agency_id===c.agency_id && x.email && !x.bounced && x.email.indexOf('@')>-1){
+    const d=_cleanDomain(x.email.split('@')[1]); if(d && !FREE_MAIL_RE.test(d)) counts[d]=(counts[d]||0)+1; } });
+  let best='', bn=0; Object.keys(counts).forEach(function(d){ if(counts[d]>bn){ best=d; bn=counts[d]; } }); return best;
+}
+/* Email domain for guessing addresses: colleagues' real email domain beats the website domain
+   (e.g. Human After All emails are @humanafterall.co.uk, the website is .studio). */
 function _domainFor(c){
-  let d=c.company_domain||c.website||'';
-  if(!d && c.email && c.email.indexOf('@')>-1) d=c.email.split('@')[1];
-  d=(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0].replace(/\s/g,'');
-  return d.indexOf('.')>-1?d:'';
+  const ag=(typeof AGENCIES!=='undefined' && AGENCIES && c && c.agency_id) ? AGENCIES.find(function(a){ return a.id===c.agency_id; }) : null;
+  return _cleanDomain(_colleagueEmailDomain(c)) || _cleanDomain(c.company_domain) || _cleanDomain(ag&&ag.domain)
+      || _cleanDomain(c.website) || _cleanDomain(ag&&ag.website)
+      || _cleanDomain(c.email&&c.email.indexOf('@')>-1 ? c.email.split('@')[1] : '');
 }
 function _firstLast(name){ const t=(name||'').trim().split(/\s+/).filter(Boolean); return {first:_clean(t[0]||''), last:t.length>1?_clean(t[t.length-1]):''}; }
 function canGuess(c){ return !!_firstLast(c.name).first; }
@@ -1664,11 +1693,13 @@ async function loadAgencies(){
   }catch(e){ console.warn('Agencies table unavailable, using contact grouping', e); }
   _agLoading=false; buildTabs(); if(activeTab==='__agencies__') renderAgencies();
 }
+let _agTidyError=false;
 async function _agLoadTidyCount(){
-  try{ const r=await sb('rpc/agency_tidy_suggestions',{method:'POST',body:'{}'}); if(!r.ok) return;
+  _agTidyError=false;
+  try{ const r=await sb('rpc/agency_tidy_suggestions',{method:'POST',body:'{}'}); if(!r.ok) throw new Error('HTTP '+r.status);
     const rows=await r.json(); _agTidy=rows; _agTidyCount=rows.filter(function(x){return x.kind!=='no_website';}).length;
-    if(activeTab==='__agencies__' && _agencyView==='list') renderAgencies();
-  }catch(e){}
+  }catch(e){ _agTidyError=true; console.warn('Tidy suggestions failed', e); }
+  if(activeTab==='__agencies__' && (_agencyView==='list'||_agencyView==='tidy')) renderAgencies();
 }
 async function _agRefreshAll(){ try{ ALL=await fetchAllContacts(); }catch(e){} await loadAgencies(); buildTabs(); render(); }
 
@@ -1812,9 +1843,59 @@ function _agNotesPanel(a){
       <div><button class="ag-mini" onclick="agencySaveNote()">Save note</button> <button class="ag-mini ghost" onclick="agencyNoteToggle()">Cancel</button></div></div>` : '';
   return `<div class="ag-people-h"><span>Notes${notes&&notes.length?' · '+notes.length:''}</span><button class="ag-find-btn" onclick="agencyNoteToggle()">${_agNoteForm?'×':'+ Add note'}</button></div>${form}<div class="ag-notes">${list}</div>`;
 }
+
+/* ── Agency rail: switch agencies without leaving the profile ── */
+let _agRailQ='', _agRailScroll=0;
+function _agRailItems(){
+  const q=_agNorm(_agRailQ); let ags=_agFilteredSorted();
+  if(q) ags=ags.filter(function(a){ return _agNorm(a.name).indexOf(q)>-1 || _agNorm(a.domain).indexOf(q)>-1; });
+  return ags;
+}
+function _agRailHtml(ags){
+  if(!ags.length) return '<div class="ag-empty" style="padding:12px">No matches</div>';
+  return ags.map(function(a){ return `<button class="ag-rail-item ${a.id===_agencyKey?'on':''}" data-id="${a.id}" onclick="agencyRailOpen('${a.id}')" title="${escapeHtml(a.name)}"><span class="ag-rail-name">${escapeHtml(a.name)}</span><span class="ag-rail-meta">${a.tier?`<i class="ag-rail-dot t-${a.tier}" title="${_agTierLabel(a.tier)}"></i>`:''}${a.people.length}</span></button>`; }).join('');
+}
+function _agRailScope(){
+  const t={active:'All agencies',focus:'Focus',watch:'Watch',none:'Untiered',excluded:'Excluded',all:'All'}[_agencyTier]||'All agencies';
+  const extra=[_agencySearch?`“${_agencySearch}”`:'', _agencyDM?'has DM':'', _agencyQuiet?'quiet 90d+':'', _agencyMinPeople>1?'2+ people':''].filter(Boolean).join(' · ');
+  return t+(extra?' · '+extra:'');
+}
+function _agRail(){
+  if(!AGENCIES) return '';
+  const items=_agRailItems();
+  return `<aside class="ag-rail">
+    <input class="ag-rail-search" id="ag-rail-q" placeholder="Jump to agency…  ↑ ↓" value="${escapeHtml(_agRailQ)}" oninput="agencyRailFilter(this.value)" onkeydown="agencyRailKey(event)">
+    <div class="ag-rail-scope">${escapeHtml(_agRailScope())} · <span id="ag-rail-n">${items.length}</span></div>
+    <div class="ag-rail-list" id="ag-rail-list">${_agRailHtml(items)}</div>
+  </aside>`;
+}
+function agencyRailFilter(v){ _agRailQ=v; const items=_agRailItems(); const l=document.getElementById('ag-rail-list'); if(l) l.innerHTML=_agRailHtml(items); const n=document.getElementById('ag-rail-n'); if(n) n.textContent=items.length; }
+function agencyRailOpen(id){ agencyOpen(_agKeyArg(id)); }
+function agencyRailStep(dir){
+  const items=_agRailItems(); if(!items.length) return;
+  let i=items.findIndex(function(a){ return a.id===_agencyKey; });
+  i = i<0 ? 0 : Math.min(items.length-1, Math.max(0, i+dir));
+  agencyRailOpen(items[i].id);
+}
+function agencyRailKey(e){
+  if(e.key==='ArrowDown'){ e.preventDefault(); agencyRailStep(1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); agencyRailStep(-1); }
+  else if(e.key==='Enter'){ e.preventDefault(); const items=_agRailItems(); if(items.length) agencyRailOpen(items[0].id); }
+  else if(e.key==='Escape'){ _agRailQ=''; agencyRailFilter(''); e.target.value=''; }
+}
+function _agRailRestore(){
+  const l=document.getElementById('ag-rail-list'); if(!l) return;
+  l.scrollTop=_agRailScroll;
+  const on=l.querySelector('.ag-rail-item.on');
+  if(on){ const top=on.offsetTop-l.offsetTop, bottom=top+on.offsetHeight;
+    if(top<l.scrollTop || bottom>l.scrollTop+l.clientHeight) l.scrollTop=Math.max(0, top-l.clientHeight/3); }
+}
+
 function renderAgencyProfile(wrap){
   const a=buildAgencies().find(function(x){ return x.key===_agencyKey; });
   if(!a){ agencyBack(); return; }
+  const _railFocus=document.activeElement&&document.activeElement.id==='ag-rail-q';
+  const _railList=document.getElementById('ag-rail-list'); if(_railList) _agRailScroll=_railList.scrollTop;
   const meta=[['Industry',a.industry],['Size',a.size],['Ownership',a.ownership],['Location',_agLoc(a)]].filter(function(m){return m[1];}).map(function(m){ return `<span class="ag-metachip"><b>${m[0]}</b> ${escapeHtml(m[1])}</span>`; }).join('');
   const wt={hot:2,warm:1};
   const ppl=a.people.slice().sort(function(x,y){ return ((_agIsDM(y)?1:0)-(_agIsDM(x)?1:0))||((wt[y.warmth]||0)-(wt[x.warmth]||0))||((x.name||'').localeCompare(y.name||'')); });
@@ -1831,7 +1912,7 @@ function renderAgencyProfile(wrap){
   const title = _agRenaming && !a.legacy
     ? `<input class="ag-url-input ag-rename" id="ag-rename-input" value="${escapeHtml(a.name)}" onkeydown="if(event.key==='Enter')agencySaveRename();if(event.key==='Escape')agencyRenameToggle()"><button class="ag-mini" onclick="agencySaveRename()">Save</button><button class="ag-mini ghost" onclick="agencyRenameToggle()">Cancel</button>`
     : `<h2 class="ag-title">${escapeHtml(a.name)}</h2>${a.legacy?'':`<button class="ag-edit" title="Rename agency" onclick="agencyRenameToggle()">✎</button>`}`;
-  wrap.innerHTML=`<div class="ag-profile">
+  wrap.innerHTML=`<div class="ag-split ${AGENCIES?'':'no-rail'}">${_agRail()}<div class="ag-profile">
     <button class="ag-back" onclick="agencyBack()">← All agencies</button>
     <div class="ag-phead">${title}<span class="ag-count-pill lg">${a.people.length} ${a.people.length===1?'person':'people'}</span>${_agTierBadge(a.tier)}
       <span class="ag-phead-actions">${a.legacy?'':`<button class="ag-tgl" onclick="agencyMergeToggle()">${_agMerge?'× Merge':'Merge…'}</button>`}<button class="ag-ai-btn" onclick="agencyEnrich()" ${_agEnriching?'disabled':''}>${_agEnriching?'Searching…':'✨ Find with AI'}</button></span></div>
@@ -1844,7 +1925,9 @@ function renderAgencyProfile(wrap){
     <div class="ag-people-h"><span>People in your system · ${a.people.length}${a.dms?` · ${a.dms} decision-maker${a.dms===1?'':'s'}`:''}</span><button class="ag-find-btn" onclick="agencyFindToggle()">${_agFind&&_agFind.open?'× Close finder':'✨ Find people'}</button></div>
     ${_agFindPanel(a)}
     <div class="ag-people">${people||'<div class="ag-empty" style="padding:10px 2px">No people yet. Use Find people to add some.</div>'}</div>
-  </div>`;
+  </div></div>`;
+  _agRailRestore();
+  if(_railFocus){ const q=document.getElementById('ag-rail-q'); if(q){ q.focus(); const v=q.value; q.value=''; q.value=v; } }
   if(_agEditField){ const inp=document.getElementById('ag-edit-input'); if(inp){ inp.focus(); inp.select(); } }
   if(_agRenaming){ const inp=document.getElementById('ag-rename-input'); if(inp){ inp.focus(); inp.select(); } }
   if(_agMerge){ const inp=document.getElementById('ag-merge-q'); if(inp){ inp.focus(); const v=inp.value; inp.value=''; inp.value=v; } }
@@ -1941,7 +2024,7 @@ async function agencyDeleteNote(nid){
 }
 
 /* ── Needs tidying ── */
-async function agencyOpenTidy(){ _agencyView='tidy'; renderAgencies(); await _agLoadTidyCount(); renderAgencies(); }
+async function agencyOpenTidy(){ _agencyView='tidy'; if(_agTidyError) _agTidy=null; renderAgencies(); await _agLoadTidyCount(); renderAgencies(); }
 function _agTidyPair(x){
   const all=buildAgencies(); const A=all.find(function(a){return a.id===x.agency_id;}); const B=all.find(function(a){return a.id===x.other_id;});
   if(!A||!B) return '';
@@ -1952,7 +2035,7 @@ function _agTidyPair(x){
 function renderAgencyTidy(wrap){
   const rows=_agTidy;
   const head=`<button class="ag-back" onclick="agencyBack()">← All agencies</button><h2 class="ag-title" style="margin:6px 0 4px">Needs tidying</h2>`;
-  if(!rows){ wrap.innerHTML=`<div class="ag-profile">${head}<div class="ag-empty">Checking…</div></div>`; return; }
+  if(!rows){ wrap.innerHTML=`<div class="ag-profile">${head}${_agTidyError?`<div class="ag-empty">Couldn’t load suggestions just now. <button class="ag-mini" onclick="agencyOpenTidy()">Retry</button></div>`:'<div class="ag-empty">Checking…</div>'}</div>`; return; }
   const by=function(k){ return rows.filter(function(x){return x.kind===k;}); };
   const live={}; buildAgencies().forEach(function(a){ live[a.id]=1; });
   const pairs=by('same_website').concat(by('similar_name')).filter(function(x){ return live[x.agency_id]&&live[x.other_id]; });
