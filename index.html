@@ -689,6 +689,47 @@ tr.dragging{opacity:.4}
 .ag-rail-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .ag-rail-dot.t-focus{background:var(--green)} .ag-rail-dot.t-watch{background:var(--black)} .ag-rail-dot.t-excluded{background:var(--grey)}
 @media (max-width:1000px){ .ag-split{grid-template-columns:minmax(0,1fr)} .ag-rail{display:none} }
+
+/* ── Import v2 ── */
+.imp2 .imp2-box{width:min(1180px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.imp2-body{overflow-y:auto;flex:1;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.imp2-steps{display:flex;gap:6px;margin-top:6px}
+.imp2-step{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey-mid);padding:3px 9px;border-radius:100px;border:1px solid var(--grey-light)}
+.imp2-step.on{background:var(--black);color:#fff;border-color:var(--black)}
+.imp2-step.done{color:var(--ok);border-color:var(--ok)}
+.imp2-err{background:#FBE9E7;border:1px solid var(--danger);color:var(--danger);border-radius:10px;padding:10px 12px;font-size:13px}
+.imp2-maps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.imp2-mapgroup{background:var(--white);border:1px solid var(--grey-light);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.imp2-mapgroup .imp-map-row{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center}
+.imp2-mapgroup .imp-map-row label{font-size:12px;color:var(--grey-mid)}
+.imp2-mapgroup select{border:1.5px solid var(--grey-light);border-radius:7px;padding:5px 8px;font-size:12px;background:var(--white)}
+.imp2-gh{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:2px}
+.imp2-prev td,.imp2-tbl td{vertical-align:top;font-size:12px}
+.imp2-note{max-width:320px;color:var(--grey-mid);font-size:12px;line-height:1.4}
+.imp2-recent{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--grey-light);font-size:13px}
+.imp2-chips{display:flex;flex-wrap:wrap;gap:6px}
+.imp2-chip{border:1.5px solid var(--grey-light);background:var(--white);border-radius:100px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--grey-mid);cursor:pointer}
+.imp2-chip b{color:var(--black);margin-left:3px}
+.imp2-chip.on{background:var(--black);color:#fff;border-color:var(--black)} .imp2-chip.on b{color:#fff}
+.imp2-chip.warn:not(.on){border-color:var(--green);color:var(--orange-deep)}
+.imp2-bulk{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.imp2-tbl .imp2-no{font-family:'DM Mono',monospace;font-size:10px;color:var(--grey-mid);width:34px}
+.imp2-needs td{background:#FFF6F2}
+.imp2-skipped td{opacity:.55}
+.imp2-name{font-weight:600;font-size:13px}
+.imp2-sub{font-size:11px;color:var(--grey-mid);margin-bottom:3px}
+.imp2-tag{display:inline-block;font-size:11px;margin:3px 0;padding:2px 8px;border-radius:100px}
+.imp2-tag.ok{background:#E6F2E8;color:var(--ok)} .imp2-tag.new{background:var(--cream-soft);color:var(--black)} .imp2-tag.ask{background:#FDE8E0;color:var(--orange-deep)}
+.imp2-opts{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.imp2-opt{border:1px solid var(--grey-light);background:var(--white);border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--grey-mid)}
+.imp2-opt.on{background:var(--black);color:#fff;border-color:var(--black)}
+.imp2-done{display:flex;flex-direction:column;gap:12px;padding:10px 0}
+.imp2-big{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.imp2-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.imp2-stats div{background:var(--white);border:1px solid var(--grey-light);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column}
+.imp2-stats b{font-size:22px} .imp2-stats span{font-size:12px;color:var(--grey-mid)}
+.imp2-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:900px){ .imp2-maps,.imp2-stats{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -732,7 +773,7 @@ tr.dragging{opacity:.4}
       <button class="tbtn solid" onclick="toggleDrop('new-drop',event)">＋ New ▾</button>
       <div class="tb-pop">
         <button onclick="closeDrops();openAddModal()">＋ Add contact</button>
-        <button onclick="closeDrops();openImportModal()">⇪ Import list</button>
+        <button onclick="closeDrops();openImport2()">⇪ Import list</button>
       </div>
     </div>
     <div class="tb-drop" id="gear-drop">
@@ -2656,6 +2697,319 @@ function guessMapping(headers){
   order.forEach(f=>{ if(map[f]>=0) return; const idx=norm.findIndex((h,i)=>!used.has(i)&&h&&IMPORT_SYNS[f].some(s=>h.includes(s))); if(idx>=0){ map[f]=idx; used.add(idx); } });
   return map;
 }
+/* ══ Import v2 · Step 2c: upload & map → review matches → confirm (with undo) ══
+   Uses the database functions import_suggest / import_commit / import_undo.
+   The classic import stays available (link in step 1) for "enrich existing". */
+const IMP2_NOTE_FIELDS=[
+  {key:'note_text',label:'Intel / note',syns:['signalsummary','summary','intel','insight','news','newsnote','signal','signaltext','intelnote']},
+  {key:'note_label',label:'Note label',syns:['signaltype','notetype','intelltype','inteltype','eventtype','type']},
+  {key:'note_link',label:'Note source link',syns:['sourceurl','source','articleurl','link','newsurl','sourcelink','articlelink']},
+  {key:'note_date',label:'Note date',syns:['articledate','date','newsdate','publisheddate','eventdate','published']},
+];
+const IMP2_FIELDS=IMPORT_FIELDS.filter(function(f){ return ['email_status','email_source'].indexOf(f.key)<0; }).concat(IMP2_NOTE_FIELDS.map(function(f){ return {key:f.key,label:f.label}; }));
+let IMP2=null;
+function _imp2Fresh(){ return {step:1, file:'', raw:{headers:[],rows:[],delim:','}, map:{}, defaults:{category:'',tier:'',source_label:''},
+  batch:null, rows:[], filter:'decide', shown:200, busy:false, summary:null, result:null, recent:null, err:''}; }
+
+function _imp2Guess(headers){
+  const norm=headers.map(normHead); const used=new Set(); const map={};
+  // Note fields claim their columns first, so "source_url" isn't mistaken for the agency website.
+  IMP2_NOTE_FIELDS.forEach(function(f){ map[f.key]=-1; const i=norm.findIndex(function(h,j){ return !used.has(j)&&f.syns.indexOf(h)>-1; }); if(i>=0){ map[f.key]=i; used.add(i); } });
+  const g=guessMapping(headers.map(function(h,i){ return used.has(i)?'':h; }));
+  Object.keys(g).forEach(function(k){ map[k]=g[k]; });
+  // First/last name only on an exact header match ("last_checked" is not a surname).
+  ['first_name','last_name'].forEach(function(k){ const i=map[k]; if(i>=0 && IMPORT_SYNS[k].indexOf(norm[i])<0) map[k]=-1; });
+  IMP2_FIELDS.forEach(function(f){ if(map[f.key]==null) map[f.key]=-1; });
+  return map;
+}
+function _imp2Mapped(){
+  const m=IMP2.map; const out=[]; const seenNotes={};
+  IMP2.raw.rows.forEach(function(cells, idx){
+    const get=function(k){ return m[k]>=0 ? String(cells[m[k]]||'').trim() : ''; };
+    let name=get('name'); if(!name) name=[get('first_name'),get('last_name')].filter(Boolean).join(' ').trim();
+    const company=get('company');
+    if(!name && !company) return;
+    const o={name:name, company:company};
+    ['email','title','headline','seniority_level','linkedin_url','city','country','notes','website','company_domain','company_linkedin_url',
+     'company_industry','company_size','company_revenue','company_founded_year','company_description','company_city','company_country','ownership',
+     'note_link','note_date'].forEach(function(k){ const v=get(k); if(v) o[k]=v; });
+    if(o.email) o.email=o.email.toLowerCase();
+    const nt=get('note_text'), nl=get('note_label');
+    if(nt){
+      o.note_text = nl ? nl+': '+nt : nt;
+      // Same note for the same agency and date (e.g. repeated on every person in a section) → keep it once.
+      const nk=normHead(company)+'|'+(o.note_date||'')+'|'+normHead(o.note_text);
+      if(seenNotes[nk]){ delete o.note_text; delete o.note_link; delete o.note_date; } else seenNotes[nk]=1;
+    }
+    const raw={}; IMP2.raw.headers.forEach(function(h,i){ if(h) raw[h]=cells[i]||''; });
+    out.push({row_no:out.length+1, mapped:o, raw:raw});
+  });
+  return out;
+}
+
+/* ── open / close ── */
+function openImport2(){
+  IMP2=_imp2Fresh();
+  let el=document.getElementById('imp2');
+  if(!el){ el=document.createElement('div'); el.id='imp2'; el.className='modal imp2'; document.body.appendChild(el); }
+  el.classList.add('open'); renderImport2(); _imp2LoadRecent();
+}
+function closeImport2(){ const el=document.getElementById('imp2'); if(el) el.classList.remove('open'); }
+function imp2Classic(){ closeImport2(); openImportModal(); }
+
+/* ── step 1: upload & map ── */
+function imp2File(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=function(e){ IMP2.file=f.name; if(!IMP2.defaults.source_label) IMP2.defaults.source_label=f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim(); imp2Parse(e.target.result); };
+  r.readAsText(f);
+}
+function imp2Paste(v){ IMP2.file=IMP2.file||'pasted'; imp2Parse(v); }
+function imp2Parse(text){
+  const saved=RAW; const parsed=parseDelimited(text); RAW=saved;  // don't disturb the classic import
+  IMP2.raw={headers:parsed.headers, rows:parsed.rows, delim:parsed.delim};
+  IMP2.map=_imp2Guess(parsed.headers); IMP2.err=''; renderImport2();
+}
+function imp2SetMap(k,v){ IMP2.map[k]=parseInt(v,10); renderImport2(); }
+function imp2SetDefault(k,v){ IMP2.defaults[k]=v; const b=document.getElementById('imp2-go'); if(b) b.disabled=!_imp2CanCheck(); }
+function _imp2CanCheck(){ return IMP2.raw.rows.length && (IMP2.map.company>=0 || IMP2.map.name>=0 || IMP2.map.first_name>=0) && (IMP2.defaults.category||'').trim(); }
+
+async function imp2Check(){
+  if(IMP2.busy||!_imp2CanCheck()) return;
+  const rows=_imp2Mapped();
+  if(!rows.length){ IMP2.err='No rows have a name or a company, so there is nothing to import.'; renderImport2(); return; }
+  if(rows.length>1500){ IMP2.err='That file has '+rows.length+' rows. Please split it into files of 1,500 rows or fewer.'; renderImport2(); return; }
+  IMP2.busy=true; IMP2.err=''; renderImport2();
+  try{
+    const src=(IMP2.defaults.source_label||'').trim();
+    const defaults={category:IMP2.defaults.category.trim(), tier:IMP2.defaults.tier||'', source_label:src||null,
+      source_tag: 'import'+(src?':'+src.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''):'')};
+    let r=await sb('import_batches?select=*',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({file_name:IMP2.file||null, defaults:defaults})});
+    if(!r.ok) throw new Error('Could not start the import ('+r.status+')');
+    IMP2.batch=(await r.json())[0];
+    for(let i=0;i<rows.length;i+=500){
+      const chunk=rows.slice(i,i+500).map(function(x){ return {batch_id:IMP2.batch.id, row_no:x.row_no, mapped:x.mapped, raw:x.raw}; });
+      r=await sb('import_rows',{method:'POST',body:JSON.stringify(chunk)});
+      if(!r.ok) throw new Error('Could not upload rows ('+r.status+')');
+    }
+    r=await sb('rpc/import_suggest',{method:'POST',body:JSON.stringify({batch:IMP2.batch.id})});
+    if(!r.ok) throw new Error('Could not check matches ('+r.status+')');
+    IMP2.summary=await r.json();
+    await _imp2LoadRows();
+    IMP2.step=2; IMP2.filter=_imp2Pending().length?'decide':'all';
+  }catch(e){ IMP2.err=e.message||'Something went wrong'; }
+  IMP2.busy=false; renderImport2();
+}
+async function _imp2LoadRows(){
+  let all=[], from=0;
+  while(true){
+    const r=await sb(`import_rows?batch_id=eq.${IMP2.batch.id}&select=*&order=row_no.asc&limit=1000&offset=${from}`);
+    if(!r.ok) throw new Error('Could not load rows ('+r.status+')');
+    const chunk=await r.json(); all=all.concat(chunk); if(chunk.length<1000) break; from+=1000;
+  }
+  all.forEach(function(x){ x._dirty=false; });
+  IMP2.rows=all;
+}
+async function _imp2LoadRecent(){
+  try{ const r=await sb('import_batches?select=id,file_name,status,summary,created_at,committed_at,undone_at,defaults&order=created_at.desc&limit=8');
+    IMP2.recent=r.ok?await r.json():[]; if(IMP2&&IMP2.step===1) renderImport2(); }catch(e){}
+}
+
+/* ── step 2: review ── */
+function _imp2Pending(){ return IMP2.rows.filter(function(x){ return x.agency_action==='review'||x.contact_action==='review'; }); }
+function _imp2AgencyName(id){ const a=AGENCIES&&AGENCIES.find(function(x){return x.id===id;}); return a?a.name:'another agency'; }
+function _imp2PersonLabel(id){ const c=ALL.find(function(x){return x.id===id;}); return c?(c.name+(c.company?' · '+c.company:'')):'existing person'; }
+function imp2Set(rowId, part, val){
+  const x=IMP2.rows.find(function(r){return r.id===rowId;}); if(!x) return;
+  if(part==='agency'){
+    if(val==='match'){ x.agency_action='match'; x.agency_id=x.agency_candidate_id; }
+    else { x.agency_action=val; x.agency_id=null; }
+    if(val==='skip' && x.contact_action==='review') x.contact_action='skip';
+  }else{
+    if(val==='update'){ x.contact_action='update'; x.contact_id=x.contact_candidate_id; }
+    else { x.contact_action=val; x.contact_id=null; }
+  }
+  x._dirty=true; renderImport2(true);
+}
+function imp2Bulk(kind){
+  let n=0;
+  IMP2.rows.forEach(function(x){
+    if(kind==='agency-new' && x.agency_action==='review'){ x.agency_action='new'; x.agency_id=null; x._dirty=true; n++; }
+    if(kind==='agency-match' && x.agency_action==='review'){ x.agency_action='match'; x.agency_id=x.agency_candidate_id; x._dirty=true; n++; }
+    if(kind==='person-new' && x.contact_action==='review'){ x.contact_action='new'; x.contact_id=null; x._dirty=true; n++; }
+    if(kind==='person-same' && x.contact_action==='review'){ x.contact_action='update'; x.contact_id=x.contact_candidate_id; x._dirty=true; n++; }
+    if(kind==='skip-agency-only' && x.contact_action==='none' && x.agency_action!=='skip'){ x.agency_action='skip'; x.agency_id=null; x._dirty=true; n++; }
+  });
+  toast(n+' row'+(n===1?'':'s')+' updated'); renderImport2(true);
+}
+function imp2Filter(f){ IMP2.filter=f; IMP2.shown=200; renderImport2(true); }
+function imp2More(){ IMP2.shown+=200; renderImport2(true); }
+function _imp2Visible(){
+  const f=IMP2.filter;
+  return IMP2.rows.filter(function(x){
+    if(f==='decide') return x.agency_action==='review'||x.contact_action==='review';
+    if(f==='new-agency') return x.agency_action==='new';
+    if(f==='new-person') return x.contact_action==='new' && x.agency_action!=='skip';
+    if(f==='existing') return x.agency_action==='match'||x.contact_action==='update';
+    if(f==='skipped') return x.agency_action==='skip'||x.contact_action==='skip';
+    return true;
+  });
+}
+function _imp2AgencyCell(x){
+  const m=x.mapped||{}; const nm=escapeHtml(m.company||'—');
+  const btn=function(v,l,on){ return `<button class="imp2-opt ${on?'on':''}" onclick="imp2Set('${x.id}','agency','${v}')">${l}</button>`; };
+  if(x.agency_suggestion==='none') return `<span class="ag-empty">No company</span>`;
+  let tag='';
+  if(x.agency_suggestion==='match') tag=`<span class="imp2-tag ok">✓ Matches ${escapeHtml(_imp2AgencyName(x.agency_candidate_id))}</span>`;
+  else if(x.agency_suggestion==='new') tag=`<span class="imp2-tag new">＋ New agency</span>`;
+  else tag=`<span class="imp2-tag ask">? ${escapeHtml(x.agency_reason||'Possible match')}: ${escapeHtml(_imp2AgencyName(x.agency_candidate_id))}</span>`;
+  let opts='';
+  if(x.agency_suggestion==='possible') opts=btn('match','Same agency',x.agency_action==='match')+btn('new','New agency',x.agency_action==='new')+btn('skip','Skip row',x.agency_action==='skip');
+  else if(x.agency_suggestion==='match') opts=btn('match','Use it',x.agency_action==='match')+btn('skip','Skip row',x.agency_action==='skip');
+  else opts=btn('new','Create',x.agency_action==='new')+btn('skip','Skip row',x.agency_action==='skip');
+  return `<div class="imp2-name">${nm}</div>${tag}<div class="imp2-opts">${opts}</div>`;
+}
+function _imp2PersonCell(x){
+  const m=x.mapped||{};
+  if(x.contact_suggestion==='none') return `<span class="ag-empty">Agency only</span>`;
+  if(x.agency_action==='skip' && x.contact_action!=='update') return `<div class="imp2-name">${escapeHtml(m.name||'')}</div><span class="ag-empty">Skipped with the agency</span>`;
+  const btn=function(v,l,on){ return `<button class="imp2-opt ${on?'on':''}" onclick="imp2Set('${x.id}','person','${v}')">${l}</button>`; };
+  let tag='', opts='';
+  if(x.contact_suggestion==='match'){ tag=`<span class="imp2-tag ok">✓ Already in database · ${escapeHtml(x.contact_reason||'')}</span>`; opts=btn('update','Fill blanks',x.contact_action==='update')+btn('skip','Leave',x.contact_action==='skip'); }
+  else if(x.contact_suggestion==='new'){ tag=`<span class="imp2-tag new">＋ New person</span>`; opts=btn('new','Add',x.contact_action==='new')+btn('skip','Skip',x.contact_action==='skip'); }
+  else { tag=`<span class="imp2-tag ask">? ${escapeHtml(x.contact_reason||'Possible duplicate')}: ${escapeHtml(_imp2PersonLabel(x.contact_candidate_id))}</span>`;
+    opts=btn('update','Same person',x.contact_action==='update')+btn('new','Different person',x.contact_action==='new')+btn('skip','Skip',x.contact_action==='skip'); }
+  return `<div class="imp2-name">${escapeHtml(m.name||'')}</div><div class="imp2-sub">${escapeHtml([m.title,m.email].filter(Boolean).join(' · '))}</div>${tag}<div class="imp2-opts">${opts}</div>`;
+}
+function _imp2Counts(){
+  const R=IMP2.rows, c={decide:0,newA:0,matchA:0,newP:0,updP:0,notes:0,skip:0};
+  R.forEach(function(x){
+    if(x.agency_action==='review'||x.contact_action==='review') c.decide++;
+    if(x.agency_action==='new') c.newA++; if(x.agency_action==='match') c.matchA++;
+    if(x.contact_action==='new' && x.agency_action!=='skip') c.newP++; if(x.contact_action==='update') c.updP++;
+    if(x.agency_action!=='skip' && x.agency_action!=='none' && x.mapped && x.mapped.note_text) c.notes++;
+    if(x.agency_action==='skip') c.skip++;
+  });
+  const uniq={}; R.forEach(function(x){ if(x.agency_action==='new') uniq[(x.mapped.company||'').toLowerCase().replace(/[^a-z0-9]/g,'')]=1; }); c.newAUniq=Object.keys(uniq).length;
+  return c;
+}
+async function imp2Commit(){
+  const c=_imp2Counts(); if(c.decide){ imp2Filter('decide'); toast(c.decide+' row'+(c.decide===1?' needs':'s need')+' a decision first'); return; }
+  if(!confirm(`Import now?\n\n${c.newAUniq} new agenc${c.newAUniq===1?'y':'ies'} · ${c.newP} new ${c.newP===1?'person':'people'} · ${c.updP} existing updated (blanks only) · ${c.notes} note${c.notes===1?'':'s'}\n\nYou can undo the whole import afterwards.`)) return;
+  IMP2.busy=true; renderImport2();
+  try{
+    const dirty=IMP2.rows.filter(function(x){ return x._dirty; }).map(function(x){ return {id:x.id, batch_id:x.batch_id, row_no:x.row_no,
+      agency_action:x.agency_action, agency_id:x.agency_id, contact_action:x.contact_action, contact_id:x.contact_id}; });
+    for(let i=0;i<dirty.length;i+=500){
+      const r=await sb('import_rows?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify(dirty.slice(i,i+500))});
+      if(!r.ok) throw new Error('Could not save your decisions ('+r.status+')');
+    }
+    const r=await sb('rpc/import_commit',{method:'POST',body:JSON.stringify({batch:IMP2.batch.id})});
+    if(!r.ok){ const t=await r.text().catch(function(){return '';}); throw new Error('Import failed: '+(t.match(/"message":"([^"]+)"/)||[,r.status])[1]); }
+    IMP2.result=await r.json(); IMP2.step=3;
+    await _agRefreshAll();
+  }catch(e){ IMP2.err=e.message; }
+  IMP2.busy=false; renderImport2();
+}
+async function imp2Undo(batchId){
+  batchId=batchId||(IMP2.batch&&IMP2.batch.id); if(!batchId) return;
+  if(!confirm('Undo this import?\n\nPeople, agencies and notes it created are removed, and fields it filled in are cleared. Anything you have edited since is kept and listed.')) return;
+  IMP2.busy=true; renderImport2();
+  try{
+    const r=await sb('rpc/import_undo',{method:'POST',body:JSON.stringify({batch:batchId})});
+    if(!r.ok){ const t=await r.text().catch(function(){return '';}); throw new Error('Undo failed: '+(t.match(/"message":"([^"]+)"/)||[,r.status])[1]); }
+    const u=await r.json(); await _agRefreshAll();
+    const kept=(u.kept_people||[]).length+(u.kept_agencies||[]).length;
+    toast(`Import undone · ${u.removed_people} people, ${u.removed_agencies} agencies, ${u.removed_notes} notes removed`+(kept?` · ${kept} kept because edited`:''));
+    if(IMP2.step===3){ IMP2.undo=u; } else { _imp2LoadRecent(); }
+  }catch(e){ IMP2.err=e.message; }
+  IMP2.busy=false; renderImport2();
+}
+async function imp2Discard(){
+  if(IMP2.batch && IMP2.batch.status!=='committed'){ try{ await sb(`import_batches?id=eq.${IMP2.batch.id}`,{method:'DELETE'}); }catch(e){} }
+  IMP2=_imp2Fresh(); renderImport2(); _imp2LoadRecent();
+}
+
+/* ── render ── */
+function renderImport2(keepScroll){
+  const el=document.getElementById('imp2'); if(!el||!IMP2) return;
+  const body=el.querySelector('.imp2-body'); const st=keepScroll&&body?body.scrollTop:0;
+  const steps=['Upload & map','Review matches','Done'].map(function(l,i){ return `<span class="imp2-step ${IMP2.step===i+1?'on':''} ${IMP2.step>i+1?'done':''}">${i+1} · ${l}</span>`; }).join('');
+  let inner='';
+  if(IMP2.step===1) inner=_imp2Step1(); else if(IMP2.step===2) inner=_imp2Step2(); else inner=_imp2Step3();
+  el.innerHTML=`<div class="mbox imp2-box">
+    <div class="mhead"><div><div class="mtitle">Import</div><div class="imp2-steps">${steps}</div></div><button class="mclose" onclick="closeImport2()">✕</button></div>
+    <div class="imp2-body">${IMP2.err?`<div class="imp2-err">${escapeHtml(IMP2.err)}</div>`:''}${inner}</div>
+    ${_imp2Foot()}</div>`;
+  const nb=el.querySelector('.imp2-body'); if(nb&&keepScroll) nb.scrollTop=st;
+}
+function _imp2Step1(){
+  const H=IMP2.raw.headers;
+  const cats=[...new Set(ALL.map(function(c){return c.category;}).filter(Boolean))].sort();
+  const opt=function(k){ return ['<option value="-1">— none —</option>'].concat(H.map(function(h,i){ return `<option value="${i}" ${IMP2.map[k]===i?'selected':''}>${escapeHtml(h||('Column '+(i+1)))}</option>`; })).join(''); };
+  const group=function(title, keys){ return `<div class="imp2-mapgroup"><div class="imp2-gh">${title}</div>${keys.map(function(k){ const f=IMP2_FIELDS.find(function(x){return x.key===k;}); return `<div class="imp-map-row"><label>${f.label}</label><select onchange="imp2SetMap('${k}',this.value)">${opt(k)}</select></div>`; }).join('')}</div>`; };
+  const preview = H.length ? (function(){ const rows=_imp2Mapped().slice(0,4);
+    return `<div class="imp2-gh" style="margin-top:6px">Preview · first ${rows.length} of ${_imp2Mapped().length} importable rows</div><div class="table-wrap"><table class="tbl imp2-prev"><thead><tr><th>Agency</th><th>Person</th><th>Title</th><th>Note</th></tr></thead><tbody>${rows.map(function(r){ const m=r.mapped; return `<tr><td>${escapeHtml(m.company||'—')}</td><td>${escapeHtml(m.name||'—')}</td><td>${escapeHtml(m.title||'')}</td><td class="imp2-note">${escapeHtml((m.note_date?m.note_date+' · ':'')+(m.note_text||''))}</td></tr>`; }).join('')}</tbody></table></div>`; })() : '';
+  const recent = (IMP2.recent&&IMP2.recent.length) ? `<div class="imp2-gh" style="margin-top:18px">Recent imports</div>${IMP2.recent.map(function(b){ const s=b.summary||{};
+      const what=b.status==='committed'?`${s.new_agencies||0} new agencies · ${s.new_people||0} new people · ${s.notes||0} notes`:b.status==='undone'?'Undone':'Not finished';
+      return `<div class="imp2-recent"><span><b>${escapeHtml(b.file_name||'Import')}</b> <span class="ag-empty">· ${escapeHtml(fmtDate(b.created_at))} · ${what}</span></span>${b.status==='committed'?`<button class="ag-mini ghost" onclick="imp2Undo('${b.id}')">Undo</button>`:''}</div>`; }).join('')}` : '';
+  return `<div class="row2">
+      <div class="fld"><label>File (CSV)</label><input type="file" accept=".csv,.tsv,.txt,text/csv" onchange="imp2File(event)"></div>
+      <div class="fld"><label>…or paste</label><textarea rows="2" placeholder="Paste rows with a header line" onchange="imp2Paste(this.value)"></textarea></div>
+    </div>
+    ${H.length?`<div class="imp-map-head">${IMP2.raw.rows.length} rows · ${H.length} columns detected. Check the mapping. Each row can be an agency, a person, or both, with an optional note.</div>
+    <div class="row2 imp2-defaults">
+      <div class="fld"><label>List for new people <span class="req">*</span></label><input list="imp2-cats" value="${escapeHtml(IMP2.defaults.category)}" placeholder="e.g. Creative Boom movers" oninput="imp2SetDefault('category',this.value)"><datalist id="imp2-cats">${cats.map(function(c){return `<option value="${escapeHtml(c)}">`;}).join('')}</datalist></div>
+      <div class="fld"><label>Tier for new agencies</label><select onchange="imp2SetDefault('tier',this.value)"><option value="" ${!IMP2.defaults.tier?'selected':''}>None</option><option value="watch" ${IMP2.defaults.tier==='watch'?'selected':''}>Watch</option><option value="focus" ${IMP2.defaults.tier==='focus'?'selected':''}>Focus</option></select></div>
+      <div class="fld full"><label>Source name (shown on notes)</label><input value="${escapeHtml(IMP2.defaults.source_label)}" placeholder="e.g. Creative Boom" oninput="imp2SetDefault('source_label',this.value)"></div>
+    </div>
+    <div class="imp2-maps">
+      ${group('Agency',['company','website','company_domain','company_linkedin_url','company_industry','company_size','company_city','company_country','company_description','ownership','company_revenue','company_founded_year'])}
+      ${group('Person',['name','first_name','last_name','title','email','linkedin_url','headline','seniority_level','city','country','notes'])}
+      ${group('Note (added to the agency)',['note_text','note_label','note_link','note_date'])}
+    </div>${preview}
+    <div class="imp-map-note">New people go to the Research queue as unverified. Existing people and agencies are only ever filled in where blank, never overwritten.</div>`
+    :`<div class="imp-map-note">Need to enrich existing contacts from a file instead? <a class="rowlink" onclick="imp2Classic()">Use the classic import</a>.</div>`}
+    ${recent}`;
+}
+function _imp2Step2(){
+  const c=_imp2Counts(); const vis=_imp2Visible(); const shown=vis.slice(0,IMP2.shown);
+  const chip=function(f,l,n,cls){ return `<button class="imp2-chip ${IMP2.filter===f?'on':''} ${cls||''}" onclick="imp2Filter('${f}')">${l} <b>${n}</b></button>`; };
+  const pendA=IMP2.rows.filter(function(x){return x.agency_action==='review';}).length, pendP=IMP2.rows.filter(function(x){return x.contact_action==='review';}).length;
+  const agencyOnly=IMP2.rows.filter(function(x){return x.contact_action==='none'&&x.agency_action!=='skip';}).length;
+  return `<div class="imp2-chips">
+      ${chip('decide','Needs a decision',c.decide,c.decide?'warn':'')}${chip('all','All rows',IMP2.rows.length)}${chip('new-agency','New agencies',c.newAUniq)}${chip('new-person','New people',c.newP)}${chip('existing','Existing',IMP2.rows.filter(function(x){return x.agency_action==='match'||x.contact_action==='update';}).length)}${chip('skipped','Skipped',IMP2.rows.filter(function(x){return x.agency_action==='skip'||x.contact_action==='skip';}).length)}
+    </div>
+    ${(pendA||pendP||agencyOnly)?`<div class="imp2-bulk"><span class="ag-empty">Quick decisions:</span>
+      ${pendA?`<button class="ag-mini ghost" onclick="imp2Bulk('agency-match')">All possible agencies → same agency</button><button class="ag-mini ghost" onclick="imp2Bulk('agency-new')">→ new agency</button>`:''}
+      ${pendP?`<button class="ag-mini ghost" onclick="imp2Bulk('person-same')">All possible people → same person</button><button class="ag-mini ghost" onclick="imp2Bulk('person-new')">→ different person</button>`:''}
+      ${agencyOnly?`<button class="ag-mini ghost" onclick="imp2Bulk('skip-agency-only')">Skip agency-only rows (${agencyOnly})</button>`:''}</div>`:''}
+    <div class="table-wrap"><table class="tbl imp2-tbl"><thead><tr><th>#</th><th>Agency</th><th>Person</th><th>Note</th></tr></thead><tbody>
+    ${shown.map(function(x){ const m=x.mapped||{}; return `<tr class="${(x.agency_action==='review'||x.contact_action==='review')?'imp2-needs':''} ${x.agency_action==='skip'?'imp2-skipped':''}">
+      <td class="imp2-no">${x.row_no}</td><td>${_imp2AgencyCell(x)}</td><td>${_imp2PersonCell(x)}</td>
+      <td class="imp2-note">${m.note_text?`${m.note_date?`<span class="ag-empty">${escapeHtml(m.note_date)}</span><br>`:''}${escapeHtml(m.note_text.length>160?m.note_text.slice(0,160)+'…':m.note_text)}`:'<span class="ag-empty">—</span>'}</td></tr>`; }).join('') || `<tr><td colspan="4" class="ag-empty" style="padding:18px">${IMP2.filter==='decide'?'Nothing needs a decision. You’re ready to import.':'No rows here.'}</td></tr>`}
+    </tbody></table></div>
+    ${vis.length>shown.length?`<button class="ag-tgl" style="margin-top:8px" onclick="imp2More()">Show more (${vis.length-shown.length} left)</button>`:''}`;
+}
+function _imp2Step3(){
+  const s=IMP2.result||{}; const u=IMP2.undo;
+  if(u) return `<div class="imp2-done"><div class="imp2-big">Import undone</div>
+    <div>${u.removed_people} people, ${u.removed_agencies} agencies and ${u.removed_notes} notes removed; filled-in fields cleared.</div>
+    ${(u.kept_people||[]).length||(u.kept_agencies||[]).length?`<div class="imp-map-note">Kept because they were edited after the import: ${escapeHtml((u.kept_people||[]).concat(u.kept_agencies||[]).join(', '))}</div>`:''}</div>`;
+  return `<div class="imp2-done"><div class="imp2-big">Imported</div>
+    <div class="imp2-stats">
+      <div><b>${s.new_agencies||0}</b><span>new agencies</span></div><div><b>${s.matched_agencies||0}</b><span>rows matched to existing agencies</span></div>
+      <div><b>${s.new_people||0}</b><span>new people (in the Research queue)</span></div><div><b>${s.updated_people||0}</b><span>existing people filled in</span></div>
+      <div><b>${s.notes||0}</b><span>notes added</span></div><div><b>${s.skipped_rows||0}</b><span>rows skipped</span></div>
+    </div>
+    <div class="imp2-actions"><button class="savebtn" onclick="closeImport2();switchTab('__agencies__')">Open Agencies</button><button class="cancelbtn" onclick="closeImport2();switchTab('__research__')">Open Research queue</button><button class="cancelbtn" onclick="imp2Undo()">Undo this import</button></div></div>`;
+}
+function _imp2Foot(){
+  if(IMP2.step===1) return `<div class="mfoot"><span class="mstatus">${IMP2.busy?'Uploading and checking matches…':''}</span><div><button class="cancelbtn" onclick="closeImport2()">Cancel</button> <button class="savebtn" id="imp2-go" onclick="imp2Check()" ${(!_imp2CanCheck()||IMP2.busy)?'disabled':''}>Check matches →</button></div></div>`;
+  if(IMP2.step===2){ const c=_imp2Counts(); return `<div class="mfoot"><span class="mstatus">${IMP2.busy?'Importing…':c.decide?`${c.decide} row${c.decide===1?' needs':'s need'} a decision`:'Nothing is written until you click Import.'}</span><div><button class="cancelbtn" onclick="imp2Discard()">Start over</button> <button class="savebtn" onclick="imp2Commit()" ${IMP2.busy?'disabled':''}>${c.decide?'Review '+c.decide+' first':'Import'}</button></div></div>`; }
+  return `<div class="mfoot"><span class="mstatus">${IMP2.busy?'Working…':''}</span><button class="cancelbtn" onclick="closeImport2()">Close</button></div>`;
+}
+
 function currentMapping(){
   const map={};
   IMPORT_FIELDS.forEach(f=>{ const sel=document.querySelector('#imp-map select[data-tgt="'+f.key+'"]'); map[f.key]=sel?parseInt(sel.value,10):-1; });
@@ -4082,7 +4436,7 @@ function cmdkGoto(tab){ closeCmdk();
 function cmdkCommands(){
   const cmds=[
     {label:'Add contact', run:()=>{ closeCmdk(); openAddModal(); }},
-    {label:'Import a list', run:()=>{ closeCmdk(); openImportModal(); }},
+    {label:'Import a list', run:()=>{ closeCmdk(); openImport2(); }},
     {label:'Manage templates', run:()=>{ closeCmdk(); openTemplateManager(); }},
     {label:'Refresh', run:()=>{ closeCmdk(); refresh(); }},
     {label:'Open Up next', run:()=>{ closeCmdk(); toggleNudge(); }},
