@@ -154,6 +154,13 @@ a.li-ico:hover{transform:scale(1.15)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .fld{display:flex;flex-direction:column;gap:5px}
 .fld.full{grid-column:1/-1}
+.co-links{margin-top:2px}
+.co-links .co-note{font-size:11.5px;color:var(--grey-mid);margin:-2px 0 8px}
+.co-in{position:relative}
+.fld .co-in input{padding-right:40px;text-overflow:ellipsis}
+.co-open{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:26px;height:26px;display:none;align-items:center;justify-content:center;border-radius:6px;color:var(--black);text-decoration:none;font-size:13px;line-height:1;transition:background .15s}
+.co-open:hover{background:var(--grey-light)}
+.co-open.on{display:flex}
 .fld label{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--grey-mid)}
 .fld label .req{color:var(--coral);margin-left:2px}
 .fld input,.fld select,.fld textarea{width:100%;border:1.5px solid var(--grey-light);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--black);background:var(--white);outline:none;transition:border-color .15s}
@@ -1043,7 +1050,13 @@ tr.dragging{opacity:.4}
           <option value="6">06 Opportunity · a genuine commercial reason exists</option>
         </select>
       </div>
-      <div class="fld"><label>Company website</label><input id="f-website" placeholder="e.g. acme.com — leave blank to use the email domain"></div>
+      <div class="co-links">
+        <div class="row2">
+          <div class="fld"><label>Company website</label><div class="co-in"><input id="f-website" placeholder="e.g. acme.com" oninput="coLinkSync()"><a class="co-open" id="f-website-open" target="_blank" rel="noopener" title="Open website" aria-label="Open company website">↗</a></div></div>
+          <div class="fld"><label>Company LinkedIn</label><div class="co-in"><input id="f-company-linkedin" type="url" placeholder="linkedin.com/company/…" oninput="coLinkSync()"><a class="co-open" id="f-company-linkedin-open" target="_blank" rel="noopener" title="Open LinkedIn page" aria-label="Open company LinkedIn page">↗</a></div></div>
+        </div>
+        <p class="co-note" id="f-co-note"></p>
+      </div>
 
       <div style="margin:18px 0 12px;padding-top:16px;border-top:1px solid var(--grey-light)">
         <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">Enrichment details</div>
@@ -1070,7 +1083,6 @@ tr.dragging{opacity:.4}
         <div class="fld"><label>Company domain</label><input id="f-company-domain" placeholder="e.g. acme.com"></div>
         <div class="fld"><label>Founded year</label><input id="f-company-founded-year" type="number" min="1000" max="2100" step="1" placeholder="e.g. 2012"></div>
       </div>
-      <div class="fld"><label>Company LinkedIn URL</label><input id="f-company-linkedin" type="url" placeholder="https://linkedin.com/company/…"></div>
       <div class="row2">
         <div class="fld"><label>Company city</label><input id="f-company-city" placeholder="e.g. London"></div>
         <div class="fld"><label>Company country</label><input id="f-company-country" placeholder="e.g. United Kingdom"></div>
@@ -2418,6 +2430,18 @@ function updateSelBar(){
 
 /* ── Add / Edit / Delete ── */
 let editingId=null;
+// Company links in the contact window are read from, and saved to, the agency record,
+// so every person at that agency shows the same website and LinkedIn page.
+let editingAgency=null; // {id, name, website, linkedin, domain, company} as opened
+function _coHref(u){ u=String(u||'').trim(); return !u ? '' : (/^https?:\/\//i.test(u) ? u : 'https://'+u); }
+function _coDomain(u){ try{ return new URL(_coHref(u)).hostname.replace(/^www\./i,'').toLowerCase(); }catch(e){ return ''; } }
+function coLinkSync(){
+  [['f-website','f-website-open'],['f-company-linkedin','f-company-linkedin-open']].forEach(function(p){
+    const v=document.getElementById(p[0]).value.trim(), a=document.getElementById(p[1]);
+    if(v){ a.href=_coHref(v); a.classList.add('on'); } else { a.removeAttribute('href'); a.classList.remove('on'); }
+  });
+}
+function _coAgencyFor(c){ return (AGENCIES && c && c.agency_id) ? AGENCIES.find(function(a){ return a.id===c.agency_id; }) : null; }
 function openAddModal(){
   editingId=null;
   document.getElementById('edit-title').textContent='Add contact';
@@ -2425,6 +2449,7 @@ function openAddModal(){
   ['f-name','f-email','f-company','f-title','f-linkedin','f-website','f-notes','f-last-emailed','f-followup','f-email-source','f-headline','f-seniority','f-city','f-country','f-company-size','f-company-revenue','f-company-domain','f-company-founded-year','f-company-linkedin','f-company-industry','f-company-city','f-company-country','f-company-description'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('f-email-status').value='';
   document.getElementById('f-enriched-meta').textContent='Extra information from prospect data services and CSV imports.';
+  editingAgency=null; coLinkSync(); document.getElementById('f-co-note').textContent='Saved on the agency once this person is linked to one.';
   document.getElementById('f-category').value=(activeTab!=='all'&&activeTab!=='__replied__')?activeTab:'';
   document.getElementById('f-status').value='Not contacted';
   document.getElementById('f-replied').value='false';
@@ -2476,7 +2501,9 @@ function openEditModal(c){
   document.getElementById('f-replied').value=String(!!full.replied);
   document.getElementById('f-stage').value=full.relationship_stage?String(full.relationship_stage):'';
   document.getElementById('f-linkedin').value=full.linkedin_url||'';
-  document.getElementById('f-website').value=full.website||'';
+  const ag=_coAgencyFor(full);
+  editingAgency = ag ? { id:ag.id, name:ag.name, website:ag.website||'', linkedin:ag.linkedin_url||'', domain:ag.domain||'', company:full.company||'' } : null;
+  document.getElementById('f-website').value=(ag&&ag.website)||full.website||'';
   document.getElementById('f-email-status').value=full.email_status||'';
   document.getElementById('f-email-source').value=full.email_source||'';
   document.getElementById('f-headline').value=full.headline||'';
@@ -2486,7 +2513,12 @@ function openEditModal(c){
   document.getElementById('f-company-revenue').value=full.company_revenue??'';
   document.getElementById('f-company-domain').value=full.company_domain||'';
   document.getElementById('f-company-founded-year').value=full.company_founded_year??'';
-  document.getElementById('f-company-linkedin').value=full.company_linkedin_url||'';
+  document.getElementById('f-company-linkedin').value=(ag&&ag.linkedin_url)||full.company_linkedin_url||'';
+  coLinkSync();
+  const nAt = ag ? ALL.filter(function(x){ return x.agency_id===ag.id; }).length : 0;
+  document.getElementById('f-co-note').textContent = ag
+    ? `Saved on ${ag.name}${nAt>1 ? ` · shared with ${nAt-1} other ${nAt-1===1?'person':'people'} there` : ''}.`
+    : 'Saved on this contact until it is linked to an agency.';
   document.getElementById('f-company-industry').value=full.company_industry||'';
   document.getElementById('f-company-city').value=full.company_city||''; document.getElementById('f-company-country').value=full.company_country||'';
   document.getElementById('f-company-description').value=full.company_description||'';
@@ -2546,6 +2578,25 @@ async function saveContact(){
   else { payload.follow_up_at=null; }
   const btn=document.getElementById('save-btn'); btn.disabled=true; setEditStatus('Saving…','var(--grey-mid)');
   try{
+    // Company links belong to the agency. If this person is still at the same agency and a
+    // link changed, save it there (every contact at the agency picks it up via the database).
+    const ea=editingId?editingAgency:null;
+    if(ea && AGENCIES && (payload.company||'')===(ea.company||'')){
+      const newSite=payload.website||'', newLi=payload.company_linkedin_url||'';
+      if(newSite!==ea.website || newLi!==ea.linkedin){
+        const body={};
+        if(newSite!==ea.website){
+          body.website=newSite||null;
+          // Keep the agency domain in step when it simply mirrored the old website.
+          if(!ea.domain || ea.domain===_coDomain(ea.website)) body.domain=_coDomain(newSite)||null;
+        }
+        if(newLi!==ea.linkedin) body.linkedin_url=newLi||null;
+        const agSaved=await _agPatch(ea.id, body);
+        if(!agSaved) throw new Error('couldn’t update the agency');
+        ALL.forEach(function(x){ if(x.agency_id===ea.id){ x.website=agSaved.website; x.company_linkedin_url=agSaved.linkedin_url; x.company_domain=agSaved.domain; } });
+        payload.company_domain=agSaved.domain||payload.company_domain;
+      }
+    }
     if(editingId){
       const r=await sb(`${TABLE}?id=eq.${editingId}`,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
       if(!r.ok) throw new Error('HTTP '+r.status);
