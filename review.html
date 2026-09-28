@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match review · Prospects</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--
+  Company match review — a separate page so it never adds noise to the dashboard.
+  Lists agencies whose LinkedIn company was matched on name + location only
+  (agencies.linkedin_enrich_status = 'matched_by_name'). For each one:
+    Correct     -> status 'ok'
+    Wrong match -> clears exactly the fields the lookup filled (linkedin_enrichment.filled),
+                   status 'no_match', and marks it rejected so it is never auto-matched again.
+  Uses the dashboard's saved session (same localStorage keys) and RLS on agencies.
+-->
+<style>
+:root{
+  --cream:#F2EDE4; --cream-soft:#EBE5DA; --navy:#1D2540; --accent:#E84520; --ok:#2F7A3B; --danger:#A8201A;
+  --grey:#C8C3B8; --grey-mid:#8A8880; --grey-light:#E8E3DA; --white:#FFFFFF;
+  --ease:cubic-bezier(0.23,1,0.32,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--cream);color:var(--navy);font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.mono{font-family:'DM Mono',monospace}
+
+/* Top bar */
+.top{position:sticky;top:0;z-index:10;background:var(--navy);color:var(--white);height:56px;display:flex;align-items:center;gap:16px;padding:0 24px}
+.top-title{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.top-title b{color:var(--white);font-weight:500}
+.top-spacer{flex:1}
+.top-link{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:6px 14px;border-radius:100px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.7);text-decoration:none;transition:border-color .15s,color .15s}
+.top-link:hover{border-color:rgba(255,255,255,.45);color:var(--white)}
+
+/* Intro + progress */
+.wrap{max-width:1040px;margin:0 auto;padding:40px 24px 120px}
+.kicker{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey-mid)}
+h1{font-size:30px;font-weight:500;letter-spacing:-.02em;line-height:1.1;margin:10px 0 10px}
+.lede{font-size:14.5px;line-height:1.55;color:#4a4f63;max-width:640px}
+.bar{margin:28px 0 8px;height:4px;border-radius:4px;background:var(--grey-light);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--navy);transition:width .4s var(--ease)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-mid)}
+.stats b{color:var(--navy);font-weight:500}
+.keys{margin-left:auto}
+.keys kbd{font-family:'DM Mono',monospace;font-size:10px;border:1px solid var(--grey);border-bottom-width:2px;border-radius:4px;padding:1px 5px;margin:0 2px;color:var(--navy);background:var(--white)}
+
+/* Cards */
+.list{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--white);border:1px solid var(--grey-light);border-radius:7px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;transition:border-color .2s,opacity .35s var(--ease),transform .35s var(--ease)}
+.card.active{border-color:var(--navy)}
+.card.leaving{opacity:0;transform:translateY(-6px)}
+.side{padding:20px 22px;min-width:0}
+.side + .side{border-left:1px solid var(--grey-light);background:#FBF9F5}
+.label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey-mid);margin-bottom:10px}
+.name{font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.25;word-break:break-word}
+.name.dim{color:var(--grey-mid);font-weight:500}
+.meta{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#4a4f63}
+.meta a{text-decoration:underline;text-decoration-color:var(--grey);text-underline-offset:2px}
+.meta a:hover{text-decoration-color:var(--navy)}
+.people{margin-top:14px;display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:#4a4f63}
+.people span{color:var(--grey-mid)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.04em;padding:3px 8px;border-radius:100px;background:var(--cream);color:var(--navy)}
+.desc{margin-top:12px;font-size:12.5px;line-height:1.5;color:#5b6072}
+.desc button{border:0;background:none;font:inherit;color:var(--navy);text-decoration:underline;cursor:pointer;padding:0}
+.li-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);text-decoration:none;border:1px solid var(--grey);border-radius:100px;padding:6px 12px;transition:border-color .15s}
+.li-btn:hover{border-color:var(--navy)}
+.actions{grid-column:1 / -1;display:flex;align-items:center;gap:10px;padding:14px 22px;border-top:1px solid var(--grey-light)}
+.hint{font-size:12px;color:var(--grey-mid);margin-right:auto}
+.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 18px;border-radius:100px;border:1px solid transparent;cursor:pointer;transition:transform .12s var(--ease),background .15s,border-color .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-ok{background:var(--navy);color:var(--white)}
+.btn-ok:hover{background:#2a3456}
+.btn-no{background:var(--white);color:var(--danger);border-color:#e6c9c7}
+.btn-no:hover{border-color:var(--danger)}
+.btn-skip{background:none;color:var(--grey-mid);padding:9px 10px}
+.btn-skip:hover{color:var(--navy)}
+
+/* Empty / gate */
+.empty{margin-top:40px;padding:48px 24px;text-align:center;border:1px dashed var(--grey);border-radius:7px}
+.empty h2{font-size:20px;font-weight:500;margin-bottom:8px}
+.empty p{font-size:14px;color:var(--grey-mid)}
+.gate{max-width:360px;margin:12vh auto 0;padding:0 24px;text-align:center}
+.gate input{display:block;width:100%;padding:12px 16px;margin-bottom:10px;border:1px solid var(--grey);border-radius:7px;font:inherit;font-size:14px;background:var(--white);color:var(--navy);outline:none}
+.gate input:focus{border-color:var(--navy)}
+.gate .btn{width:100%;margin-top:4px}
+.gate .err{color:var(--danger);font-size:13px;min-height:20px;margin-top:10px}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--navy);color:var(--white);font-size:13px;border-radius:100px;padding:10px 12px 10px 18px;display:flex;align-items:center;gap:14px;transition:opacity .25s var(--ease),transform .25s var(--ease);box-shadow:none;z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.12);color:var(--white);border:0;border-radius:100px;padding:6px 12px;cursor:pointer}
+
+@media (max-width:720px){
+  .top{padding:0 16px}
+  .top-title span{display:none}
+  .wrap{padding:28px 16px 120px}
+  h1{font-size:24px}
+  .card{grid-template-columns:1fr}
+  .side + .side{border-left:0;border-top:1px solid var(--grey-light)}
+  .actions{flex-wrap:wrap}
+  .hint{width:100%}
+  .keys{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-title"><b>Prospects</b><span> · Company match review</span></div>
+  <div class="top-spacer"></div>
+  <a class="top-link" href="./">Back to dashboard</a>
+</header>
+
+<main class="wrap" id="app">
+  <div class="kicker">Company enrichment</div>
+  <h1>Check the name-only matches</h1>
+  <p class="lede">These agencies were matched to a LinkedIn company on name and UK location alone — no website to confirm it. Open the LinkedIn page if you're unsure. <b>Wrong match</b> removes only what the lookup added and stops it being matched again.</p>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="stats">
+    <div><b id="s-left">–</b> to review</div>
+    <div><b id="s-ok">0</b> confirmed</div>
+    <div><b id="s-no">0</b> removed</div>
+    <div class="keys"><kbd>Y</kbd> correct <kbd>N</kbd> wrong <kbd>S</kbd> skip <kbd>J</kbd><kbd>K</kbd> move</div>
+  </div>
+  <div class="list" id="list"></div>
+</main>
+
+<div class="toast" id="toast"><span id="toast-msg"></span><button id="toast-undo" type="button">Undo</button></div>
+
+<script>
+/* ── Config: same public values as the dashboard (anon key is public by design) ── */
+const SUPABASE_URL = "https://paprxejgeepvtbqmfgvt.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhcHJ4ZWpnZWVwdnRicW1mZ3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTI2MTcsImV4cCI6MjA5OTY4ODYxN30.x5ruifLqBsRbtvSwb7-2HCAX6IOmkWpCAfP7LEEfijg";
+
+/* ── Session: shared with the dashboard via the same localStorage keys ── */
+const AUTH = { token: ls('sb_at'), refresh: ls('sb_rt'), exp: parseInt(ls('sb_exp') || '0'), email: ls('sb_em') };
+function ls(k){ try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+function authSave(s){
+  if (s.access_token) { AUTH.token = s.access_token; lsSet('sb_at', AUTH.token); }
+  if (s.refresh_token) { AUTH.refresh = s.refresh_token; lsSet('sb_rt', AUTH.refresh); }
+  AUTH.exp = Date.now() + ((parseInt(s.expires_in) || 3600) * 1000); lsSet('sb_exp', String(AUTH.exp));
+  const em = (s.user && s.user.email) || AUTH.email; if (em) { AUTH.email = em; lsSet('sb_em', em); }
+}
+const authValid = () => AUTH.token && Date.now() < AUTH.exp - 60000;
+async function authRefresh(){
+  if (!AUTH.refresh) return false;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, { method:'POST', headers:{ apikey:SUPABASE_ANON, 'Content-Type':'application/json' }, body: JSON.stringify({ refresh_token: AUTH.refresh }) });
+    if (!r.ok) return false; authSave(await r.json()); return true;
+  } catch (e) { return false; }
+}
+async function sb(path, opts = {}){
+  if (!authValid()) await authRefresh();
+  const go = () => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...opts, headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${AUTH.token}`, 'Content-Type':'application/json', ...(opts.headers || {}) } });
+  let res = await go();
+  if (res.status === 401 && await authRefresh()) res = await go();
+  return res;
+}
+
+/* ── Helpers ── */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const href = (u) => { const s = String(u || '').trim(); return !s ? '' : (/^https?:/i.test(s) ? s : 'https://' + s); };
+const shortUrl = (u) => String(u || '').replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '');
+
+/* ── State ── */
+let queue = [];          // agencies still to review
+let people = new Map();  // agency_id -> [{name,title}]
+let active = 0;
+const tally = { ok: 0, no: 0, total: 0 };
+
+async function load(){
+  const cols = 'id,name,website,domain,linkedin_url,industry,size_band,employee_count,founded_year,city,country,description,linkedin_enrich_status,linkedin_enrichment';
+  const r = await sb(`agencies?select=${cols}&linkedin_enrich_status=eq.matched_by_name&order=name.asc`);
+  if (r.status === 401) return showGate();
+  if (!r.ok) return fail(`Couldn't load matches (${r.status}).`);
+  queue = await r.json();
+  // Anything already decided on this page (in any session) is counted for context.
+  const done = await sb(`agencies?select=linkedin_enrich_status&linkedin_enrichment->>reviewed=eq.true`);
+  if (done.ok) {
+    const rows = await done.json();
+    tally.ok = rows.filter(x => x.linkedin_enrich_status === 'ok').length;
+    tally.no = rows.filter(x => x.linkedin_enrich_status === 'no_match').length;
+  }
+  tally.total = queue.length + tally.ok + tally.no;
+  if (queue.length) {
+    const ids = queue.map(a => a.id).join(',');
+    const pr = await sb(`contacts?select=name,title,agency_id&agency_id=in.(${ids})&order=name.asc`);
+    if (pr.ok) for (const p of await pr.json()) {
+      if (!people.has(p.agency_id)) people.set(p.agency_id, []);
+      people.get(p.agency_id).push(p);
+    }
+  }
+  render();
+}
+
+function render(){
+  $('s-left').textContent = queue.length;
+  $('s-ok').textContent = tally.ok;
+  $('s-no').textContent = tally.no;
+  $('bar').style.width = tally.total ? `${Math.round(((tally.ok + tally.no) / tally.total) * 100)}%` : '100%';
+  const list = $('list');
+  if (!queue.length) {
+    list.innerHTML = `<div class="empty"><h2>All matches reviewed</h2><p>Nothing left to check. New name-only matches will appear here as the plugin finds them.</p></div>`;
+    return;
+  }
+  active = Math.min(active, queue.length - 1);
+  list.innerHTML = queue.map((a, i) => card(a, i)).join('');
+  list.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => decide(b.dataset.id, b.dataset.act)));
+  list.querySelectorAll('[data-more]').forEach(b => b.addEventListener('click', () => {
+    const a = queue.find(x => x.id === b.dataset.more);
+    b.parentElement.innerHTML = esc(a.description);
+  }));
+  list.querySelectorAll('.card').forEach((c, i) => c.addEventListener('mouseenter', () => setActive(i, false)));
+  setActive(active, false);
+}
+
+function card(a, i){
+  const e = a.linkedin_enrichment || {};
+  const filled = new Set(e.filled || []);
+  const liName = e.linkedin_name || shortUrl(a.linkedin_url).replace(/^linkedin\.com\/company\//, '');
+  const staff = people.get(a.id) || [];
+  const where = [a.city, a.country].filter(Boolean).join(', ');
+  const size = a.employee_count ? `${a.employee_count.toLocaleString('en-GB')} staff on LinkedIn` : (a.size_band ? `${a.size_band} staff` : '');
+  const desc = a.description && filled.has('description') ? a.description : '';
+  const descHtml = desc
+    ? (desc.length > 220 ? `${esc(desc.slice(0, 220).trim())}… <button type="button" data-more="${a.id}">more</button>` : esc(desc))
+    : '';
+  // Website that was already on file before the lookup (lookup never overwrites).
+  const ownSite = a.website && !filled.has('website') ? a.website : '';
+  const liSite = a.website && filled.has('website') ? a.website : '';
+  return `
+  <article class="card" data-i="${i}" id="c-${a.id}">
+    <section class="side">
+      <div class="label">In your list</div>
+      <div class="name">${esc(a.name)}</div>
+      <div class="meta">
+        ${ownSite ? `<div>Website <a href="${esc(href(ownSite))}" target="_blank" rel="noopener">${esc(shortUrl(ownSite))}</a></div>` : `<div>No website on file</div>`}
+      </div>
+      ${staff.length ? `<div class="people">${staff.slice(0, 4).map(p => `<div>${esc(p.name)}${p.title ? ` <span>· ${esc(p.title)}</span>` : ''}</div>`).join('')}${staff.length > 4 ? `<div><span>+${staff.length - 4} more</span></div>` : ''}</div>` : ''}
+    </section>
+    <section class="side">
+      <div class="label">LinkedIn match</div>
+      <div class="name ${e.linkedin_name ? '' : 'dim'}">${esc(liName || 'Unknown')}</div>
+      <div class="meta">
+        ${liSite ? `<div>Website <a href="${esc(href(liSite))}" target="_blank" rel="noopener">${esc(shortUrl(liSite))}</a></div>` : ''}
+      </div>
+      <div class="chips">
+        ${where ? `<span class="chip">${esc(where)}</span>` : ''}
+        ${size ? `<span class="chip">${esc(size)}</span>` : ''}
+        ${a.industry && filled.has('industry') ? `<span class="chip">${esc(a.industry)}</span>` : ''}
+        ${a.founded_year && filled.has('founded_year') ? `<span class="chip">Founded ${esc(a.founded_year)}</span>` : ''}
+      </div>
+      ${descHtml ? `<div class="desc">${descHtml}</div>` : ''}
+      ${a.linkedin_url ? `<a class="li-btn" href="${esc(href(a.linkedin_url))}" target="_blank" rel="noopener">Open LinkedIn page ↗</a>` : ''}
+    </section>
+    <div class="actions">
+      <div class="hint">Wrong match clears ${filled.size ? esc([...filled].filter(f => f !== 'domain').map(label).join(', ')) : 'the LinkedIn page'}.</div>
+      <button class="btn btn-skip" type="button" data-act="skip" data-id="${a.id}">Skip</button>
+      <button class="btn btn-no" type="button" data-act="no" data-id="${a.id}">Wrong match</button>
+      <button class="btn btn-ok" type="button" data-act="ok" data-id="${a.id}">Correct</button>
+    </div>
+  </article>`;
+}
+function label(f){
+  return ({ linkedin_url:'LinkedIn page', website:'website', industry:'industry', size_band:'size', employee_count:'headcount', founded_year:'founded year', city:'city', country:'country', description:'description' })[f] || f;
+}
+
+function setActive(i, scroll = true){
+  const cards = [...document.querySelectorAll('.card')];
+  if (!cards.length) return;
+  active = Math.max(0, Math.min(i, cards.length - 1));
+  cards.forEach((c, k) => c.classList.toggle('active', k === active));
+  if (scroll) cards[active].scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+
+/* ── Decisions ── */
+let lastUndo = null, toastTimer = null;
+
+async function decide(id, act){
+  const idx = queue.findIndex(a => a.id === id);
+  if (idx < 0) return;
+  const a = queue[idx];
+  if (act === 'skip') {                    // move to the end of the queue, no write
+    queue.push(queue.splice(idx, 1)[0]);
+    render(); setActive(idx);
+    return;
+  }
+  const e = a.linkedin_enrichment || {};
+  const now = new Date().toISOString();
+  const before = {};                       // snapshot for Undo
+  let patch;
+  if (act === 'ok') {
+    patch = { linkedin_enrich_status: 'ok', linkedin_enrichment: { ...e, reviewed: true, reviewed_at: now } };
+  } else {
+    patch = { linkedin_enrich_status: 'no_match', linkedin_enrichment: { ...e, reviewed: true, rejected: true, reviewed_at: now } };
+    for (const f of (e.filled && e.filled.length ? e.filled : ['linkedin_url'])) patch[f] = null;
+  }
+  for (const k of Object.keys(patch)) before[k] = a[k] === undefined ? null : a[k];
+
+  const cardEl = document.getElementById('c-' + id);
+  cardEl && cardEl.querySelectorAll('button').forEach(b => b.disabled = true);
+  const r = await sb(`agencies?id=eq.${id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+  if (!r.ok) {
+    cardEl && cardEl.querySelectorAll('button').forEach(b => b.disabled = false);
+    return toast(`Couldn't save (${r.status}). Try again.`, null);
+  }
+  if (act === 'ok') tally.ok++; else tally.no++;
+  lastUndo = { a, idx, before, act };
+  if (cardEl) { cardEl.classList.add('leaving'); await new Promise(res => setTimeout(res, 220)); }
+  queue.splice(idx, 1);
+  render(); setActive(idx);
+  toast(act === 'ok' ? `Confirmed ${a.name}` : `Removed the LinkedIn match from ${a.name}`, undo);
+}
+
+async function undo(){
+  const u = lastUndo; if (!u) return; lastUndo = null; hideToast();
+  const r = await sb(`agencies?id=eq.${u.a.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(u.before) });
+  if (!r.ok) return toast(`Couldn't undo (${r.status}).`, null);
+  if (u.act === 'ok') tally.ok--; else tally.no--;
+  queue.splice(u.idx, 0, u.a);
+  render(); setActive(u.idx);
+}
+
+function toast(msg, onUndo){
+  $('toast-msg').textContent = msg;
+  $('toast-undo').style.display = onUndo ? '' : 'none';
+  $('toast-undo').onclick = onUndo;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 6000);
+}
+function hideToast(){ $('toast').classList.remove('show'); }
+
+document.addEventListener('keydown', (ev) => {
+  const t = ev.target;
+  if ((t && t.closest && t.closest('input,textarea,select')) || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  const a = queue[active]; const k = ev.key.toLowerCase();
+  if (k === 'j' || ev.key === 'ArrowDown') { ev.preventDefault(); setActive(active + 1); }
+  else if (k === 'k' || ev.key === 'ArrowUp') { ev.preventDefault(); setActive(active - 1); }
+  else if (!a) return;
+  else if (k === 'y') decide(a.id, 'ok');
+  else if (k === 'n') decide(a.id, 'no');
+  else if (k === 's') decide(a.id, 'skip');
+  else if (k === 'o' && a.linkedin_url) window.open(href(a.linkedin_url), '_blank', 'noopener');
+});
+
+/* ── Sign-in (only if the dashboard session has expired) ── */
+function showGate(){
+  $('app').innerHTML = `
+    <form class="gate" id="gate">
+      <div class="kicker">Prospects</div>
+      <h1 style="margin-bottom:22px">Sign in to review</h1>
+      <input id="g-email" type="email" autocomplete="username" placeholder="Email" value="${esc(AUTH.email)}">
+      <input id="g-pass" type="password" autocomplete="current-password" placeholder="Password">
+      <button class="btn btn-ok" type="submit">Sign in</button>
+      <div class="err" id="g-err"></div>
+    </form>`;
+  $('gate').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const email = $('g-email').value.trim(), password = $('g-pass').value;
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, { method:'POST', headers:{ apikey:SUPABASE_ANON, 'Content-Type':'application/json' }, body: JSON.stringify({ email, password }) });
+      const d = await r.json();
+      if (!r.ok) { $('g-err').textContent = d.error_description || d.msg || 'Sign in failed.'; return; }
+      authSave(d); location.reload();
+    } catch (e) { $('g-err').textContent = 'Network error — try again.'; }
+  });
+  setTimeout(() => (AUTH.email ? $('g-pass') : $('g-email')).focus(), 50);
+}
+function fail(msg){ $('list').innerHTML = `<div class="empty"><h2>Something went wrong</h2><p>${esc(msg)}</p></div>`; }
+
+(async () => {
+  if (!authValid() && !(await authRefresh())) return showGate();
+  load().catch(e => fail(String(e)));
+})();
+</script>
+</body>
+</html>
