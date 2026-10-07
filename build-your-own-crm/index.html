@@ -3,109 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Build your own CRM-light page — a build-along guide | Coris Leachman</title>
-<meta name="description" content="The exact steps to go from nothing to a working web page that stores your contacts and sends emails — no code. A companion guide to the video by Coris Leachman.">
-<meta property="og:title" content="Build your own CRM-light page — without writing code">
-<meta property="og:description" content="Three free accounts, an AI assistant, and an afternoon. The exact build, step by step.">
+<title>Build your own connected tools | Coris Leachman</title>
+<meta name="description" content="Describe what you want in plain English, let Claude or Codex ask the questions, and connect the systems you already use. A practical guide to building your own tools.">
+<meta property="og:title" content="Build your own connected tools">
+<meta property="og:description" content="Start with the outcome. Connect the right systems. Build one useful thing at a time.">
 <meta property="og:type" content="article">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
 <style>
-:root{
-  --white:#FFFFFF; --black:#191917; --grey:#F3F3F3;
-  --muted:rgba(25,25,23,0.55); --faint:rgba(25,25,23,0.40); --line:rgba(25,25,23,0.14);
-  --maxw:1080px;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--white);color:var(--black);font-family:'Satoshi',Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;font-size:17px}
-.serif{font-family:'Playfair Display',Georgia,serif}
-a{color:inherit}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
-.eyebrow{font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--faint)}
-.snum{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--faint)}
-
-/* NAV */
-nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,0.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
-.brand{font-weight:700;letter-spacing:-0.01em}
-.brand span{color:var(--faint);font-weight:500;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;margin-left:10px}
-.nav-cta{font-size:13px;font-weight:700;text-decoration:none;border-bottom:1.5px solid var(--black);padding-bottom:2px}
-
-/* HERO */
-header{padding:88px 0 64px}
-header .eyebrow{margin-bottom:22px}
-h1{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(38px,6vw,72px);line-height:1.04;letter-spacing:-0.015em;max-width:16ch}
-h1 em{font-style:italic;font-weight:500}
-.lede{margin-top:26px;font-size:clamp(17px,1.7vw,21px);color:var(--muted);max-width:60ch}
-.hero-actions{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--black);color:var(--white);text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:100px;transition:opacity .15s}
-.btn:hover{opacity:.85}
-.btn.ghost{background:none;color:var(--black);border:1.5px solid var(--black);padding:12px 24px}
-.hero-note{font-size:13px;color:var(--faint);letter-spacing:0.02em}
-
-/* SECTIONS */
-section{padding:64px 0;border-top:1px solid var(--line)}
-.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:36px;flex-wrap:wrap}
-.sec-head h2{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(28px,3.6vw,42px);letter-spacing:-0.01em;line-height:1.1}
-.sec-head p{color:var(--muted);max-width:52ch;margin-top:2px}
-
-/* STACK BOXES */
-.stack{display:grid;gap:18px}
-.stack-ai{background:var(--black);color:var(--white);border-radius:18px;padding:28px 30px;display:flex;align-items:center;gap:20px}
-.stack-ai .k{font-family:'Playfair Display',serif;font-size:26px;font-weight:700}
-.stack-ai .d{color:rgba(255,255,255,0.7);font-size:15px;margin-top:3px}
-.spark{width:44px;height:44px;flex-shrink:0}
-.stack-row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.scard{background:var(--grey);border-radius:18px;padding:26px 24px;border:1px solid transparent}
-.scard .ico{width:34px;height:34px;margin-bottom:16px;stroke:var(--black);fill:none;stroke-width:1.8}
-.scard h3{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:6px}
-.scard p{font-size:14.5px;color:var(--muted);line-height:1.5}
-.tag{display:inline-block;margin-top:14px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:4px 11px;border-radius:100px;background:var(--black);color:var(--white)}
-.tag.free{background:none;color:var(--black);border:1.3px solid var(--black)}
-
-/* STEPS */
-.steps{display:flex;flex-direction:column}
-.step{display:grid;grid-template-columns:64px 1fr;gap:26px;padding:28px 0;border-top:1px solid var(--line)}
-.step:first-child{border-top:none}
-.step .no{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;line-height:1;color:var(--black)}
-.step h3{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:10px;letter-spacing:-0.01em}
-.step p{color:var(--muted);max-width:64ch;margin-bottom:8px}
-.step .keys{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:8px}
-.step .keys li{padding-left:20px;position:relative;color:var(--muted);max-width:64ch}
-.step .keys li::before{content:"";position:absolute;left:0;top:11px;width:7px;height:7px;border-radius:50%;background:var(--black)}
-.step .keys b{color:var(--black);font-weight:700}
-
-/* GOOGLE DEEP-DIVE */
-.callout{background:var(--grey);border-radius:22px;padding:36px 34px;margin-top:14px}
-.callout .eyebrow{margin-bottom:8px}
-.callout h3{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:6px}
-.callout .sub{color:var(--muted);margin-bottom:24px;max-width:60ch}
-.gsteps{list-style:none;counter-reset:g;display:grid;gap:2px}
-.gsteps li{counter-increment:g;display:grid;grid-template-columns:38px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
-.gsteps li::before{content:counter(g);font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:var(--faint)}
-.gsteps b{font-weight:700}
-.gsteps code{font-family:'Satoshi',monospace;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:2px 7px;font-size:13.5px;font-weight:500}
-.gnote{margin-top:20px;font-size:14px;color:var(--muted);border-left:2px solid var(--black);padding-left:16px}
-
-/* EXTRAS */
-.extras{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.extra{padding:22px 24px;border:1px solid var(--line);border-radius:16px}
-.extra h4{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin-bottom:5px}
-.extra p{font-size:14.5px;color:var(--muted)}
-
-/* CLOSER */
-.closer{text-align:center;padding:84px 0}
-.closer h2{font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(30px,4.5vw,52px);line-height:1.08;letter-spacing:-0.015em;max-width:20ch;margin:0 auto}
-.closer h2 em{font-style:italic;font-weight:500}
-.closer p{color:var(--muted);margin:22px auto 32px;max-width:52ch}
-
-/* inline content links */
-.lnk{color:inherit;text-decoration:none;border-bottom:1.5px solid rgba(25,25,23,0.28);transition:border-color .15s,opacity .15s}
-.lnk:hover{border-color:var(--black)}
-
+:root{--white:#fff;--black:#191917;--grey:#f3f3f3;--muted:#575754;--line:#d8d8d5;--maxw:1220px}
+*{box-sizing:border-box}body{margin:0;background:var(--white);color:var(--black);font:17px/1.55 Satoshi,Arial,sans-serif}a{color:inherit;text-underline-offset:4px}button,input,textarea{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #516493;outline-offset:4px}p{margin:0 0 16px}h1,h2,h3,h4{font-family:'Playfair Display',Georgia,serif;line-height:1.15;margin:0 0 18px}h1{font-size:clamp(36px,4.6vw,60px);letter-spacing:-.025em;max-width:18ch}h2{font-size:clamp(29px,3vw,40px);letter-spacing:-.015em}h3{font-size:23px}h4{font-size:20px}em{font-weight:500}.wrap{max-width:var(--maxw);margin:auto;padding:0 28px}.topbar{border-bottom:1px solid var(--line)}.topbar .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:72px}.brand{font-weight:700}.brand span{font-size:11px;text-transform:uppercase;letter-spacing:.15em;margin-left:12px;color:var(--muted)}.nav-cta{font-size:14px;font-weight:700}.skip{position:absolute;left:20px;top:-70px;background:white;padding:12px;z-index:10}.skip:focus{top:12px}.shell{display:grid;grid-template-columns:218px minmax(0,1fr);gap:54px;align-items:start;padding-top:38px;padding-bottom:48px}.section-nav{position:sticky;top:28px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:20px}.section-nav .eyebrow{margin:8px 12px 16px}.section-links{display:flex;flex-direction:column;gap:5px}.section-links a{text-decoration:none;font-size:14px;font-weight:500;padding:12px;border-radius:8px;display:flex;gap:12px;align-items:baseline}.section-links a span{font-size:11px;color:var(--muted)}.section-links a:hover{background:var(--grey)}.section-links a[aria-current="page"]{background:var(--black);color:white}.section-links a[aria-current="page"] span{color:#c8c8c5}.nav-note{font-size:12px;color:var(--muted);padding:20px 12px;line-height:1.5}.panel{padding:8px 0 30px;scroll-margin-top:24px}.panel[hidden]{display:none}.panel:focus{outline:none}.lede{font-size:19px;color:var(--muted);max-width:62ch;margin-bottom:30px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:24px 0}.card{border:1px solid var(--line);border-radius:14px;padding:24px}.card p{font-size:15px;margin:0}.card h3{font-size:22px;margin-bottom:12px}.card .number{font-size:32px;line-height:1;margin-bottom:16px}.dark{background:var(--black);color:#fafafa;border-radius:14px;padding:28px;margin:24px 0}.dark p:last-child{margin-bottom:0}.dark h3{color:#fff}.dark .eyebrow{color:#c8c8c5}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--black);color:white;text-decoration:none;border:0;font-weight:700;font-size:14px;padding:13px 22px;border-radius:100px}.btn.ghost{background:white;color:var(--black);border:1px solid var(--line)}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.steps{display:grid;gap:0;margin-top:20px}.step{display:grid;grid-template-columns:38px minmax(0,1fr);gap:18px;padding:24px 0;border-top:1px solid var(--line)}.step .no{font-size:23px;font-family:'Playfair Display',serif}.step h3{margin-bottom:10px}.step p:last-child{margin:0}.note{font-size:14px;color:var(--muted);border-left:2px solid var(--black);padding-left:16px;margin:24px 0}.prompt{background:var(--grey);border-radius:14px;padding:24px;margin:24px 0}.prompt-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.prompt-head h3{margin:0;font-size:21px}.copy{display:inline-flex;gap:7px;align-items:center;flex-shrink:0;border:1px solid var(--line);border-radius:100px;background:white;padding:8px 12px;font-size:13px}.copy svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}.prompt-text{white-space:pre-wrap;font:15px/1.6 Satoshi,Arial,sans-serif;margin:0}.copy-status{font-size:13px;min-height:20px;color:var(--muted);margin-top:8px}details{border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:14px 0}summary{font-weight:700;cursor:pointer}details[open] summary{margin-bottom:16px}li{margin-bottom:10px}ol,ul{padding-left:22px}.table-wrap{overflow-x:auto;margin:24px 0}table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:16px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--grey);font-size:12px;letter-spacing:.04em}td:first-child{font-weight:700;min-width:125px}.panel-next{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--line);margin-top:32px;padding-top:20px;font-size:14px}.panel-next span{color:var(--muted)}.support-link{margin-top:14px;display:block}.source-links{font-size:13px;color:var(--muted)}footer{border-top:1px solid var(--line);padding:24px 0;font-size:13px;color:var(--muted)}footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}label{display:block;font-size:14px}.cta-form label input,.cta-form label textarea{margin-top:6px}
+@media(max-width:900px){.shell{gap:28px;grid-template-columns:185px minmax(0,1fr)}.card{padding:20px}}
+@media(max-width:700px){.wrap{padding:0 20px}.brand span{display:none}.shell{display:block;padding-top:0}.section-nav{position:sticky;top:0;z-index:5;background:white;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:24px}.section-nav .eyebrow,.nav-note{display:none}.section-links{flex-direction:row;overflow-x:auto;gap:6px;padding:3px 2px 8px}.section-links a{white-space:nowrap;padding:10px 13px;font-size:13px}.section-links a span{display:none}.cards{grid-template-columns:1fr}.panel{scroll-margin-top:94px}.lede{font-size:17px}.prompt{padding:20px}.prompt-head{align-items:flex-start}.panel-next{align-items:flex-start}.topbar .wrap{min-height:62px}.nav-cta{font-size:12px}h1{font-size:40px}.cta-dark{padding:32px 0!important}.cta-dark .wrap{padding:0}.table-wrap{font-size:14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+@media print{.topbar,.section-nav,.panel-next,.copy,footer{display:none}.shell{display:block}.panel[hidden]{display:block!important}.panel{break-before:page}.panel:first-child{break-before:auto}}
 /* DARK CTA */
 .cta-dark{background:var(--black);color:#fff;padding:90px 0 78px;border:none}
 .cta-dark .eyebrow{color:rgba(255,255,255,0.45);margin-bottom:20px}
@@ -127,262 +40,164 @@ section{padding:64px 0;border-top:1px solid var(--line)}
 .enq-thanks{font-size:24px;font-weight:700;color:#fff;margin-bottom:4px}
 .enq-success p{color:rgba(255,255,255,0.68);font-size:15px}
 
-footer{background:var(--black);border-top:1px solid rgba(255,255,255,0.1);padding:34px 0;color:rgba(255,255,255,0.5);font-size:13px}
-footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-footer a{color:rgba(255,255,255,0.72);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.22)}
 
-@media(max-width:760px){
-  .stack-row{grid-template-columns:1fr}
-  .extras{grid-template-columns:1fr}
-  .step{grid-template-columns:44px 1fr;gap:16px}
-  .step .no{font-size:30px}
-  .cta-form .row2{grid-template-columns:1fr}
-  header{padding:56px 0 44px}
-}
 </style>
 </head>
 <body>
-
-<nav>
-  <div class="wrap">
-    <div class="brand">Coris Leachman <span>Build Notes</span></div>
-    <a class="nav-cta" href="https://corisleachman.github.io/">Back to site →</a>
-  </div>
-</nav>
-
-<header>
-  <div class="wrap">
-    <div class="eyebrow">A build-along guide</div>
-    <h1 class="serif">Build your own <em>CRM-light</em> page — without writing code.</h1>
-    <p class="lede">The exact steps I took to go from nothing to a working page that stores my contacts and sends emails straight from the browser. Three free accounts, an AI assistant, and about an afternoon.</p>
-    <div class="hero-actions">
-      <a class="btn" href="#video">Watch the video ↗</a>
-      <a class="btn ghost" href="#steps">Jump to the steps</a>
-    </div>
-    <p class="hero-note" style="margin-top:20px">Companion guide to the video — keep it open on a second screen and follow along.</p>
-  </div>
-</header>
-
-<!-- 01 THE STACK -->
-<section id="stack">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="snum">( 01 )</span>
-      <div>
-        <h2 class="serif">The four pieces</h2>
-        <p>You don't build it — you connect it. Three free accounts, plus one AI assistant that does the actual work.</p>
-      </div>
-    </div>
-    <div class="stack">
-      <div class="stack-ai">
-        <svg class="spark" viewBox="0 0 44 44" aria-hidden="true"><path d="M22 4 L26 18 L40 22 L26 26 L22 40 L18 26 L4 22 L18 18 Z" fill="#F3F3F3"/></svg>
-        <div>
-          <div class="k serif">The AI assistant</div>
-          <div class="d">Does all the building — you just describe what you want.</div>
-        </div>
-      </div>
-      <div class="stack-row">
-        <div class="scard">
-          <svg class="ico" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="9" r="3"/><path d="M6 9v6M18 12v0c0 3-6 1-6 6" stroke-linecap="round"/></svg>
-          <h3 class="serif"><a class="lnk" href="https://github.com" target="_blank" rel="noopener">GitHub</a></h3>
-          <p>Hosts your page — puts it on the internet at a real web address.</p>
-          <span class="tag free">Free</span>
-        </div>
-        <div class="scard">
-          <svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
-          <h3 class="serif"><a class="lnk" href="https://supabase.com" target="_blank" rel="noopener">Supabase</a></h3>
-          <p>Stores your contacts and templates — the page's memory.</p>
-          <span class="tag free">Free</span>
-        </div>
-        <div class="scard">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
-          <h3 class="serif"><a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud</a></h3>
-          <p>The permission slip that lets your page send from your Gmail.</p>
-          <span class="tag">Your Gmail</span>
-        </div>
-      </div>
-    </div>
-  </div>
+<a class="skip" href="#guide">Skip to guide</a>
+<div class="topbar"><div class="wrap"><div class="brand">Coris Leachman <span>Build Notes</span></div><a class="nav-cta" href="https://corisleachman.github.io/">Back to site ↗</a></div></div>
+<div class="wrap shell">
+<nav class="section-nav" aria-label="Guide sections"><div class="eyebrow">The practical guide</div><div class="section-links">
+<a href="#start"><span>01</span>Start here</a>
+<a href="#describe"><span>02</span>Describe what you want</a>
+<a href="#accounts"><span>03</span>The accounts</a>
+<a href="#connect"><span>04</span>Connect &amp; build</a>
+<a href="#unstuck"><span>05</span>How to Get Unstuck</a>
+<a href="#security"><span>06</span>Security &amp; the Wild West</a>
+<a href="#caveats"><span>07</span>The Caveats</a>
+<a href="#get-in-touch"><span>08</span>Get support</a>
+</div><p class="nav-note">One section at a time.<br>Start with a useful outcome.</p></nav>
+<main id="guide">
+<section class="panel" id="start" tabindex="-1">
+<div class="eyebrow">Build your own new business engine</div>
+<h1>Build your own <em>connected tools.</em></h1>
+<p class="lede">A CRM-like page is one example. The bigger idea is connecting the systems you already use, then making them work in a way that suits you.</p>
+<p>That might be a prospects dashboard, a view of your team's capacity, or a page that brings jobs and follow-ups together. Your CRM, Synergist or Monday.com could sit behind it. Start with what you want to achieve, then let Claude or Codex help you work out what needs connecting.</p>
+<div class="dark"><div class="eyebrow">The principle</div><h3>Say what you want in plain English.</h3><p>Let the AI ask you what it needs to know. Choose the accounts your build actually needs. Connect the systems, then test one useful thing at a time.</p></div>
+<div class="cards"><div class="card"><h3>My example: new business</h3><p>A page that brings prospects, saved messages and follow-ups into one place, with email connected so I can act from the same view.</p></div><div class="card"><h3>Your example: resourcing</h3><p>A page that brings jobs and team availability into view, using information from your existing resourcing software, where its integration options allow it.</p></div></div>
+<div class="actions"><a class="btn" href="#describe">Start with your idea →</a><a class="btn ghost" href="#accounts">See the accounts</a></div>
+<p class="note">You don't need to know how to code to start the conversation. You do need to know what problem you're trying to solve, and check that the result works.</p>
+<div class="panel-next"><span>01 / 08</span><a href="#describe">Next: describe what you want →</a></div>
 </section>
+<section class="panel" id="describe" tabindex="-1">
+<div class="eyebrow">Start with the end goal</div><h2>Describe what you want.</h2>
+<p class="lede">Talk to Claude or Codex as you would to someone helping you solve a problem. Explain what you want to see and what you want to be able to do.</p>
+<div class="cards"><div class="card"><h3>Explain the job</h3><p>Who's using it? What takes too much effort today? What should become easier? Describe a real situation, rather than starting with a list of features.</p></div><div class="card"><h3>Name your existing systems</h3><p>Tell it where the information already lives, whether that's a CRM, Synergist, Monday.com, Gmail or a spreadsheet. Say which system should remain the main record.</p></div><div class="card"><h3>Let it ask questions</h3><p>Ask it to clarify anything it needs before building. It should check who can access the tool, what it can change and how your systems can connect.</p></div><div class="card"><h3>Decide what done looks like</h3><p>Pick one useful outcome for the first version. A working contact view or a weekly capacity view is enough to start. Everything else can wait.</p></div></div>
+<div class="prompt"><div class="prompt-head"><h3>A starting prompt</h3><button class="copy" type="button" data-copy="starting-prompt" aria-label="Copy starting prompt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg><span>Copy</span></button></div><div class="prompt-text" id="starting-prompt">I want to build a simple tool that helps me [describe the outcome].
 
-<!-- 02 THE STEPS -->
-<section id="steps">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="snum">( 02 )</span>
-      <div>
-        <h2 class="serif">The build, step by step</h2>
-        <p>Five moves. The only mildly fiddly one is Google, so that gets its own walk-through below.</p>
-      </div>
-    </div>
+Right now, I use [name the systems] and the problem is [explain what makes the job difficult]. The people using this will be [who].
 
-    <div class="steps">
-      <div class="step">
-        <div class="no serif">01</div>
-        <div>
-          <h3 class="serif">Open three free accounts</h3>
-          <p>Sign up for <a class="lnk" href="https://github.com" target="_blank" rel="noopener"><b>GitHub</b></a> (hosting) and <a class="lnk" href="https://supabase.com" target="_blank" rel="noopener"><b>Supabase</b></a> (database), and have your <a class="lnk" href="https://accounts.google.com" target="_blank" rel="noopener"><b>Google</b></a> account ready. All free, a minute each, no card needed.</p>
-        </div>
-      </div>
+For the first version, I want to see [information] and be able to [actions]. Keep [existing system] as the main record. Ask me before anything sends a message or changes live data.
 
-      <div class="step">
-        <div class="no serif">02</div>
-        <div>
-          <h3 class="serif">Describe the page to an AI</h3>
-          <p>Open your AI assistant and talk in outcomes, not tech: <em>"Build me a page that lists my prospects and lets me email them, one at a time or in bulk."</em> It asks a couple of questions, then writes the whole page and pulls your existing contacts in.</p>
-        </div>
-      </div>
+Ask me the questions you need answered before you build. Then propose the smallest useful version, explain which accounts or connections it needs, and walk me through the setup in plain English. Use dummy data first.
 
-      <div class="step">
-        <div class="no serif">03</div>
-        <div>
-          <h3 class="serif">Hand over three keys</h3>
-          <p>A "key" is just a temporary password you can delete afterwards. You create one on each service and paste it to the AI — it does the rest.</p>
-          <ul class="keys">
-            <li><a class="lnk" href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener"><b>Supabase:</b></a> create an <a class="lnk" href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener">access token</a> → the AI builds your database and loads your contacts.</li>
-            <li><a class="lnk" href="https://github.com/new" target="_blank" rel="noopener"><b>GitHub:</b></a> create a <a class="lnk" href="https://github.com/new" target="_blank" rel="noopener">repo</a> and a <a class="lnk" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">token</a> → the AI uploads the page.</li>
-            <li><a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener"><b>Google:</b></a> set up the sign-in and copy the <b>Client ID</b> → this is what lets the page send email (walk-through below).</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="no serif">04</div>
-        <div>
-          <h3 class="serif">Turn the page on</h3>
-          <p>In your GitHub repository, flip on <b>Pages</b> (Settings → Pages → deploy from <code style="font-family:Satoshi">main</code> / root). That's the free "publish" button. Give it a minute and your page is live on the web.</p>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="no serif">05</div>
-        <div>
-          <h3 class="serif">Connect Google and send</h3>
-          <p>Open your live page, click <b>Connect Google</b> once and approve it. Pick a contact, choose a template, and hit send — it goes out from your real Gmail. That's the whole loop.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- GOOGLE DEEP DIVE -->
-    <div class="callout" id="google">
-      <div class="eyebrow">The one fiddly bit</div>
-      <h3 class="serif">The Google permission screen, click by click</h3>
-      <p class="sub">All you're doing is telling Google "this page of mine is allowed to send email from my account." Go slowly and follow each click.</p>
-      <ol class="gsteps">
-        <li><span><b>Make a project.</b> Go to <a class="lnk" href="https://console.cloud.google.com" target="_blank" rel="noopener"><code>console.cloud.google.com</code></a> → project dropdown → New Project → name it "Prospects" → select it.</span></li>
-        <li><span><b>Turn on the Gmail engine.</b> APIs &amp; Services → Library → search <b>Gmail API</b> → Enable.</span></li>
-        <li><span><b>Name your app.</b> OAuth consent screen (newer console: Google Auth Platform → Branding) → choose <b>External</b> → fill app name, support email, developer email.</span></li>
-        <li><span><b>Say who can use it — you.</b> Under Audience / Test users, add your own email, or click <b>Publish app</b> to skip the weekly re-login.</span></li>
-        <li><span><b>Create the key.</b> Credentials → Create credentials → <b>OAuth client ID</b> → type: <b>Web application</b> → name it.</span></li>
-        <li><span><b>Allow your page.</b> Authorised JavaScript origins: <code>https://yourname.github.io</code> — Authorised redirect URIs: <code>https://yourname.github.io/your-page/</code> → Create.</span></li>
-        <li><span><b>Copy the Client ID</b> (it ends in <code>apps.googleusercontent.com</code>) and paste it to the AI. Done.</span></li>
-      </ol>
-      <p class="gnote">First time you connect, Google shows an "unverified app" warning — that's normal for a personal tool you just made. Click <b>Advanced → continue</b>, then approve.</p>
-    </div>
-  </div>
+Done means [one clear outcome I can test].</div><div class="copy-status" aria-live="polite"></div></div>
+<details><summary>Example: a CRM-like page</summary><p>“I want a page that shows my prospects, lets me filter them, saves message templates and helps me keep track of follow-ups. My contacts are currently in a spreadsheet. I want to review each message before it sends. Ask me what you need to know before building.”</p></details>
+<details><summary>Example: a resourcing view</summary><p>“I want a clear weekly view of live jobs and who's available, using the data we already keep in Synergist or Monday.com. Start with a read-only view. Find out what connections our account supports before suggesting anything that writes back.”</p></details>
+<div class="panel-next"><span>02 / 08</span><a href="#accounts">Next: choose your accounts →</a></div>
 </section>
-
-<!-- 03 EXTRAS -->
-<section id="extras">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="snum">( 03 )</span>
-      <div>
-        <h2 class="serif">Then make it yours</h2>
-        <p>Because it's your page, every new feature is just another sentence to the AI. Here's what I added to mine.</p>
-      </div>
-    </div>
-    <div class="extras">
-      <div class="extra"><h4 class="serif">Saveable templates</h4><p>Write a message once, save it as a pill, reuse it in a click — with names filled in per person.</p></div>
-      <div class="extra"><h4 class="serif">Follow-up nudges</h4><p>Email someone and a chase-up is scheduled automatically, stacking up in a side pane so nothing slips.</p></div>
-      <div class="extra"><h4 class="serif">Attachments</h4><p>Send files with your emails, individually or across a whole batch.</p></div>
-      <div class="extra"><h4 class="serif">Conversation view</h4><p>Read the full back-and-forth with a contact right on the page — no hopping back to Gmail.</p></div>
-    </div>
-  </div>
+<section class="panel" id="accounts" tabindex="-1">
+<div class="eyebrow">Choose the pieces you need</div><h2>The accounts.</h2><p class="lede">These are options, not a compulsory shopping list. Ask your AI assistant which ones your first version needs, and why.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">Account</th><th scope="col">What it's for</th><th scope="col">When you need it</th></tr></thead><tbody>
+<tr><td><a href="https://claude.ai/">Claude</a> or <a href="https://chatgpt.com/codex">Codex</a></td><td>The assistant you describe your idea to. With the right tools and permissions, it can help build and connect it.</td><td>To work through the idea and implementation. Check what your chosen assistant can access.</td></tr>
+<tr><td><a href="https://github.com/">GitHub</a></td><td>Keeps the code and its history, so changes can be saved and rolled back. GitHub Pages can host a static page.</td><td>To keep a versioned record of the build, and optionally host a simple page.</td></tr>
+<tr><td><a href="https://vercel.com/">Vercel</a></td><td>Hosts your web app, with preview deployments and server-side functions for work that can't safely happen in the browser.</td><td>If the build needs an app host or a server-side place to use secret credentials.</td></tr>
+<tr><td><a href="https://supabase.com/">Supabase</a></td><td>A database, with sign-in and file storage available too.</td><td>If your tool needs its own saved data, user accounts or files. Your existing system may already cover this.</td></tr>
+<tr><td><a href="https://console.cloud.google.com/">Google Cloud</a></td><td>Sets up API access and Google sign-in permissions for services such as Gmail.</td><td>If you want the tool to connect to your Google account with the permissions you approve.</td></tr>
+<tr><td><a href="https://resend.com/">Resend</a></td><td>Sends app emails, such as notifications and invitations, through an email API.</td><td>If your tool needs its own email sending service. Set up the sender/domain it requires; it isn't a Gmail inbox connection.</td></tr>
+<tr><td>Your existing systems</td><td>Your CRM, Synergist, Monday.com or other software remains part of the picture.</td><td>Check its API, connectors or export options, account permissions and plan before promising a live connection.</td></tr>
+</tbody></table></div>
+<div class="dark"><h3>Sign up after you know what you're building.</h3><p>Ask: “Which accounts do I need for this version? What will each one do? Can I use what I already have?” Then create the accounts in your name or your business's name.</p></div>
+<p class="note">Check current pricing, usage limits and permitted business use before choosing a plan. An experiment and a shared client tool can have different requirements.</p>
+<p class="source-links">Service references: <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages">GitHub Pages</a> · <a href="https://vercel.com/docs">Vercel</a> · <a href="https://supabase.com/docs">Supabase</a> · <a href="https://resend.com/docs/introduction">Resend</a></p>
+<div class="panel-next"><span>03 / 08</span><a href="#connect">Next: connect and build →</a></div>
 </section>
-
-<!-- 04 SECURITY -->
-<section id="security">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="snum">( 04 )</span>
-      <div>
-        <h2 class="serif">Keep your keys safe</h2>
-        <p>Two minutes here saves a world of pain. The short version: some keys are meant to be public, and some are passwords you must never expose.</p>
-      </div>
-    </div>
-    <div class="extras" style="margin-bottom:26px">
-      <div class="extra">
-        <h4 class="serif">Public keys — fine in your code</h4>
-        <p>The Supabase <em>anon</em> key and the Google <em>Client ID</em> are built to sit in your page. Seeing them does nothing on its own — your database rules decide what they're allowed to do.</p>
-      </div>
-      <div class="extra">
-        <h4 class="serif">Secret tokens — treat as passwords</h4>
-        <p>Database admin tokens, GitHub tokens, deploy keys. These grant real power. Never paste them into your page or commit them to your repository — both are public.</p>
-      </div>
-    </div>
-    <div class="callout">
-      <div class="eyebrow">The five rules</div>
-      <h3 class="serif">Share access without exposing it</h3>
-      <p class="sub">Follow these every time you hand a service over to an AI — or to anyone.</p>
-      <ol class="gsteps">
-        <li><span><b>Only public keys go in the code.</b> Secret tokens never touch the page or the repository.</span></li>
-        <li><span><b>Prefer a "Connect" button over a raw token.</b> A sign-in (OAuth) connection can be revoked in one click and no password is ever handed over.</span></li>
-        <li><span><b>If you must share a token, scope it small and give it an expiry.</b> Grant only the one repo or permission it needs, and a short lifespan.</span></li>
-        <li><span><b>Rotate or delete when the job's done.</b> "Rotate" means regenerate it (the old one instantly stops working); "revoke" means kill it entirely. Do this for anything one-off.</span></li>
-        <li><span><b>Protect data with a login, not by hiding the key.</b> A public key only lets people do what your database rules allow — so lock sensitive data behind proper access rules.</span></li>
-      </ol>
-      <p class="gnote">If a secret ever lands somewhere public — a repo, a screenshot, a page — rotate it immediately and assume it's compromised.</p>
-    </div>
-  </div>
-</section>
-
-<!-- CLOSER -->
-<div class="closer">
-  <div class="wrap">
-    <h2 class="serif">Three sign-ups. Describe it. Paste three keys. <em>Hit send.</em></h2>
-    <p>That's the whole trick. The "developer" is a conversation, and the page grows with you.</p>
-    <a class="btn" href="#video">Watch the walk-through ↗</a>
-  </div>
+<section class="panel" id="connect" tabindex="-1">
+<div class="eyebrow">Make one useful thing work</div><h2>Connect &amp; build.</h2><p class="lede">Let the AI guide the setup for your specific idea. Every connection should have a clear purpose and a clear boundary.</p>
+<div class="steps">
+<div class="step"><div class="no">01</div><div><h3>Agree the first version</h3><p>Have it explain the page, the systems behind it and what information moves between them. Confirm what can only be read and what can be changed. Keep the first version small.</p></div></div>
+<div class="step"><div class="no">02</div><div><h3>Set up the right accounts</h3><p>Use the account list as a guide. Ask the AI to take you through the sign-ups and explain unfamiliar terms as they appear. Keep ownership of the accounts and access.</p></div></div>
+<div class="step"><div class="no">03</div><div><h3>Connect with permission</h3><p>Use an approved sign-in or connector where available. If a service requires a token, give it only the access it needs and use a secure credential setup. Keep secret tokens out of chat, screenshots, browser code and GitHub.</p><p>For Synergist, Monday.com or a CRM, first check the integration options your account actually supports. If there's no suitable live connection, start with an export or a smaller version.</p></div></div>
+<div class="step"><div class="no">04</div><div><h3>Build with dummy data</h3><p>Ask it to create a preview. Check the layout and try the main task with sample records. Save a working version in GitHub before the next change.</p></div></div>
+<div class="step"><div class="no">05</div><div><h3>Test the whole job</h3><p>Does the right information appear? Does a saved change reach the intended system? Can the right people access it, and can someone without permission get in? For email, test to your own address and check that it arrives.</p></div></div>
+<div class="step"><div class="no">06</div><div><h3>Publish, then improve</h3><p>Ask the AI to guide deployment to the host you've chosen. A public web address isn't an access control. Check sign-in and data permissions before connecting real records, then improve one thing at a time.</p></div></div>
 </div>
+<details id="google"><summary>If you're connecting Gmail</summary><p>Ask your assistant to guide the current Google Cloud setup for the app it's building. You'll usually need a project with the Gmail API enabled, an OAuth consent setup and an OAuth client configured for your app's actual URLs.</p><p>Use the minimum permissions needed. Test with your own account first. A Google Client ID is public; a client secret or access token isn't. Test-user settings, app verification and redirect requirements depend on the integration, so get the assistant to check the current instructions rather than blindly copying someone else's settings.</p><p>Understand any permission or unverified-app warning before approving it. Check that the app and requested access are the ones you intended.</p><a href="https://developers.google.com/workspace/gmail/api/auth/about-auth">Google's Gmail authorisation guide ↗</a></details>
+<details><summary>If you're using Resend</summary><p>Ask the AI to walk you through sender/domain setup and a test email. Store the secret API key on the server, for example in your app host's environment settings. Your page asks the server to send the email; it never exposes the key in the browser.</p><p>Keep sending behind the right access checks, and ask for confirmation before real messages go out.</p><a href="https://resend.com/docs/introduction">Resend's setup guide ↗</a></details>
+<div class="panel-next"><span>04 / 08</span><a href="#unstuck">Next: how to get unstuck →</a></div>
+</section>
+<section class="panel" id="unstuck" tabindex="-1">
+<div class="eyebrow">When it breaks, and it will</div><h2>How to Get Unstuck.</h2><p class="lede">You don't need to diagnose everything yourself. Give the AI something concrete to work with.</p>
+<div class="cards"><div class="card"><div class="number">01</div><h3>Paste the error back in</h3><p>Copy the whole message, red text and all. It's usually everything the AI needs.</p></div><div class="card"><div class="number">02</div><h3>Show, don't describe</h3><p>If something looks wrong, give it a screenshot rather than an explanation.</p></div><div class="card"><div class="number">03</div><h3>Ask what it just did</h3><p>Get it to explain in plain English. You learn the stack as you go.</p></div><div class="card"><div class="number">04</div><h3>One change at a time</h3><p>Small steps, saved in GitHub, so you can always roll back.</p></div></div>
+<p class="note">Remove passwords, secret tokens and private client information from errors and screenshots before sharing them.</p>
+<div class="prompt"><div class="prompt-head"><h3>A prompt for a broken step</h3><button class="copy" type="button" data-copy="error-prompt" aria-label="Copy troubleshooting prompt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg><span>Copy</span></button></div><div class="prompt-text" id="error-prompt">I expected [what should happen], but [what actually happened]. Here's the full error or a screenshot, with private information removed.
 
+Explain what's going wrong in plain English. Propose one small fix, tell me how to test it, and save the working version before making further changes.</div><div class="copy-status" aria-live="polite"></div></div>
+<div class="panel-next"><span>05 / 08</span><a href="#security">Next: security and the Wild West →</a></div>
+</section>
+<section class="panel" id="security" tabindex="-1">
+<div class="eyebrow">Keep control as you build</div><h2>Security &amp; the Wild West.</h2><p class="lede">Enthusiasm can move much faster than access control, privacy and maintenance.</p>
+<div class="cards"><div class="card"><h3>Client data</h3><p>Use dummy data while experimenting and demonstrating.</p></div><div class="card"><h3>Access</h3><p>Know which systems and information the tool can reach.</p></div><div class="card"><h3>Storage</h3><p>Understand where the data lives and who controls it.</p></div><div class="card"><h3>Maintenance</h3><p>Know when the build has outgrown a personal experiment.</p></div></div>
+<div class="dark"><h3>Public keys can sit in your code. Secret tokens never do.</h3><p>Keep tokens small in scope, give them an expiry, and rotate them after use. A public key still needs proper access rules behind it.</p></div>
+<details><summary>Which credentials can be public?</summary><p>A Google OAuth Client ID and a Supabase publishable or legacy anon key are designed for client-side use. They identify the app or project; they don't replace authentication or database access rules.</p><p>GitHub access tokens, Resend API keys, Supabase secret/service-role keys and OAuth client secrets are credentials. Keep them in secure server-side configuration, never in the page or repository.</p></details>
+<details><summary>How do I keep access under control?</summary><ul><li>Prefer an approved sign-in or connector over sharing raw credentials.</li><li>Limit access to the account, repository or actions the job needs.</li><li>Protect private data with real authentication and permission checks, not a hidden URL.</li><li>Revoke one-off access when you're finished. Rotate a secret immediately if it becomes exposed.</li></ul></details>
+<details><summary>When does an experiment need more support?</summary><p>When colleagues depend on it, it handles client information, or it can change important records, give it an owner and a maintenance plan. Agree how to back up data, recover from a failure and review access. Bring in technical help where you need it.</p></details>
+<div class="panel-next"><span>06 / 08</span><a href="#caveats">Next: the caveats →</a></div>
+</section>
+<section class="panel" id="caveats" tabindex="-1">
+<div class="eyebrow">The honest bit</div><h2>The Caveats.</h2><p class="lede">There's real value in building your own tools. These are the things to keep in view while you do it.</p>
+<div class="steps"><div class="step"><div class="no">01</div><div><h3>Security</h3><p>Public keys can sit in your code. Secret tokens never do. Keep tokens small in scope, give them an expiry, and rotate them after use.</p><a href="#security">Read the security section →</a></div></div><div class="step"><div class="no">02</div><div><h3>Complexity</h3><p>You will go down a rabbit hole. The good news is that every model update and new service takes another layer of it away.</p><p>Some connections still take work. Ask the AI to explain the simplest route, and step back if the build starts growing beyond the problem you set out to solve.</p></div></div><div class="step"><div class="no">03</div><div><h3>Knowing when to stop</h3><p>It's very easy to keep tinkering. Decide what done looks like before you start.</p><p>When the first version does the job you agreed, use it. Keep extra ideas in a separate list rather than turning every thought into another feature.</p></div></div></div>
+<div class="dark"><h3>Useful beats endlessly unfinished.</h3><p>Pick a real job, make a small version work, and learn from using it.</p></div>
+<div class="panel-next"><span>07 / 08</span><a href="#get-in-touch">Next: get support →</a></div>
+</section>
+<div class="panel" id="support" tabindex="-1">
 <!-- DARK CTA + CONTACT FORM -->
 <section class="cta-dark" id="get-in-touch">
   <div class="wrap">
     <div class="eyebrow">Prefer to skip the DIY?</div>
     <h2 class="serif">Still want someone else to do it for you? <em>Get in touch.</em></h2>
-    <p class="cta-lede">If you're still unsure, or you'd simply rather someone else handled it, I'm available for consultancy and build support — I can set this up for you, or help with the wider new-business machine behind it. Fill in the details below and I'll get in touch.</p>
+    <p class="cta-lede">If you're still unsure, or you'd simply rather someone else handled it, I'm available for consultancy and build support , I can set this up for you, or help with the wider new-business machine behind it. Fill in the details below and I'll get in touch.</p>
     <form id="enquiry-form" class="cta-form" onsubmit="return submitEnquiry(event)">
       <div class="row2">
-        <input name="name" placeholder="Your name" autocomplete="name" required>
-        <input name="email" type="email" placeholder="Email" autocomplete="email" required>
+        <input aria-label="Your name" name="name" placeholder="Your name" autocomplete="name" required>
+        <input aria-label="Email" name="email" type="email" placeholder="Email" autocomplete="email" required>
       </div>
-      <input name="company" placeholder="Company / agency (optional)" autocomplete="organization">
-      <textarea name="message" rows="4" placeholder="What would you like help with?"></textarea>
+      <input aria-label="Company or agency" name="company" placeholder="Company / agency (optional)" autocomplete="organization">
+      <textarea aria-label="What would you like help with?" name="message" rows="4" placeholder="What would you like help with?"></textarea>
       <button type="submit" class="btn-light" id="enq-btn">Send it over →</button>
-      <div class="enq-status" id="enq-status"></div>
+      <div class="enq-status" id="enq-status" role="status" aria-live="polite"></div>
     </form>
     <div id="enq-success" class="enq-success">
       <div class="enq-check">✓</div>
       <div>
-        <div class="enq-thanks serif">Thanks — your message has been sent.</div>
+        <div class="enq-thanks serif">Thanks, your message has been sent.</div>
         <p>I'll be in touch shortly. Speak soon.</p>
       </div>
     </div>
   </div>
 </section>
 
-<footer>
-  <div class="wrap">
-    <div>© 2025 Coris Leachman — Fractional New Business &amp; Marketing Consultant</div>
-    <div><a href="https://corisleachman.github.io/" target="_blank" rel="noopener">corisleachman.github.io</a></div>
-  </div>
-</footer>
 
+<a class="support-link" href="mailto:coris.leachman@gmail.com">Or email coris.leachman@gmail.com</a>
+<div class="panel-next"><span>08 / 08</span><a href="#start">Back to start →</a></div>
+</div>
+<noscript><p class="note">All sections are shown because JavaScript is switched off. Use the section links to jump between them.</p></noscript>
+</main></div>
+<footer><div class="wrap"><span>© 2026 Coris Leachman · Agency Growth Consultant</span><a href="https://corisleachman.github.io/">corisleachman.github.io</a></div></footer>
 <script>
+const panels=Array.from(document.querySelectorAll('.panel'));
+const guideLinks=Array.from(document.querySelectorAll('.section-links a'));
+const aliases={stack:'accounts',steps:'connect',extras:'connect',google:'connect','get-in-touch':'support'};
+function showSection(focus=false){
+ const raw=location.hash.slice(1)||'start';
+ const id=aliases[raw]||raw;
+ const chosen=panels.find(p=>p.id===id)||panels[0];
+ panels.forEach(p=>{p.hidden=p!==chosen});
+ guideLinks.forEach(link=>{const target=link.hash.slice(1);if((aliases[target]||target)===chosen.id)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
+ if(raw==='google'){const detail=document.getElementById('google');detail.open=true}
+ if(focus){chosen.focus({preventScroll:true});chosen.scrollIntoView({block:'start',behavior:'auto'})}
+}
+window.addEventListener('hashchange',()=>showSection(true));
+showSection();
+document.querySelectorAll('.copy').forEach(button=>button.addEventListener('click',async()=>{
+ const text=document.getElementById(button.dataset.copy).textContent;
+ const status=button.closest('.prompt').querySelector('.copy-status');
+ try{await navigator.clipboard.writeText(text);button.querySelector('span').textContent='Copied';status.textContent='Prompt copied to clipboard.'}
+ catch(error){status.textContent='Copy is unavailable here. Select the prompt text and copy it manually.'}
+}));
 const ENQ_URL="https://paprxejgeepvtbqmfgvt.supabase.co/rest/v1/enquiries";
 const ENQ_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhcHJ4ZWpnZWVwdnRicW1mZ3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTI2MTcsImV4cCI6MjA5OTY4ODYxN30.x5ruifLqBsRbtvSwb7-2HCAX6IOmkWpCAfP7LEEfijg";
-// Web3Forms access key — emails each enquiry to your inbox. Paste your key here to switch email on.
+// Web3Forms access key , emails each enquiry to your inbox. Paste your key here to switch email on.
 const WEB3FORMS_KEY="__WEB3FORMS_KEY__";
 async function submitEnquiry(e){
   e.preventDefault();
@@ -401,7 +216,7 @@ async function submitEnquiry(e){
           access_key:WEB3FORMS_KEY,
           subject:'New enquiry from your build guide',
           from_name:'CRM-light guide',
-          name:data.name, email:data.email, company:data.company||'—', message:data.message||'—'
+          name:data.name, email:data.email, company:data.company||',', message:data.message||','
         })});
       }catch(_){ /* email is best-effort; the row is already saved */ }
     }
@@ -410,12 +225,12 @@ async function submitEnquiry(e){
     const ok=document.getElementById('enq-success'); ok.style.display='flex';
     ok.scrollIntoView({behavior:'smooth',block:'center'});
   }catch(err){
-    st.textContent='Something went wrong — please email me directly at coris.leachman@gmail.com';
+    st.textContent='Something went wrong , please email me directly at coris.leachman@gmail.com';
     btn.disabled=false; btn.textContent=o;
   }
   return false;
 }
-</script>
 
+</script>
 </body>
 </html>
