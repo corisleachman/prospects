@@ -146,7 +146,7 @@ Explain what's going wrong in plain English. Propose one small fix, tell me how 
   <div class="wrap">
     <div class="eyebrow">Prefer to skip the DIY?</div>
     <h2 class="serif">Still want someone else to do it for you? <em>Get in touch.</em></h2>
-    <p class="cta-lede">If you're still unsure, or you'd simply rather someone else handled it, I'm available for consultancy and build support , I can set this up for you, or help with the wider new-business machine behind it. Fill in the details below and I'll get in touch.</p>
+    <p class="cta-lede">If you're still unsure, or you'd simply rather someone else handled it, I'm available for consultancy and build support. I can set this up for you, or help with the wider new-business machine behind it. Fill in the details below and I'll get in touch.</p>
     <form id="enquiry-form" class="cta-form" onsubmit="return submitEnquiry(event)">
       <div class="row2">
         <input aria-label="Your name" name="name" placeholder="Your name" autocomplete="name" required>
@@ -225,7 +225,7 @@ async function submitEnquiry(e){
     const ok=document.getElementById('enq-success'); ok.style.display='flex';
     ok.scrollIntoView({behavior:'smooth',block:'center'});
   }catch(err){
-    st.textContent='Something went wrong , please email me directly at coris.leachman@gmail.com';
+    st.textContent='Something went wrong. Please email me directly at coris.leachman@gmail.com';
     btn.disabled=false; btn.textContent=o;
   }
   return false;
