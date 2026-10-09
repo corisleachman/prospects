@@ -102,9 +102,10 @@ table#tbl{table-layout:fixed}
 .rowlink:hover{border-bottom-color:var(--black)}
 .rowlink .lnkicon{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle;opacity:0;transition:opacity .12s}
 .rowlink:hover .lnkicon{opacity:1}
-.cocell{display:inline-flex;align-items:center;gap:6px}
+.cocell{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.cocell>button.rowlink,.cocell>.co-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button.rowlink{background:none;border:0;border-bottom:1px solid var(--grey);padding:0;font:inherit;cursor:pointer;text-align:left}
-.co-ext{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;color:var(--grey-mid);text-decoration:none;transition:color .12s,background .12s}
+.co-ext{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;color:var(--grey-mid);text-decoration:none;transition:color .12s,background .12s}
 .co-ext:hover{color:var(--black);background:rgba(0,0,0,.06)}
 .co-ext svg{width:12px;height:12px}
 .pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
@@ -2339,13 +2340,16 @@ function agencyKeyFor(c){
   return _agNorm(c.company);
 }
 function openAgencyFromRow(id){
+  // Legacy name keys stop matching once the agencies table lands, so wait for it.
+  if(!AGENCIES && _agLoading){ toast('Agencies are still loading, try again in a moment'); return; }
   const c=ALL.find(function(x){ return x.id===id; }); const k=agencyKeyFor(c); if(!k) return;
-  switchTab('__agencies__'); agencyOpen(_agKeyArg(k)); window.scrollTo(0,0);
+  switchTab('__agencies__'); agencyOpen(_agKeyArg(k));
+  const body=document.querySelector('.body'); if(body) body.scrollTop=0;
 }
 function companyCell(c){
   if(!c.company) return '';
   const coUrl=companyUrl(c), k=agencyKeyFor(c);
-  const name=k?`<button type="button" class="rowlink" title="Open ${escapeHtml(c.company)} in Agencies" onclick="event.stopPropagation();openAgencyFromRow('${c.id}')">${escapeHtml(c.company)}</button>`:escapeHtml(c.company);
+  const name=k?`<button type="button" class="rowlink" title="Open ${escapeHtml(c.company)} in Agencies" onclick="event.stopPropagation();openAgencyFromRow('${c.id}')">${escapeHtml(c.company)}</button>`:`<span class="co-name">${escapeHtml(c.company)}</span>`;
   const ext=coUrl?`<a class="co-ext" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="Open website: ${escapeHtml(coUrl)}" aria-label="Open company website" onclick="event.stopPropagation()" draggable="false">${EXT_SVG}</a>`:'';
   return `<span class="cocell">${name}${ext}</span>`;
 }
