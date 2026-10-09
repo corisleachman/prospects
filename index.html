@@ -102,6 +102,12 @@ table#tbl{table-layout:fixed}
 .rowlink:hover{border-bottom-color:var(--black)}
 .rowlink .lnkicon{display:inline-block;font-family:'DM Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:lowercase;color:var(--grey-mid);margin-left:5px;vertical-align:middle;opacity:0;transition:opacity .12s}
 .rowlink:hover .lnkicon{opacity:1}
+.cocell{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.cocell>button.rowlink,.cocell>.co-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.rowlink{background:none;border:0;border-bottom:1px solid var(--grey);padding:0;font:inherit;cursor:pointer;text-align:left}
+.co-ext{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;color:var(--grey-mid);text-decoration:none;transition:color .12s,background .12s}
+.co-ext:hover{color:var(--black);background:rgba(0,0,0,.06)}
+.co-ext svg{width:12px;height:12px}
 .pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .p-replied{background:rgba(47,122,59,0.14);color:var(--ok)}
 .p-contacted{background:rgba(74,191,255,0.12);color:#1a5a8a}
@@ -2323,8 +2329,30 @@ function fmtDate(v){ if(!v) return '—'; const d=new Date(v); if(isNaN(d)) retu
 const FREEMAIL=new Set(['gmail.com','googlemail.com','hotmail.com','hotmail.co.uk','outlook.com','yahoo.com','yahoo.co.uk','icloud.com','me.com','mac.com','aol.com','live.com','live.co.uk','msn.com','protonmail.com','proton.me','btinternet.com','sky.com','virginmedia.com']);
 function withScheme(u){ u=String(u||'').trim(); if(!u) return ''; return /^https?:\/\//i.test(u)?u:'https://'+u.replace(/^\/+/,''); }
 const LI_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="3" fill="currentColor"/><path fill="#fff" d="M4.3 6.3h1.9v5.9H4.3zM5.25 3.6a1.1 1.1 0 110 2.2 1.1 1.1 0 010-2.2zM7.4 6.3h1.8v.8c.3-.5.9-1 1.9-1 2 0 2.3 1.3 2.3 3v3.1h-1.9V9.4c0-.7 0-1.5-.9-1.5s-1.1.7-1.1 1.5v2.8H7.4z"/></svg>';
+const EXT_SVG='<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5h4.5V7M13.5 2.5 7 9M12 10v2.5a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1H6"/></svg>';
 function linkedinUrl(c){ return withScheme(c.linkedin_url); }
 function isLinkedInSource(c){ return String(c.source||'').trim().toLowerCase()==='linkedin'; }
+// Agencies-view key for a contact's company: the agency id once the agencies table has loaded,
+// otherwise the legacy name grouping. '' when there is no agency to open.
+function agencyKeyFor(c){
+  if(!c||!c.company) return '';
+  if(AGENCIES) return (c.agency_id && AGENCIES.some(function(a){ return a.id===c.agency_id; })) ? c.agency_id : '';
+  return _agNorm(c.company);
+}
+function openAgencyFromRow(id){
+  // Legacy name keys stop matching once the agencies table lands, so wait for it.
+  if(!AGENCIES && _agLoading){ toast('Agencies are still loading, try again in a moment'); return; }
+  const c=ALL.find(function(x){ return x.id===id; }); const k=agencyKeyFor(c); if(!k) return;
+  switchTab('__agencies__'); agencyOpen(_agKeyArg(k));
+  const body=document.querySelector('.body'); if(body) body.scrollTop=0;
+}
+function companyCell(c){
+  if(!c.company) return '';
+  const coUrl=companyUrl(c), k=agencyKeyFor(c);
+  const name=k?`<button type="button" class="rowlink" title="Open ${escapeHtml(c.company)} in Agencies" onclick="event.stopPropagation();openAgencyFromRow('${c.id}')">${escapeHtml(c.company)}</button>`:`<span class="co-name">${escapeHtml(c.company)}</span>`;
+  const ext=coUrl?`<a class="co-ext" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="Open website: ${escapeHtml(coUrl)}" aria-label="Open company website" onclick="event.stopPropagation()" draggable="false">${EXT_SVG}</a>`:'';
+  return `<span class="cocell">${name}${ext}</span>`;
+}
 function companyUrl(c){
   if(c.website) return withScheme(c.website);
   if(c.email && c.email.includes('@')){
@@ -2379,11 +2407,11 @@ function render(){
     const mailable=c.email && !c.bounced;
     const sel=SELECTED.has(c.id);
     const cdata=escapeHtml(JSON.stringify({id:c.id,name:c.name,company:c.company||'',email:c.email||'',title:c.title||''}));
-    const liUrl=linkedinUrl(c), coUrl=companyUrl(c);
+    const liUrl=linkedinUrl(c);
     return `<tr data-id="${c.id}" draggable="true" style="${sel?'background:rgba(232,69,32,0.06)':''}">
       <td><input type="checkbox" ${sel?'checked':''} ${mailable?'':'disabled'} onchange="toggleSel('${c.id}',this)" style="cursor:${mailable?'pointer':'not-allowed'};opacity:${mailable?1:.35}"></td>
       <td><div class="namecell">${liUrl?`<a class="li-ico" href="${escapeHtml(liUrl)}" target="_blank" rel="noopener" title="Open LinkedIn profile" onclick="event.stopPropagation()" draggable="false">${LI_SVG}</a>`:`<span class="li-ico off" title="No LinkedIn URL yet — click the name to add one">${LI_SVG}</span>`}<button type="button" class="name-btn" title="Edit ${escapeHtml(c.name)}" onclick='event.stopPropagation();openEditModal(${cdata})'>${escapeHtml(c.name)}</button></div>${c.notes?`<div style="font-size:10px;color:var(--grey-mid);margin-top:2px;max-width:220px">${escapeHtml(c.notes)}</div>`:''}</td>
-      <td>${(c.company&&coUrl)?`<a class="rowlink" href="${escapeHtml(coUrl)}" target="_blank" rel="noopener" title="${escapeHtml(coUrl)}">${escapeHtml(c.company)}<span class="lnkicon">↗</span></a>`:escapeHtml(c.company||'')}</td>
+      <td>${companyCell(c)}</td>
       <td data-f="title" title="Double-click to edit" style="font-size:11px;color:var(--grey-mid)">${escapeHtml(c.title||'')}</td>
       <td data-f="email" title="Double-click to edit" style="font-size:11px">${emailCell(c)}</td>
       <td data-f="category"><span class="pill p-cat pill-btn" title="Click to change" onclick="event.stopPropagation();startInlineEdit(this.closest('td'),'${c.id}','category')">${escapeHtml(c.category||'—')}</span></td>
