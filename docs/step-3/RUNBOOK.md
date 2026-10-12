@@ -1,6 +1,6 @@
 # Step 3a runbook
 
-Status: local migration verified on an ephemeral development branch. Nothing has been applied to production.
+Status: migration applied to production and verified on 12 October 2026.
 
 ## What stage 3a changes
 
@@ -37,7 +37,7 @@ Status: local migration verified on an ephemeral development branch. Nothing has
 8. Re-run the checks and advisors.
 9. Delete the development branch when verification is complete.
 
-Do not merge the Supabase branch into production. Production application is a separate approval after review and a fresh backup check.
+Do not merge a Supabase preview branch into production. Apply the reviewed repository migration so production history keeps the repository timestamp.
 
 ## Verification record
 
@@ -56,7 +56,7 @@ The remaining performance notices are older schema debt: two unindexed foreign k
 
 The production migration history contains a short registration placeholder for `20260715000000_prehistory_baseline`, because the original tables existed before migration tracking. Supabase preview branches replay that placeholder, mark the version applied, and don't create `contacts`, `email_templates` or `enquiries`. Later migrations then fail or remain unapplied.
 
-For this verification, the repository's reconstructed baseline was applied only to the disposable branch before the remaining migrations were pushed. Production wasn't changed. Fixing branch portability needs its own reviewed migration-history procedure before preview branches can be treated as one-command replicas.
+For branch verification, the repository's reconstructed baseline was applied only to the disposable branch before the remaining migrations were pushed. Fixing branch portability needs its own reviewed migration-history procedure before preview branches can be treated as one-command replicas.
 
 ## Expected checks
 
@@ -72,17 +72,16 @@ For this verification, the repository's reconstructed baseline was applied only 
 - One event can have several sources.
 - Campaign scoring is separate from the workspace event.
 
-## Rollback before production
+## Production verification record
 
-Delete the ephemeral Supabase branch. The production project remains untouched.
+Applied on 12 October 2026 using `supabase db push`, preserving migration version `20261009112146`.
 
-## Production gate
+- A completed physical backup from 12 October 2026 at 04:10 UTC was confirmed before application. PITR was not enabled.
+- The production migration history now contains all 30 repository migrations.
+- The existing totals remained 1,213 agencies and 1,430 contacts.
+- Production contains all 13 foundation tables, 15 global signal definitions, one draft pilot campaign and four pilot prospects.
+- The transactional workspace-isolation checks passed and left no synthetic users behind.
+- Security and performance advisors reported no new stage 3a findings.
+- The live dashboard reached its normal sign-in gate without browser warnings or errors.
 
-Before production application:
-
-- The development-branch checks pass without manual exceptions.
-- Security advisors report no new warnings.
-- Performance advisors report no new missing indexes or RLS initialization-plan warnings.
-- The current dashboard smoke test is prepared.
-- The migration and its seed counts have been reviewed.
-- Production application has explicit approval.
+The advisor baseline still includes the existing `pg_net` public-schema warning, the `agency_tidy_dismissals` key and index notices, the `enquiries` RLS initialization warning and the Auth connection allocation notice.
