@@ -1,6 +1,6 @@
 # Step 3: campaign and evidence foundation
 
-Status: stage 3a drafted and verified on an ephemeral Supabase branch on 9 October 2026. Production application is not approved.
+Status: stage 3a applied to production and verified on 12 October 2026. The dashboard integration remains to be built.
 
 ## Outcome
 
