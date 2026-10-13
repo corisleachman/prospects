@@ -8,6 +8,7 @@
 //   company_status — current LinkedIn/website details for an agency (popup polls this)
 //   backfill       — claim a batch of agencies missing website/LinkedIn and look them up
 //   review_refetch — record match details for name-only matches made before tracking
+//   find_email     — look up the person's work email with treg (on click in the popup)
 //
 // After an insert/update the contact is linked to its agency by the DB trigger
 // (b10_link_agency). If that agency is missing its website or LinkedIn page, we run
@@ -24,11 +25,17 @@ const COMPANY_ACTOR = "harvestapi~linkedin-company";
 const COMPANY_MAX_CHARGE_USD = "0.05";
 const RETRY_AFTER_DAYS = 30;
 
+// Email lookup through treg (https://treg.to). Set with: supabase secrets set TREG_TOKEN=...
+const TREG_URL = "https://treg.to/call";
+const EMAIL_FIND_MAX_COST_USD = "0.02";
+const EMAIL_VERIFY_MAX_COST_USD = "0.01";
+const EMAIL_FIELDS = ["email_status", "email_source", "email_enriched_at"];
+
 // Columns a capture/update may set. Everything else is left to the database.
 const ALLOWED = [
   "name", "email", "company", "title", "category", "source",
   "status", "linkedin_url", "notes", "website", "follow_up_at", "research_summary",
-  "company_linkedin_url",
+  "company_linkedin_url", ...EMAIL_FIELDS,
 ];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -100,6 +107,13 @@ function sameCompany(a: unknown, b: unknown): boolean {
   const shorter = x.length <= y.length ? x : y;
   return shorter.length >= 4 && (x.startsWith(y) || y.startsWith(x));
 }
+
+async function sha256(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+const scrapedCompanyUrlFor = (body: any) => (body.company_linkedin_url || "").toString();
 
 function domainOf(u: unknown): string {
   const s = String(u || "").trim();
@@ -414,6 +428,114 @@ Deno.serve(async (req) => {
       return j({ done: false, updated: rows.length, matched: items.length });
     }
 
+    // ---- FIND EMAIL ----------------------------------------------------------
+    // One routed treg lookup (linkedin_url + name + the agency's domain when we know
+    // it), then a verify when the finder didn't confirm the address. Nothing is
+    // written here: the popup fills the Email field and the normal save stores it.
+    // Each request carries an idempotency key derived from its inputs, so clicking
+    // again (or the popup retrying after a timeout) within 24 hours replays the
+    // answer for free instead of paying twice.
+    if (action === "find_email") {
+      const TREG = Deno.env.get("TREG_TOKEN") || "";
+      if (!TREG) return j({ status: "not_configured" });
+      const linkedin = (body.linkedin_url || "").toString().trim();
+      const fullName = (body.name || "").toString().trim();
+      if (!linkedin && !fullName) return j({ error: "Need a LinkedIn URL or a name" }, 422);
+
+      // The company's domain sharpens the lookup and lets us flag hits elsewhere.
+      let agency: any = null;
+      if (scrapedCompanyUrlFor(body)) {
+        const known = await findAgencyByCompanyUrl(scrapedCompanyUrlFor(body));
+        if (known) agency = await getAgency(known.id);
+      }
+      if (!agency && !blank(body.company)) {
+        const r = await fetch(
+          `${SB_URL}/rest/v1/agencies?select=${AGENCY_COLS}&name=ilike.${encodeURIComponent(searchName(body.company).replace(/[%*,()]/g, ""))}*&limit=10`,
+          { headers: svc },
+        );
+        const rows = await r.json().catch(() => []);
+        if (Array.isArray(rows)) agency = rows.find((a: any) => sameCompany(a.name, body.company)) || null;
+      }
+      const domain = agency ? (agency.domain || domainOf(agency.website)) : "";
+
+      const query: Record<string, string> = {};
+      if (linkedin) query.linkedin_url = linkedin;
+      if (fullName) query.full_name = fullName;
+      if (domain) query.domain = domain;
+
+      async function treg(endpoint: string, payload: Record<string, string>, maxCost: string) {
+        const key = "prospects-" + endpoint + "-" + await sha256(JSON.stringify(payload));
+        const res = await fetch(`${TREG_URL}/${endpoint}`, {
+          method: "POST",
+          headers: {
+            "X-Treg-Token": TREG,
+            "X-Treg-Route-Max-Cost": maxCost,
+            "Idempotency-Key": key,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(100000),
+        });
+        const data = await res.json().catch(() => null);
+        const cost = Number(res.headers.get("X-Treg-Cost-Micro") || 0) / 1e6;
+        return { res, data, cost };
+      }
+
+      let spent = 0;
+      let found: any;
+      try {
+        found = await treg("treg.people.email.find", query, EMAIL_FIND_MAX_COST_USD);
+      } catch (e) {
+        // Timed out: the lookup may still finish on treg's side. The popup asks
+        // again with the same inputs, which replays the answer at no charge.
+        if ((e as Error)?.name === "TimeoutError") return j({ status: "pending" });
+        throw e;
+      }
+      spent += found.cost;
+      if (found.res.status === 409) return j({ status: "pending" });
+      if (found.res.status === 402) {
+        return j({ status: "no_balance", topup_url: found.data?.topup_url || null, balance_usd: (found.data?.balance_micro ?? 0) / 1e6 });
+      }
+      if (!found.res.ok) {
+        return j({ status: "error", error: `treg ${found.res.status}: ${JSON.stringify(found.data?.detail ?? found.data ?? "lookup failed")}`.slice(0, 300) });
+      }
+
+      const out = found.data?.output || {};
+      const email = typeof out.email === "string" ? out.email.trim().toLowerCase() : "";
+      const provider = (found.data?._treg?.provider || String(found.data?._treg?.served_by || "").split(".")[0] || "").toString();
+      if (!email) return j({ status: "not_found", domain, cost_usd: Math.round(spent * 10000) / 10000 });
+
+      // Confirm deliverability unless the finder already did.
+      let verdict = out.verified === true ? "valid" : "";
+      if (!verdict) {
+        try {
+          const v = await treg("treg.people.email.verify", { email }, EMAIL_VERIFY_MAX_COST_USD);
+          spent += v.cost;
+          verdict = (v.res.ok && (v.data?.output?.status || (v.data?.output?.valid === true ? "valid" : ""))) || "";
+        } catch (_) { /* leave it unverified */ }
+      }
+      verdict = verdict.toString().toLowerCase();
+      const emailDomain = email.split("@")[1] || "";
+      const offDomain = !!domain && emailDomain !== domain && !emailDomain.endsWith("." + domain) && !domain.endsWith("." + emailDomain);
+
+      if (verdict === "invalid") {
+        return j({ status: "invalid", email, provider, domain, off_domain: offDomain, cost_usd: Math.round(spent * 10000) / 10000 });
+      }
+      const catchAll = /accept|catch|risky/.test(verdict);
+      const deliverable = verdict === "valid";
+      return j({
+        status: "found",
+        email,
+        email_status: deliverable ? "deliverable" : "Unverified",
+        email_source: `treg (${provider || "unknown"})` + (deliverable ? "" : catchAll ? " catch-all" : " unverified"),
+        verdict: verdict || "unverified",
+        provider,
+        domain,
+        off_domain: offDomain,
+        cost_usd: Math.round(spent * 10000) / 10000,
+      });
+    }
+
     // ---- COMPANY STATUS ------------------------------------------------------
     if (action === "company_status") {
       const id = (body.agency_id || "").toString();
@@ -531,11 +653,15 @@ Deno.serve(async (req) => {
       }
 
       for (const k of ALLOWED) {
-        if (k === "linkedin_url" || k === "category") continue;
+        if (k === "linkedin_url" || k === "category" || EMAIL_FIELDS.includes(k)) continue;
         let v = body[k];
         if (v === undefined || v === null) continue;
         if (typeof v === "string") { v = v.trim(); if (v === "") continue; }
         if (blank(existing[k])) { patch[k] = v; if (k !== "company_linkedin_url") filled.push(k); }
+      }
+
+      if (patch.email) {
+        for (const k of EMAIL_FIELDS) if (!blank(body[k])) patch[k] = body[k];
       }
 
       let contact = existing;
@@ -574,6 +700,7 @@ Deno.serve(async (req) => {
       if (typeof v === "string") { v = v.trim(); if (v === "") continue; }
       row[k] = v;
     }
+    if (!row.email) for (const k of EMAIL_FIELDS) delete row[k];
     if (!row.name || typeof row.name !== "string") return j({ error: "A prospect name is required" }, 422);
 
     const res = await fetch(`${SB_URL}/rest/v1/contacts`, {
