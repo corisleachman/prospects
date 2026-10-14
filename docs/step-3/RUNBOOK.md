@@ -1,6 +1,6 @@
 # Step 3a runbook
 
-Status: migration applied to production and verified on 12 October 2026.
+Status: stage 3a applied on 12 October 2026. Researcher intake applied and verified on 14 October 2026.
 
 ## What stage 3a changes
 
@@ -24,6 +24,44 @@ Status: migration applied to production and verified on 12 October 2026.
 - Migration: `supabase/migrations/20261009112146_step_3a_campaign_evidence_foundation.sql`
 - Transactional checks: `docs/step-3/checks.sql`
 - Technical plan: `docs/step-3/PLAN.md`
+- Researcher intake migration: `supabase/migrations/20261013091123_submit_researcher_evidence.sql`
+- Researcher intake checks: `docs/step-3/researcher-evidence-checks.sql`
+
+## Researcher intake candidate
+
+The candidate Step 3b slice adds one `security invoker` RPC and one strict entity-match insert policy. It reuses the current Research card fields and adds a single `Save evidence` action. The RPC derives workspace and agency from the selected contact, deduplicates the source, and records the researcher's explicit match atomically.
+
+This candidate hasn't been applied to production. Verify it on an isolated branch with `docs/step-3/researcher-evidence-checks.sql` before any production approval is requested.
+
+## Researcher intake verification record
+
+Verified on 14 October 2026 using a fresh ephemeral Supabase branch with no production data.
+
+- The repository migrations replayed cleanly after reconstructing the known prehistory baseline.
+- The existing Step 3a isolation checks passed and rolled back their synthetic records.
+- The Step 3b checks passed for owner and researcher roles, URL normalization, source-family selection, accepted entity matching, deduplication and cross-workspace denial.
+- The RPC runs as `security invoker`, has a fixed empty search path, is unavailable to `anon` and remains available to `authenticated`.
+- The security advisor returned no findings.
+- The performance advisor returned only the existing baseline notices documented below. Unused-index notices are expected on an empty branch.
+- The final migration dry-run reported the branch database was up to date.
+- The ephemeral branch was deleted after verification.
+
+The Step 3b migration was subsequently approved, applied and verified in production on 14 October 2026. The dashboard change remained behind PR #25 until the production checks passed.
+
+## Researcher intake production verification
+
+Applied on 14 October 2026 using `supabase db push`, preserving migration version `20261013091123`.
+
+- A completed physical backup from 14 October 2026 at 04:06 UTC was confirmed before application. PITR was not enabled.
+- The migration dry run listed only `20261013091123_submit_researcher_evidence.sql`, with no seed or role changes.
+- Production migration history now matches all 31 repository migrations.
+- The RPC uses `security invoker`; `anon` cannot execute it and `authenticated` can.
+- The rollback-only researcher checks passed for permissions, workspace isolation, URL normalization, deduplication and entity matching.
+- The checks left no synthetic users behind.
+- The current post-migration totals were 1,216 agencies and 1,444 contacts.
+- The security and performance advisors reported no new Step 3b findings.
+
+The advisor baseline remains unchanged: `pg_net` is installed in the public schema, `agency_tidy_dismissals` has its existing key and index notices, `enquiries` has its existing RLS initialization warning, and Auth uses a fixed database connection allocation. Unused-index notices are expected for the new foundation tables until live traffic reaches them.
 
 ## Safe verification sequence
 

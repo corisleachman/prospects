@@ -1,6 +1,6 @@
 # Step 3: campaign and evidence foundation
 
-Status: stage 3a applied to production and verified on 12 October 2026. The dashboard integration remains to be built.
+Status: stage 3a applied to production and verified on 12 October 2026. The first dashboard intake slice is in development and hasn't been deployed.
 
 ## Outcome
 
@@ -9,6 +9,12 @@ Step 3 should create the smallest safe foundation for Prospect Signals V1 withou
 The first usable result is simple: a researcher can submit a source, or the existing LinkedIn scan can collect one, and both routes produce the same evidence record. That evidence can then be matched to an agency and contact, grouped into one event, and qualified for a campaign.
 
 The daily review board, message generation and scheduled collection come later. Building them before the evidence model is proven would make weak assumptions expensive to unwind.
+
+## First dashboard intake slice
+
+The next small change reuses the current Research card. A researcher can save either the existing external research URL and notes or the existing LinkedIn post URL and relevance note as evidence. The action uses the signed-in user's normal database permissions, derives workspace and agency from the selected contact, and creates one immutable evidence item plus an accepted researcher match in one transaction.
+
+The interface keeps the current typography, spacing, colours and controls. There is no new screen. This slice doesn't classify the evidence, add it to a campaign queue, generate a message or contact anyone.
 
 ## Decisions made in this plan
 

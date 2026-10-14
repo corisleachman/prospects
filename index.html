@@ -582,6 +582,7 @@ tr.dragging{opacity:.4}
 .rq-btn.bad{background:#fff;color:#A8201A;border:1px solid #e3c4bc}
 .rq-btn.ghost{background:var(--black);color:#fff}
 .rq-btn:hover{opacity:.9}
+.rq-evidence-status{align-self:center;font:600 10px 'DM Mono',monospace;color:var(--grey-mid)}
 .rq-skip{display:block;margin:14px auto 0;background:none;border:0;color:var(--grey-mid);font:600 11px 'DM Sans';cursor:pointer;text-decoration:underline;padding:6px}
 .rq-empty{text-align:center;padding:64px 20px;color:var(--grey-mid);font-size:14px}
 .rq-empty .rq-big{font-size:46px;margin-bottom:10px}
@@ -4117,6 +4118,53 @@ function rqPatch(id, payload){
     });
 }
 function saveResearchField(id, field, val){ rqPatch(id, {[field]: (val===''?null:val)}); }
+async function submitResearchEvidence(id){
+  const c=ALL.find(x=>x.id===id); if(!c) return;
+  const sourceUrl=((document.getElementById('rq-source-'+id)||{}).value||'').trim();
+  const sourceNotes=((document.getElementById('rq-news-'+id)||{}).value||'').trim();
+  const postUrl=((document.getElementById('rq-post-url-'+id)||{}).value||'').trim();
+  const postSummary=((document.getElementById('rq-post-summary-'+id)||{}).value||'').trim();
+  const linkedInNotes=((document.getElementById('rq-linkedin-notes-'+id)||{}).value||'').trim();
+  let url='', excerpt='', title='';
+  if(sourceUrl && sourceNotes){
+    url=sourceUrl; excerpt=sourceNotes; title=(c.company||'Company')+' research evidence';
+  }else if(postUrl && (postSummary||linkedInNotes)){
+    url=postUrl; excerpt=postSummary||linkedInNotes; title='LinkedIn evidence for '+(c.name||'contact');
+  }else if(sourceUrl){
+    toast('Add a short note explaining what the source proves'); return;
+  }else if(postUrl){
+    toast('Add one sentence explaining why the post is relevant'); return;
+  }else{
+    toast('Add a research source URL or best post URL first'); return;
+  }
+
+  const btn=document.getElementById('rq-evidence-btn-'+id);
+  const status=document.getElementById('rq-evidence-status-'+id);
+  if(btn){ btn.disabled=true; btn.textContent='Saving…'; }
+  if(status) status.textContent='';
+  try{
+    const r=await sb('rpc/submit_researcher_evidence',{
+      method:'POST',
+      body:JSON.stringify({
+        p_contact_id:id,
+        p_source_url:withScheme(url),
+        p_excerpt:excerpt,
+        p_title:title,
+        p_researcher_confidence:c.human_signal_strength||null
+      })
+    });
+    const data=await r.json().catch(()=>null);
+    if(!r.ok) throw new Error((data&&data.message)||('HTTP '+r.status));
+    const result=Array.isArray(data)?data[0]:data;
+    if(btn) btn.textContent='✓ Evidence saved';
+    if(status) status.textContent=result&&result.duplicate?'Already in pipeline':'Ready for qualification';
+    toast(result&&result.duplicate?'This evidence is already in the pipeline':'Evidence saved for qualification');
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='Save evidence'; }
+    if(status) status.textContent='Not saved';
+    toast(e.message||'Evidence couldn’t be saved');
+  }
+}
 function setStrength(id, val){
   rqPatch(id, {human_signal_strength: val});
   ['strong','maybe','nothing'].forEach(k=>{ const el=document.getElementById('rqs-'+k); if(el) el.classList.toggle('on-'+k, k===val); });
@@ -4219,17 +4267,18 @@ function renderResearchCard(c){
   h+=`<a href="${googleAgencyNewsTrade(c)}" target="_blank" rel="noopener">Trade press ↗</a>`;
   if(li) h+=`<a href="${escapeHtml(li)}" target="_blank" rel="noopener">Mutual connections ↗</a>`;
   h+=`</div>`;
-  h+=`<div class="rq-fld"><label>LinkedIn — skim the latest ~3 posts. Anything useful?</label><textarea onchange="saveResearchField('${c.id}','linkedin_research_notes',this.value)" placeholder="What are they posting about?">${escapeHtml(c.linkedin_research_notes||'')}</textarea></div>`;
-  h+=`<div class="rq-fld"><label>Best post URL</label><input type="url" onchange="saveResearchField('${c.id}','interesting_post_url',this.value)" value="${escapeHtml(c.interesting_post_url||'')}" placeholder="https://www.linkedin.com/posts/…"></div>`;
-  h+=`<div class="rq-fld"><label>Why it's relevant (one sentence)</label><input type="text" onchange="saveResearchField('${c.id}','interesting_post_summary',this.value)" value="${escapeHtml(c.interesting_post_summary||'')}" placeholder="e.g. Just posted about scaling new business without a hire"></div>`;
+  h+=`<div class="rq-fld"><label>LinkedIn — skim the latest ~3 posts. Anything useful?</label><textarea id="rq-linkedin-notes-${c.id}" onchange="saveResearchField('${c.id}','linkedin_research_notes',this.value)" placeholder="What are they posting about?">${escapeHtml(c.linkedin_research_notes||'')}</textarea></div>`;
+  h+=`<div class="rq-fld"><label>Best post URL</label><input id="rq-post-url-${c.id}" type="url" onchange="saveResearchField('${c.id}','interesting_post_url',this.value)" value="${escapeHtml(c.interesting_post_url||'')}" placeholder="https://www.linkedin.com/posts/…"></div>`;
+  h+=`<div class="rq-fld"><label>Why it's relevant (one sentence)</label><input id="rq-post-summary-${c.id}" type="text" onchange="saveResearchField('${c.id}','interesting_post_summary',this.value)" value="${escapeHtml(c.interesting_post_summary||'')}" placeholder="e.g. Just posted about scaling new business without a hire"></div>`;
   const st=c.human_signal_strength||'';
   h+=`<div class="rq-fld"><label>Signal strength</label><div class="rq-strength">`
     +`<label id="rqs-strong" class="${st==='strong'?'on-strong':''}" onclick="setStrength('${c.id}','strong')">Strong</label>`
     +`<label id="rqs-maybe" class="${st==='maybe'?'on-maybe':''}" onclick="setStrength('${c.id}','maybe')">Maybe</label>`
     +`<label id="rqs-nothing" class="${st==='nothing'?'on-nothing':''}" onclick="setStrength('${c.id}','nothing')">Nothing</label>`
     +`</div></div>`;
-  h+=`<div class="rq-fld"><label>News / research notes</label><textarea onchange="saveResearchField('${c.id}','news_research_notes',this.value)" placeholder="Recent wins, hires, funding, rebrand…">${escapeHtml(c.news_research_notes||'')}</textarea></div>`;
-  h+=`<div class="rq-fld"><label>Research source URL</label><input type="url" onchange="saveResearchField('${c.id}','research_source_url',this.value)" value="${escapeHtml(c.research_source_url||'')}" placeholder="Link to the article / source"></div>`;
+  h+=`<div class="rq-fld"><label>News / research notes</label><textarea id="rq-news-${c.id}" onchange="saveResearchField('${c.id}','news_research_notes',this.value)" placeholder="Recent wins, hires, funding, rebrand…">${escapeHtml(c.news_research_notes||'')}</textarea></div>`;
+  h+=`<div class="rq-fld"><label>Research source URL</label><input id="rq-source-${c.id}" type="url" onchange="saveResearchField('${c.id}','research_source_url',this.value)" value="${escapeHtml(c.research_source_url||'')}" placeholder="Link to the article / source"></div>`;
+  h+=`<div class="rq-links" style="margin:-4px 0 13px"><button id="rq-evidence-btn-${c.id}" class="rq-actbtn" onclick="submitResearchEvidence('${c.id}')">Save evidence</button><span id="rq-evidence-status-${c.id}" class="rq-evidence-status" aria-live="polite"></span></div>`;
   h+=`<div class="rq-fld"><label>Mutual connections</label><textarea onchange="saveResearchField('${c.id}','mutual_connection_notes',this.value)" placeholder="Anyone Coris might know in common?">${escapeHtml(c.mutual_connection_notes||'')}</textarea></div>`;
   h+=`<div class="rq-decide">`;
   h+=`<button class="rq-btn good" onclick="readyForCoris('${c.id}')">⭐ Ready for Coris</button>`;
