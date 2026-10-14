@@ -24,6 +24,29 @@ Status: migration applied to production and verified on 12 October 2026.
 - Migration: `supabase/migrations/20261009112146_step_3a_campaign_evidence_foundation.sql`
 - Transactional checks: `docs/step-3/checks.sql`
 - Technical plan: `docs/step-3/PLAN.md`
+- Researcher intake migration: `supabase/migrations/20261013091123_submit_researcher_evidence.sql`
+- Researcher intake checks: `docs/step-3/researcher-evidence-checks.sql`
+
+## Researcher intake candidate
+
+The candidate Step 3b slice adds one `security invoker` RPC and one strict entity-match insert policy. It reuses the current Research card fields and adds a single `Save evidence` action. The RPC derives workspace and agency from the selected contact, deduplicates the source, and records the researcher's explicit match atomically.
+
+This candidate hasn't been applied to production. Verify it on an isolated branch with `docs/step-3/researcher-evidence-checks.sql` before any production approval is requested.
+
+## Researcher intake verification record
+
+Verified on 14 October 2026 using a fresh ephemeral Supabase branch with no production data.
+
+- The repository migrations replayed cleanly after reconstructing the known prehistory baseline.
+- The existing Step 3a isolation checks passed and rolled back their synthetic records.
+- The Step 3b checks passed for owner and researcher roles, URL normalization, source-family selection, accepted entity matching, deduplication and cross-workspace denial.
+- The RPC runs as `security invoker`, has a fixed empty search path, is unavailable to `anon` and remains available to `authenticated`.
+- The security advisor returned no findings.
+- The performance advisor returned only the existing baseline notices documented below. Unused-index notices are expected on an empty branch.
+- The final migration dry-run reported the branch database was up to date.
+- The ephemeral branch was deleted after verification.
+
+No Step 3b migration or dashboard change was applied to production during verification.
 
 ## Safe verification sequence
 
