@@ -2263,16 +2263,19 @@ async function agencyFindAdd(i){
   const cand=_agFind.results[i]; if(!cand||cand.existing||_agFind.added[i]) return;
   _agFind.added[i]='saving'; renderAgencies();
   try{
-    const r=await _agFindFetch({action:'add',company:a.name,company_linkedin_url:a.linkedin||_agFind.company_url||'',candidates:[cand]});
+    const r=await _agFindFetch({action:'add',company:a.name,company_linkedin_url:a.linkedin||_agFind.company_url||'',company_domain:a.domain||'',candidates:[cand]});
     const d=await r.json().catch(function(){return{};});
     if(!r.ok){ toast(d.error||'Add failed'); _agFind.added[i]=null; renderAgencies(); return; }
-    (d.inserted||[]).forEach(function(c){ if(c&&c.id) ALL.push(c); });
+    (d.inserted||[]).forEach(function(c){ if(c&&c.id){ ALL.push(c); if(c.email) cand.email=c.email; } });
+    const why=Object.values(d.email||{})[0];
+    if(!cand.email && why==='no_balance') toast('Added — treg balance too low to look up the email');
     _agFind.added[i]='done'; buildTabs(); renderAgencies();
   }catch(e){ _agFind.added[i]=null; renderAgencies(); toast('Add failed — network error'); }
 }
 async function agencyFindAddAll(){
   if(!_agFind||!_agFind.results) return;
-  for(let i=0;i<_agFind.results.length;i++){ const c=_agFind.results[i]; if(c && !c.existing && !_agFindOff(c) && !_agFind.added[i]){ await agencyFindAdd(i); } }
+  const jobs=[]; for(let i=0;i<_agFind.results.length;i++){ const c=_agFind.results[i]; if(c && !c.existing && !_agFindOff(c) && !_agFind.added[i]){ jobs.push(agencyFindAdd(i)); } }
+  await Promise.all(jobs);
 }
 function _agFindPanel(a){
   if(!_agFind||!_agFind.open) return '';
@@ -2296,7 +2299,7 @@ function _agFindPanel(a){
   }
   else if(_agFind.phase==='estimate'){
     const e=_agFind.estimate||{};
-    inner=`<div class="agf-cost">This runs a paid LinkedIn search via treg — up to <b>$${(Number(e.recommendedCapUsd)||0).toFixed(2)}</b> for up to ${e.maxItems||_agFind.max_items} profiles. Emails aren’t included; use Find email on a contact after adding it.</div><div class="agf-foot"><button class="ag-mini ghost" onclick="agencyFindBack()">← Back</button><button class="ag-mini" onclick="agencyFindRun()">Run search</button></div>`;
+    inner=`<div class="agf-cost">This runs a paid LinkedIn search via treg — up to <b>$${(Number(e.recommendedCapUsd)||0).toFixed(2)}</b> for up to ${e.maxItems||_agFind.max_items} profiles. Each person you add gets a work-email lookup via treg (about 1–2¢ each).</div><div class="agf-foot"><button class="ag-mini ghost" onclick="agencyFindBack()">← Back</button><button class="ag-mini" onclick="agencyFindRun()">Run search</button></div>`;
   }
   else if(_agFind.phase==='results'){
     const res=_agFind.results||[];
@@ -2310,7 +2313,7 @@ function _agFindPanel(a){
       const meta=[c.title,c.location].filter(Boolean).join(' · ');
       const co=c.company?`<span class="agf-cand-co${off?' off':''}">${escapeHtml(c.company)}${off?' · other company':''}</span>`:'';
       const st=_agFind.added[i];
-      const btn=c.existing?`<span class="agf-tag">In your list</span>`:(st==='done'?`<span class="agf-tag done">✓ Added</span>`:(st==='saving'?`<button class="ag-mini" disabled>Adding…</button>`:`<button class="ag-mini${off?' ghost':''}" onclick="agencyFindAdd(${i})">Add</button>`));
+      const btn=c.existing?`<span class="agf-tag">In your list</span>`:(st==='done'?`<span class="agf-tag done">✓ Added${c.email?'':' · no email found'}</span>`:(st==='saving'?`<button class="ag-mini" disabled>Adding + finding email…</button>`:`<button class="ag-mini${off?' ghost':''}" onclick="agencyFindAdd(${i})">Add</button>`));
       return `<div class="agf-cand${off?' isoff':''}"><div class="agf-cand-main"><div class="agf-cand-name">${li?`<a class="rowlink" href="${escapeHtml(li)}" target="_blank" rel="noopener">${escapeHtml(c.name||'')}<span class="lnkicon">in</span></a>`:escapeHtml(c.name||'')}</div><div class="agf-cand-meta">${escapeHtml(meta)}</div>${co}${c.email?`<div class="agf-cand-email">${escapeHtml(c.email)}</div>`:''}</div><div class="agf-cand-act">${btn}</div></div>`;
     }).join(''):`<div class="agf-status">No matching people found. Try a broader location, different functions, or drop the Director filter.</div>`;
     inner=`${harvest}<div class="agf-results-head"><span>${res.length} found · ${addable} at ${escapeHtml(a.name)}</span><span>${addable>1?`<button class="ag-mini" onclick="agencyFindAddAll()">Add all</button>`:''} <button class="ag-mini ghost" onclick="agencyFindBack()">New search</button></span></div>${rows}`;
