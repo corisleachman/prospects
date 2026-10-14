@@ -2290,12 +2290,12 @@ function _agFindPanel(a){
       <div class="agf-row"><span class="ag-url-label">Location</span><input class="ag-url-input" id="agf-loc" value="${escapeHtml(_agFind.location||'')}" placeholder="e.g. United Kingdom (full name, not “UK”)"></div>
       <div class="agf-row"><span class="ag-url-label">Function</span><div class="agf-fns">${fns}</div></div>
       <div class="agf-row"><span class="ag-url-label">Seniority</span><label class="agf-chk"><input type="checkbox" id="agf-dirplus" ${_agFind.director_plus?'checked':''}> Director and above</label></div>
-      <div class="agf-row"><span class="ag-url-label">Title</span><input class="ag-url-input" id="agf-titles" value="${escapeHtml(_agFind.job_titles||'')}" placeholder="Optional, e.g. New Business, Growth (comma-separated)"></div>
+      <div class="agf-row"><span class="ag-url-label">Title</span><input class="ag-url-input" id="agf-titles" value="${escapeHtml(_agFind.job_titles||'')}" placeholder="Optional, e.g. Director, Managing, New Business (comma-separated; replaces the seniority filter)"></div>
       <div class="agf-foot"><span class="agf-hint">${scoped?'':'Tip: without the company page you’ll see people from other firms. Set a location to at least keep it in-country.'}</span><button class="ag-mini" onclick="agencyFindEstimate()">${scoped?'Search this company →':'Search by name + location →'}</button></div>`;
   }
   else if(_agFind.phase==='estimate'){
     const e=_agFind.estimate||{};
-    inner=`<div class="agf-cost">This runs a paid LinkedIn search via Apify — up to <b>$${(Number(e.recommendedCapUsd)||0).toFixed(2)}</b> for up to ${e.maxItems||_agFind.max_items} profiles, with email lookup.</div><div class="agf-foot"><button class="ag-mini ghost" onclick="agencyFindBack()">← Back</button><button class="ag-mini" onclick="agencyFindRun()">Run search</button></div>`;
+    inner=`<div class="agf-cost">This runs a paid LinkedIn search via treg — up to <b>$${(Number(e.recommendedCapUsd)||0).toFixed(2)}</b> for up to ${e.maxItems||_agFind.max_items} profiles. Emails aren’t included; use Find email on a contact after adding it.</div><div class="agf-foot"><button class="ag-mini ghost" onclick="agencyFindBack()">← Back</button><button class="ag-mini" onclick="agencyFindRun()">Run search</button></div>`;
   }
   else if(_agFind.phase==='results'){
     const res=_agFind.results||[];
