@@ -1,0 +1,35 @@
+name: Signals Phase 1
+on:
+  pull_request:
+    paths:
+      - 'apps/signals/**'
+      - 'supabase/migrations/*signals_phase_one.sql'
+      - '.github/workflows/signals-phase-one.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/signals/**'
+      - 'supabase/migrations/*signals_phase_one.sql'
+      - '.github/workflows/signals-phase-one.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/signals
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/signals/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
