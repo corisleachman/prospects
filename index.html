@@ -519,6 +519,11 @@ tr.dragging{opacity:.4}
 .pill.warm-nurture{background:#d9ecd2;color:#3f6b34}
 .pill.warm-cold{background:#dfe4ee;color:#4a5570}
 .pill.warm-none{background:#efe9db;color:#9a927f}
+.pill.enq-src-hc{background:#dff2c9;color:#2f5a1e}
+.pill.enq-src-guide{background:#efe9db;color:#6b6456}
+.enq-stages{margin-top:6px;font-size:11.5px;white-space:normal}
+.enq-stages summary{cursor:pointer;color:var(--grey-mid)}
+.enq-stages div{display:flex;justify-content:space-between;gap:12px;max-width:260px;padding:2px 0}
 .pill.stage-none{background:#efe9db;color:#9a927f}.pill.stage-1,.pill.stage-2{background:#ece7dc;color:#4a463e}.pill.stage-3,.pill.stage-4{background:#dcebd5;color:#2f5a25}.pill.stage-5{background:#1D2540;color:#fff}.pill.stage-6{background:#1D2540;color:var(--green)}
 .np-hot{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:12px;background:rgba(196,48,43,0.20);color:#FF8A63;margin-left:4px}
 .imp-mode{display:inline-flex;background:var(--grey-light);border-radius:100px;padding:3px;gap:2px}
@@ -1382,19 +1387,43 @@ let ENQUIRIES=[];
 async function loadEnquiries(){
   try{ const r=await sb('enquiries?select=*&order=created_at.desc'); if(r.ok){ ENQUIRIES=await r.json(); buildTabs(); if(activeTab==='__enquiries__') renderEnquiries(); } }catch(e){}
 }
+function _enqSource(e){ return e.source==='health_check' ? {k:'hc',l:'Health check'} : {k:'guide',l:'Build guide'}; }
+function _enqInProspects(e){
+  if(e.added_contact_id) return ALL.find(c=>c.id===e.added_contact_id)||{id:e.added_contact_id};
+  const em=String(e.email||'').trim().toLowerCase(); if(!em) return null;
+  return ALL.find(c=>String(c.email||'').trim().toLowerCase()===em)||null;
+}
 function renderEnquiries(){
   const wrap=document.getElementById('enquiries-wrap');
   document.getElementById('loading').style.display='none';
-  if(!ENQUIRIES.length){ wrap.innerHTML='<div class="empty">No enquiries yet. When someone submits the form on your build guide, it lands here.</div>'; return; }
+  if(!ENQUIRIES.length){ wrap.innerHTML='<div class="empty">No enquiries yet. When someone submits the build guide form or the website health check, it lands here.</div>'; return; }
   wrap.innerHTML=`<div class="table-wrap"><table class="tbl">
-    <thead><tr><th>Received</th><th>Name</th><th>Email</th><th>Company</th><th>Message</th></tr></thead>
-    <tbody>${ENQUIRIES.map(e=>`<tr>
+    <thead><tr><th>Received</th><th>Source</th><th>Name</th><th>Email</th><th>Company</th><th>Score</th><th>Message</th><th></th></tr></thead>
+    <tbody>${ENQUIRIES.map(e=>{ const src=_enqSource(e), inP=_enqInProspects(e); const st=(e.results&&Array.isArray(e.results.stages))?e.results.stages:null; return `<tr>
       <td style="white-space:nowrap;font-size:11px;color:var(--grey-mid)">${fmtDate(e.created_at)}</td>
-      <td style="font-weight:600">${escapeHtml(e.name||'')}</td>
+      <td><span class="pill enq-src-${src.k}">${src.l}</span></td>
+      <td style="font-weight:600">${escapeHtml(e.name||'')}${e.job_title?`<div style="font-weight:400;font-size:11px;color:var(--grey-mid)">${escapeHtml(e.job_title)}</div>`:''}</td>
       <td style="font-size:11px">${e.email?`<a href="mailto:${escapeHtml(e.email)}">${escapeHtml(e.email)}</a>`:''}</td>
       <td style="font-size:12px">${escapeHtml(e.company||'')}</td>
-      <td style="max-width:440px;white-space:pre-wrap;font-size:12.5px;line-height:1.5">${escapeHtml(e.message||'')}</td>
-    </tr>`).join('')}</tbody></table></div>`;
+      <td style="white-space:nowrap">${e.score!=null?`<b style="font-size:15px">${Number(e.score)}</b><span style="font-size:11px;color:var(--grey-mid)">/100</span>${e.tier?`<div style="font-size:11px;color:var(--grey-mid)">${escapeHtml(e.tier)}</div>`:''}`:'<span style="color:var(--grey-light)">—</span>'}</td>
+      <td style="max-width:440px;white-space:pre-wrap;font-size:12.5px;line-height:1.5">${escapeHtml(e.message||'')}${st?`<details class="enq-stages"><summary>Stage scores</summary>${st.map(x=>`<div><span>${escapeHtml(x.stage)}</span><b>${Number(x.score)}/6</b></div>`).join('')}</details>`:''}${e.email_status&&e.email_status!=='sent'?`<div style="font-size:11px;color:#A8201A;margin-top:4px">Results email: ${escapeHtml(e.email_status)}</div>`:''}</td>
+      <td style="white-space:nowrap">${inP?`<span class="pill warm-nurture" title="Already in your prospects">In prospects ✓</span>`:`<button class="cancelbtn" style="height:30px" onclick="addEnquiryToProspects('${e.id}',this)">Add to prospects</button>`}</td>
+    </tr>`; }).join('')}</tbody></table></div>`;
+}
+async function addEnquiryToProspects(id, btn){
+  const e=ENQUIRIES.find(x=>x.id===id); if(!e) return;
+  if(_enqInProspects(e)){ toast('Already in your prospects'); renderEnquiries(); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Adding…'; }
+  const src=_enqSource(e);
+  const payload={name:e.name||'Enquiry', email:e.email||null, company:e.company||null, title:e.job_title||null, source:src.l==='Health check'?'Website health check':'Build guide enquiry', status:'Not contacted',
+    notes:[src.l+' enquiry, '+fmtDate(e.created_at)+'.', e.message||''].filter(Boolean).join('\n')};
+  try{
+    const r=await sb(TABLE,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const contact=(await r.json())[0]; if(contact) ALL.unshift(contact);
+    if(contact){ e.added_contact_id=contact.id; await sb('enquiries?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({added_contact_id:contact.id})}); }
+    toast('Added to prospects'); buildTabs(); buildCatList(); renderEnquiries();
+  }catch(err){ toast('Could not add to prospects'); if(btn){ btn.disabled=false; btn.textContent='Add to prospects'; } }
 }
 async function load(){
   document.getElementById('setup').style.display='none';
@@ -1489,7 +1518,7 @@ function applyTabView(tab){
   document.getElementById('coris-wrap').style.display=isCoris?'block':'none';
   document.getElementById('agencies-wrap').style.display=isAgencies?'block':'none';
   if(isSpecial){ document.getElementById('table-wrap').style.display='none'; document.getElementById('setup').style.display='none'; }
-  if(isEnq){ title.textContent='Enquiries'; sub.textContent='Messages from your build guide'; renderEnquiries(); return; }
+  if(isEnq){ title.textContent='Enquiries'; sub.textContent='From your build guide and website health check'; renderEnquiries(); return; }
   if(isResearch){ title.textContent='Research queue'; sub.textContent='Verify each prospect, spend 2–3 minutes, move on'; renderResearch(); return; }
   if(isCoris){ title.textContent='Ready for Coris'; sub.textContent='Human-verified prospects worth a look'; renderCoris(); return; }
   if(isAgencies){ title.textContent='Agencies'; sub.textContent='Every company in your pipeline, with its people'; renderAgencies(); return; }

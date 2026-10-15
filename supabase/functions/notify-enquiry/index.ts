@@ -14,13 +14,17 @@ Deno.serve(async (req) => {
     const payload = await req.json().catch(()=> ({}));
     const row = payload.record || payload || {};
     const name = row.name || "(no name)", email = row.email || "", company = row.company || "", message = row.message || "";
-    const html = `<h2 style="font-family:sans-serif">New enquiry from your build guide</h2>
-      <p style="font-family:sans-serif"><b>Name:</b> ${esc(name)}<br><b>Email:</b> ${esc(email)}<br><b>Company:</b> ${esc(company||"—")}</p>
-      <p style="font-family:sans-serif"><b>Message:</b><br>${esc(message).replace(/\n/g,"<br>")}</p>`;
+    const isHC = row.source === "health_check";
+    const heading = isHC ? "New health check lead" : "New enquiry from your build guide";
+    const extra = isHC ? `<b>Job title:</b> ${esc(row.job_title||"—")}<br><b>Score:</b> ${esc(row.score)}/100 (${esc(row.tier||"")})<br>` : "";
+    const html = `<h2 style="font-family:sans-serif">${heading}</h2>
+      <p style="font-family:sans-serif"><b>Name:</b> ${esc(name)}<br><b>Email:</b> ${esc(email)}<br><b>Company:</b> ${esc(company||"—")}<br>${extra}</p>
+      <p style="font-family:sans-serif"><b>${isHC ? "Summary" : "Message"}:</b><br>${esc(message).replace(/\n/g,"<br>")}</p>`;
+    const subject = isHC ? `New health check — ${name}, ${company} (${row.score}/100)` : `New enquiry — ${name}`;
     const rRes = await fetch("https://api.resend.com/emails", {
       method:"POST",
       headers:{ Authorization:`Bearer ${key}`, "Content-Type":"application/json" },
-      body: JSON.stringify({ from, to:[TO], subject:`New enquiry — ${name}`, html, reply_to: email || undefined }),
+      body: JSON.stringify({ from, to:[TO], subject, html, reply_to: email || undefined }),
     });
     const d = await rRes.json().catch(()=> ({}));
     if (!rRes.ok) return j({ error: d?.message || `Resend ${rRes.status}` }, 502);
