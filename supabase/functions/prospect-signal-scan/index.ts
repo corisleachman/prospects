@@ -11,7 +11,8 @@ const corsHeaders = {
 const ACTOR_ID = "harvestapi~linkedin-profile-posts";
 const POST_PRICE_USD = 0.002;
 const SEARCH_ACTOR_ID = "harvestapi~linkedin-post-search";
-const SEARCH_ITEM_PRICE_USD = 0.002;
+// Each post or comment costs $0.002, plus $0.002 for the author's main profile, which carries their location.
+const SEARCH_ITEM_PRICE_USD = 0.004;
 const SEARCH_ZERO_RESULT_PRICE_USD = 0.001;
 
 type Contact = { id: string; name: string; company: string | null; linkedin_url: string | null; signal_scanned_at: string | null };
@@ -85,6 +86,16 @@ function cleanSourceUrl(value: string | null | undefined) {
   } catch {
     return raw;
   }
+}
+
+// V1 discovery is UK-only. LinkedIn post search has no location filter, so we read each
+// author's profile location and keep only people based in the United Kingdom.
+const UK_LOCATION_RX = /\b(united kingdom|uk|england|scotland|wales|northern ireland|great britain|london)\b/i;
+function isUkAuthor(author: Record<string, any> | null | undefined) {
+  const location = author?.location;
+  const code = String(location?.countryCode || location?.parsed?.countryCode || "").toUpperCase();
+  if (code) return code === "GB" || code === "UK";
+  return UK_LOCATION_RX.test(String(location?.linkedinText || location?.parsed?.text || ""));
 }
 
 function discoveryScore(text: string, parentText: string, authorInfo: string, observedAt: string | null) {
@@ -192,6 +203,8 @@ Deno.serve(async (req: Request) => {
         scrapeReactions: false,
         scrapeComments: includeComments,
         maxComments,
+        profileScraperMode: "main",
+        commentsProfileScraperMode: "main",
       };
       const endpoint = new URL("https://api.apify.com/v2/acts/" + SEARCH_ACTOR_ID + "/run-sync-get-dataset-items");
       endpoint.searchParams.set("maxTotalChargeUsd", recommendedCapUsd.toFixed(2));
@@ -215,6 +228,7 @@ Deno.serve(async (req: Request) => {
       if (knownError) throw knownError;
       const knownProfiles = new Set((knownContacts || []).map((contact) => cleanLinkedInProfile(contact.linkedin_url)).filter(Boolean).map((url) => url.toLowerCase()));
       const found = new Map<string, Record<string, unknown>>();
+      let outsideUk = 0;
 
       for (const item of Array.isArray(items) ? items : []) {
         if (item?.type !== "post" || !item?.linkedinUrl || !item?.content) continue;
@@ -247,6 +261,7 @@ Deno.serve(async (req: Request) => {
         for (const candidate of candidates) {
           const profileUrl = cleanLinkedInProfile(candidate.author?.linkedinUrl);
           if (!profileUrl || knownProfiles.has(profileUrl.toLowerCase()) || !candidate.sourceText) continue;
+          if (!isUkAuthor(candidate.author)) { outsideUk++; continue; }
           const authorInfo = String(candidate.author?.info || candidate.author?.position || "");
           const score = discoveryScore(candidate.sourceText, candidate.parentText, authorInfo, candidate.observedAt);
           if (score.subject < 2 || score.audience < 1 || score.total < 5) continue;
@@ -295,7 +310,7 @@ Deno.serve(async (req: Request) => {
       }
       const completedAt = new Date().toISOString();
       await supabase.from("prospect_signal_runs").update({ status: "succeeded", completed_at: completedAt, actual_item_count: Array.isArray(items) ? items.length : 0 }).eq("id", runRow.id);
-      return json({ runId: runRow.id, actorItems: Array.isArray(items) ? items.length : 0, qualifiedDiscoveries: rows.length, storedDiscoveries: stored, completedAt });
+      return json({ runId: runRow.id, actorItems: Array.isArray(items) ? items.length : 0, qualifiedDiscoveries: rows.length, skippedOutsideUk: outsideUk, storedDiscoveries: stored, completedAt });
     }
 
     const contactIds = Array.isArray(body.contact_ids) ? [...new Set(body.contact_ids.map(String))] : [];
