@@ -4521,7 +4521,7 @@ async function runDiscoverySearch(){
     if(!window.confirm(message)){status.textContent='Search cancelled.';btn.disabled=false;return;}
     status.textContent='Searching LinkedIn conversations…';
     const result=await invokeSignalFunction({action:'run_discovery',confirm_paid_run:true,...payload});
-    status.textContent=`${result.actorItems||0} posts and comments checked · ${result.qualifiedDiscoveries||0} UK prospect signals saved${result.skippedOutsideUk?' · '+result.skippedOutsideUk+' people outside the UK skipped':''}${result.skippedUnknownLocation?' · '+result.skippedUnknownLocation+' with no location skipped':''}${result.spentUsd!=null?' · cost $'+Number(result.spentUsd).toFixed(3):''}`;
+    status.textContent=`${result.actorItems||0} posts and comments checked · ${result.qualifiedDiscoveries||0} UK prospect signals saved${result.skippedOutsideUk?' · '+result.skippedOutsideUk+' people outside the UK skipped':''}${result.skippedUnknownLocation?' · '+result.skippedUnknownLocation+' with no location skipped':''}${result.locationChecksFailed?' · '+result.locationChecksFailed+' location checks failed (not saved, try again)':''}${result.spentUsd!=null?' · cost $'+Number(result.spentUsd).toFixed(3):''}`;
     await loadSignalDiscoveries();toast('Discovery search complete');
   }catch(e){status.textContent='Error: '+e.message;}
   btn.disabled=false;

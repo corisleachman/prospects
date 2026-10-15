@@ -327,10 +327,14 @@ Deno.serve(async (req: Request) => {
       const relevant = [...found.values()].sort((a, b) => Number(b.total_score) - Number(a.total_score));
       const people = [...new Set(relevant.map((row) => String(row.linkedin_url)))].slice(0, MAX_LOCATION_CHECKS);
       const profiles = await mapLimit(people, TREG_CONCURRENCY, (url) => treg(TREG_PROFILE, { url, main: "true" }, TREG_PROFILE_USD).catch(() => null));
+      if (profiles.some((p) => p?.status === 402)) return await failRun("treg balance ran out while checking locations. Top up at treg.to.", 402);
+      const lookupFailed = profiles.filter((p) => !p?.ok).length;
+      if (people.length && lookupFailed === people.length) return await failRun("Location checks failed, so no prospects were saved.", 502, { detail: JSON.stringify(profiles[0]?.data ?? null).slice(0, 400) });
       const ukPeople = new Set<string>();
       let outsideUk = 0;
       let unknownLocation = 0;
       people.forEach((url, index) => {
+        if (!profiles[index]?.ok) return;
         const location = profiles[index]?.data?.element?.location;
         const verdict = ukLocation(location);
         if (verdict === true) ukPeople.add(url);
@@ -356,6 +360,7 @@ Deno.serve(async (req: Request) => {
         relevantPeople: people.length,
         skippedOutsideUk: outsideUk,
         skippedUnknownLocation: unknownLocation,
+        locationChecksFailed: lookupFailed,
         qualifiedDiscoveries: rows.length,
         storedDiscoveries: stored,
         failedQueries: failed.map((s) => s.query),
