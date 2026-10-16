@@ -20,16 +20,16 @@ Foundation data is closed to new client roles until later phases add the precise
 
 ## Deployment prerequisites
 
-The repository points at the existing Prospects Supabase project. The connected Supabase tool account did not list it and explicitly denied read access. No remote schema was changed. The migration was verified locally, but live schema compatibility, SMTP settings and real invitation delivery remain unverified.
+On 16 October 2026 the corrected connector reached Prospects (`paprxejgeepvtbqmfgvt`). Phase 1 was replayed and checked on an isolated branch, then the committed migration was applied to production. Exactly one active platform administrator matches Coris's verified legacy owner account. SMTP settings and real invitation delivery remain unverified. See VERIFICATION.md for the rollout record.
 
-1. Connect the correct Prospects Supabase project before deployment. Confirm its existing columns and policy names against the migration. Use a staging branch/database first, including the actual older prehistory schema.
-2. Review and apply only the new `signals_phase_one` migration through the normal migration workflow. Do not modify old migrations. Confirm Coris's verified owner account produced exactly one active platform-admin row; if it did not, stop and verify the account rather than granting authority to an email supplied by a browser.
-3. Create a Vercel project rooted at `apps/signals`, with the Next.js preset and Node 24. Build command: `npm run build`; install: `npm ci --ignore-scripts`. Do not repoint the existing GitHub Pages site.
+1. Completed: project identity, columns, constraints and policy names checked. Staging replay used the repository baseline and all preceding migrations before Phase 1.
+2. Completed: `signals_phase_one` applied; exactly one verified owner administrator confirmed. Do not apply it again or modify old migrations.
+3. Created Vercel project `corisleachmans-projects/prospect-signals` (`prj_YUvk7szPeJuOy5p9rj4PVJ5VUFSV`), rooted at `apps/signals`, Next.js, Node 24. Build: `npm run build`; install: `npm ci --ignore-scripts`. Deployment protection is enabled. No deployment or Git connection yet.
 4. Set the app's environment variables from `.env.example` in Vercel. Add the chosen preview/production origin to Supabase Auth's redirect allowlist, including `/auth/callback`. Use a stable preview alias while testing; changing the host invalidates the intended redirect origin.
 5. Keep the existing V1 Auth site URL and working redirects. Add this app's redirects rather than replacing them. Disable public signup for this invitation-only app only after confirming that shared-project V1 does not need signup; the app itself exposes no signup route.
 6. Password recovery's default PKCE template uses `/auth/callback?next=/set-password`. If the project uses custom templates, make the recovery template point to the new app's `/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/set-password`, without changing V1 flows. Verify this on staging first.
 7. Configure Resend's verified sender for workspace invitations. Auth tokens use the project's existing invitation expiry; workspace invitation tokens expire after seven days. Reconcile those settings and test expiry copy before launch.
-8. Run Supabase's database advisors/security checks on the staging project, then complete the checks below. Any production migration or final publication requires a concrete reviewed rollout; no live rollout was attempted here.
+8. Run Supabase's database advisors/security checks on the staging project, then complete the checks below. Production database rollout is complete; app publication and real Auth/email checks remain pending.
 
 ## Coris's Phase 1 checks
 
