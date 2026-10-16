@@ -17,6 +17,7 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54329",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "fixture-publishable-key",
         APP_ORIGIN: "http://127.0.0.1:3107",
+        SUPABASE_SERVICE_ROLE_KEY:"fixture-service-key",
       },
     },
   ],

@@ -941,5 +941,299 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261016225719_signals_phase_four.sql"),
+      "utf8",
+    ),
+  );
+  async function service<T>(sql: string, params: unknown[] = []) {
+    return db.transaction(async (tx) => {
+      await tx.exec("set local role service_role");
+      await tx.query("select set_config('request.jwt.claims',$1,true)", [
+        JSON.stringify({ role: "service_role" }),
+      ]);
+      return tx.query<T>(sql, params);
+    });
+  }
+  await t.test(
+    "Phase 4 approved quotes escrow calls, settle receipts and save only selected entities",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Discovery test','Europe/London') as id",
+      );
+      const profile = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      await adminScalar(
+        "select public.change_signals_budget($1,'create',10,current_date,current_date+30,'Discovery',false) as id",
+        [w],
+      );
+      const result = {
+        companies: [
+          {
+            key: "domain:one.test",
+            name: "One",
+            domain: "one.test",
+            website: "https://one.test",
+            linkedin_url: "https://www.linkedin.com/company/one",
+            source: "discovered",
+          },
+          {
+            key: "domain:two.test",
+            name: "Two",
+            domain: "two.test",
+            website: "https://two.test",
+            linkedin_url: "https://www.linkedin.com/company/two",
+            source: "discovered",
+          },
+        ],
+        people: [
+          {
+            key: "person:alex|one",
+            name: "Alex Example",
+            company_key: "domain:one.test",
+            title: "CMO",
+            linkedin_url: "https://www.linkedin.com/in/alex",
+          },
+        ],
+        warnings: [],
+      };
+      const plan = { fx: 1, profile: { watch_revision: 0 } };
+      const id = (
+        await service<{ id: string }>(
+          "insert into public.discovery_previews(workspace_id,profile_id,profile_revision,plan,estimated_gbp,created_by) values($1,$2,0,$3,1,$4) returning id",
+          [w, profile, JSON.stringify(plan), owner],
+        )
+      ).rows[0].id;
+      await db.query(
+        "update public.discovery_previews set created_at=now()-interval '31 minutes' where id=$1",
+        [id],
+      );
+      await assert.rejects(
+        () =>
+          adminScalar("select public.start_signals_discovery($1) as id", [id]),
+        /expired/,
+      );
+      await db.query(
+        "update public.discovery_previews set created_at=now(),profile_revision=999 where id=$1",
+        [id],
+      );
+      await assert.rejects(
+        () =>
+          adminScalar("select public.start_signals_discovery($1) as id", [id]),
+        /Profile changed/,
+      );
+      await db.query(
+        "update public.discovery_previews set profile_revision=0 where id=$1",
+        [id],
+      );
+      await assert.rejects(
+        () => asUser(alice, "select public.start_signals_discovery($1)", [id]),
+        /Not allowed/,
+      );
+      await adminScalar("select public.start_signals_discovery($1) as id", [
+        id,
+      ]);
+      await assert.rejects(
+        () =>
+          adminScalar("select public.start_signals_discovery($1) as id", [id]),
+        /unavailable or expired/,
+      );
+      const claim = (
+        await service<{ data: { reservation: string } }>(
+          "select public.claim_signals_discovery_step($1,.2) as data",
+          [id],
+        )
+      ).rows[0].data;
+      assert.equal(
+        (
+          await service<{ data: unknown }>(
+            "select public.claim_signals_discovery_step($1,.2) as data",
+            [id],
+          )
+        ).rows[0].data,
+        null,
+      );
+      const held = (
+        await db.query<{ n: number }>(
+          "select sum(estimated_cost) as n from public.cost_reservations where workspace_id=$1 and status='reserved'",
+          [w],
+        )
+      ).rows[0].n;
+      assert.equal(Number(held), 1);
+      await service(
+        "select public.finish_signals_discovery_step($1,$2,.1,$3,$4,$5,true,null)",
+        [
+          id,
+          claim.reservation,
+          JSON.stringify({
+            stage: "find",
+            provider: "treg",
+            source_key: "fixture",
+            cost_basis: "reported",
+            outcome: "success",
+            units: { provider_cost_usd: 0.1 },
+          }),
+          JSON.stringify(result),
+          JSON.stringify(plan),
+        ],
+      );
+      assert.equal(
+        Number(
+          (
+            await db.query<{ n: number }>(
+              "select sum(cost) as n from public.cost_ledger where workspace_id=$1",
+              [w],
+            )
+          ).rows[0].n,
+        ),
+        0.1,
+      );
+      assert.equal(
+        Number(
+          (
+            await db.query<{ n: number }>(
+              "select coalesce(sum(estimated_cost),0) as n from public.cost_reservations where workspace_id=$1 and status='reserved'",
+              [w],
+            )
+          ).rows[0].n,
+        ),
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_watchlist($1,$2,$3)", [
+            id,
+            JSON.stringify(["inject"]),
+            JSON.stringify([]),
+          ]),
+        /outside this preview/,
+      );
+      await asUser(owner, "select public.save_signals_watchlist($1,$2,$3)", [
+        id,
+        JSON.stringify(["domain:one.test", "domain:two.test"]),
+        JSON.stringify(["person:alex|one"]),
+      ]);
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_watchlist($1,$2,$3)", [
+            id,
+            JSON.stringify(["domain:two.test"]),
+            JSON.stringify(["person:alex|one"]),
+          ]),
+        /company too/,
+      );
+      assert.equal(
+        (
+          await asUser(
+            owner,
+            "select * from public.campaign_prospects where campaign_id=$1",
+            [profile],
+          )
+        ).rows.length,
+        3,
+      );
+      await asUser(owner, "select public.save_signals_watchlist($1,$2,$3)", [
+        id,
+        JSON.stringify(["domain:one.test"]),
+        JSON.stringify(["person:alex|one"]),
+      ]);
+      assert.equal(
+        (
+          await asUser(
+            owner,
+            "select * from public.campaign_prospects where campaign_id=$1",
+            [profile],
+          )
+        ).rows.length,
+        2,
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.discovery_previews")).rows
+          .length,
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.set_signals_refresh($1,true)", [
+            profile,
+          ]),
+        /Not allowed/,
+      );
+      await asUser(owner, "select public.set_signals_refresh($1,true)", [
+        profile,
+      ]);
+      assert.equal(
+        (
+          await db.query<{ enabled: boolean }>(
+            "select watch_refresh_enabled as enabled from public.campaigns where id=$1",
+            [profile],
+          )
+        ).rows[0].enabled,
+        true,
+      );
+    },
+  );
+  await t.test(
+    "Phase 4 lost receipts settle once at the cap and stop retries",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Lost receipt','Europe/London') as id",
+      );
+      const p = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      await adminScalar(
+        "select public.change_signals_budget($1,'create',10,current_date,current_date+30,'Lost receipt',false) as id",
+        [w],
+      );
+      const q = (
+        await db.query<{ id: string }>(
+          "insert into public.discovery_previews(workspace_id,profile_id,profile_revision,plan,estimated_gbp) values($1,$2,0,'{\"fx\":1}',1) returning id",
+          [w, p],
+        )
+      ).rows[0].id;
+      await adminScalar("select public.start_signals_discovery($1) as id", [q]);
+      await service("select public.claim_signals_discovery_step($1,.2)", [q]);
+      await db.query(
+        "update public.discovery_previews set lease_until=now()-interval '1 minute' where id=$1",
+        [q],
+      );
+      await service("select public.recover_signals_discovery()");
+      await service("select public.recover_signals_discovery()");
+      assert.equal(
+        (
+          await db.query<{ status: string }>(
+            "select status from public.discovery_previews where id=$1",
+            [q],
+          )
+        ).rows[0].status,
+        "failed",
+      );
+      assert.equal(
+        Number(
+          (
+            await db.query<{ cost: number }>(
+              "select sum(cost) as cost from public.cost_ledger where workspace_id=$1",
+              [w],
+            )
+          ).rows[0].cost,
+        ),
+        0.2,
+      );
+      assert.equal(
+        (
+          await db.query(
+            "select 1 from public.cost_reservations where workspace_id=$1 and status='reserved'",
+            [w],
+          )
+        ).rows.length,
+        0,
+      );
+    },
+  );
   await db.close();
 });

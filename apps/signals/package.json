@@ -8,7 +8,8 @@
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:edge": "deno check --config ../../supabase/functions/signals-discovery/deno.json ../../supabase/functions/signals-discovery/index.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -24,6 +25,7 @@
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "deno": "2.9.6",
     "prettier": "3.9.10",
     "supabase": "2.100.1",
     "tsx": "4.20.6",

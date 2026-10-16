@@ -1,0 +1,199 @@
+{
+  "id": "harvestapi.linkedin.leads.search",
+  "method": "GET",
+  "input": {
+    "queryParams": {
+      "search": {
+        "type": "string",
+        "required": false,
+        "note": "Search query. Fuzzy search, supports LinkedIn's search operators"
+      },
+      "currentCompanies": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by current company IDs or URLs. Comma-separated (max 50)",
+        "example": "https://www.linkedin.com/company/google"
+      },
+      "pastCompanies": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by past company IDs or URLs. Comma-separated (max 50)"
+      },
+      "locations": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by location text. Comma-separated (max 70)"
+      },
+      "geoIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by LinkedIn Geo ID. Comma-separated. Overrides location param. Use /linkedin/geo-id-search to find IDs"
+      },
+      "schools": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by school IDs or URLs. Comma-separated (max 50)"
+      },
+      "currentJobTitles": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by current job titles. Comma-separated (max 70)"
+      },
+      "pastJobTitles": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by past job titles. Comma-separated (max 70)"
+      },
+      "firstNames": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by first names. Comma-separated (max 70)"
+      },
+      "lastNames": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by last names. Comma-separated (max 70)"
+      },
+      "industryIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by industry IDs. Comma-separated (max 70). Full list: https://github.com/HarvestAPI/linkedin-industry-codes-v2/blob/main/linkedin_industry_code_v2_all_eng_with_header.csv"
+      },
+      "yearsAtCurrentCompanyIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by years at current company IDs. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#yearsatcurrentcompanyids"
+      },
+      "yearsOfExperienceIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by years of experience IDs. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#yearsofexperienceids"
+      },
+      "seniorityLevelIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by seniority level IDs. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#senioritylevelids"
+      },
+      "functionIds": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by job function IDs. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#functionids"
+      },
+      "recentlyChangedJobs": {
+        "type": "boolean",
+        "required": false,
+        "note": "Filter leads who recently changed jobs in the last 90 days."
+      },
+      "postedOnLinkedin": {
+        "type": "boolean",
+        "required": false,
+        "note": "Filter leads who posted on LinkedIn in the last 30 days"
+      },
+      "profileLanguages": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by profile languages. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#profilelanguages"
+      },
+      "companyHeadcount": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by company headcount. Comma-separated. https://github.com/HarvestAPI/harvestapi-sdk/blob/main/packages/scraper/README.md#companyheadcount"
+      },
+      "companyHeadquarterLocations": {
+        "type": "string",
+        "required": false,
+        "note": "Filter by company headquarter location text. Comma-separated (max 70)"
+      },
+      "excludeLocations": {
+        "type": "string",
+        "required": false,
+        "note": "Locations to exclude from search. Comma-separated (max 70)"
+      },
+      "excludeGeoIds": {
+        "type": "string",
+        "required": false,
+        "note": "Geo IDs to exclude from search. Comma-separated (max 70)"
+      },
+      "excludeCurrentCompanies": {
+        "type": "string",
+        "required": false,
+        "note": "Current companies to exclude. Comma-separated (max 50)"
+      },
+      "excludePastCompanies": {
+        "type": "string",
+        "required": false,
+        "note": "Past companies to exclude. Comma-separated (max 50)"
+      },
+      "excludeSchools": {
+        "type": "string",
+        "required": false,
+        "note": "Schools to exclude. Comma-separated (max 50)"
+      },
+      "excludeCurrentJobTitles": {
+        "type": "string",
+        "required": false,
+        "note": "Current job titles to exclude. Comma-separated (max 70)"
+      },
+      "excludePastJobTitles": {
+        "type": "string",
+        "required": false,
+        "note": "Past job titles to exclude. Comma-separated (max 70)"
+      },
+      "excludeIndustryIds": {
+        "type": "string",
+        "required": false,
+        "note": "Industry IDs to exclude. Comma-separated (max 70)"
+      },
+      "excludeSeniorityLevelIds": {
+        "type": "string",
+        "required": false,
+        "note": "Seniority level IDs to exclude. Comma-separated (max 20)"
+      },
+      "excludeFunctionIds": {
+        "type": "string",
+        "required": false,
+        "note": "Function IDs to exclude. Comma-separated (max 30)"
+      },
+      "excludeCompanyHeadquarterLocations": {
+        "type": "string",
+        "required": false,
+        "note": "Company headquarter locations to exclude from search. Comma-separated (max 70)"
+      },
+      "page": {
+        "type": "integer",
+        "required": false,
+        "note": "Page number for pagination (clamped at 100)",
+        "example": 1
+      }
+    },
+    "note": "Use only the declared query parameters, once each, without a request body. Results are provider-native: inspect element/elements and body status/error; HTTP 200 alone does not prove a hit. Empty results can still be charged. Returns 25 rows per page in live tests; page is capped at 100. Private account/session and Sales Navigator URL overrides are outside this tool."
+  },
+  "cost": {
+    "type": "per_call",
+    "value": 0.1,
+    "currency": "USD",
+    "per": 1,
+    "unit": "call",
+    "source": "observed",
+    "source_url": "https://docs.harvestapi.io",
+    "checked": "2026-09-10",
+    "confidence": "verified",
+    "note": "Observed on treg\u2019s prepaid Harvest account. Final platform cost follows the response cost, including billed misses and explicit zero. BYOK never charges the treg balance.",
+    "reported_charge": {
+      "path": "cost",
+      "unit": "usd"
+    },
+    "usd": 0.1
+  },
+  "observed": {
+    "samples": 15664,
+    "decided": 15446,
+    "ok_rate": 0.9996,
+    "p50_ms": 3763,
+    "p95_ms": 15345,
+    "last_ok_days": 0,
+    "hit_rate": 0.9359,
+    "hit_samples": 15156
+  },
+  "docs_url": "https://docs.harvestapi.io/linkedin-api-reference/openapi.json"
+}

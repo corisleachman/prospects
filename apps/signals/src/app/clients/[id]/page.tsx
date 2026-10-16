@@ -57,6 +57,9 @@ export default async function Setup({
         <Link className="button secondary" href={"/clients/" + id + "/budget"}>
           Budget and costs
         </Link>
+        <Link className="button secondary" href={"/clients/" + id + "/find"}>
+          Find matches and watch list
+        </Link>
         <p className="eyebrow">Client setup</p>
         <h1>{client.name}</h1>
         <p className="muted">
