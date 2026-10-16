@@ -40,3 +40,9 @@ These use local, explicitly labelled test clients and accounts.
 - [Login](login-desktop.png)
 - [Clients](clients-desktop.png)
 - [Today on mobile](today-mobile.png)
+
+## Recovery redirect correction, 16 October 2026
+
+Coris confirmed successful production sign-in. His recovery email returned to the original dashboard because Supabase only allowed the three GitHub Pages redirects. The application already requests `https://prospect-signals.vercel.app/auth/callback?next=/set-password`. With explicit approval, that exact URL was added through Supabase Auth URL Configuration. The saved allowlist shows four entries and a success notice. The original Site URL and three redirects remain intact. No code or email-template change was needed. Existing emails retain their original destination; request a fresh recovery email from Signals and open it in the same browser used to request it. The real password-change acceptance check is still pending.
+
+![Saved recovery redirect](recovery-redirect.jpg)
