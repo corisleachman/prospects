@@ -27,7 +27,11 @@ The committed Phase 1 migration was then applied to Prospects. Post-application 
 
 Vercel project `corisleachmans-projects/prospect-signals` is created, linked locally and configured for `apps/signals`, Next.js and Node 24, with deployment protection. Public Supabase URL and publishable key are set for production, preview and development. The connector denied environment writes; the mapped authenticated CLI fallback succeeded.
 
-Still needed: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, RESEND_FROM and a confirmed APP_ORIGIN. No deployment, Git hosting connection, Auth redirect/template changes or real email has been made. Once these are configured, deploy and verify real login, password recovery and an explicitly requested test invitation. Coris's live dashboard and extension acceptance checks remain outstanding. Phase 2 has not started.
+Production deployment completed on 16 October 2026 from commit `114c16d`: `dpl_EGBGFDZLbuXBg3cSLg2j3ko3Kz6n`, https://prospect-signals.vercel.app. The remote build and TypeScript check passed. APP_ORIGIN is the canonical HTTPS alias. Coris supplied SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY and RESEND_FROM as sensitive Vercel settings for all environments; their values are intentionally unavailable for local inspection. The temporary environment download was removed.
+
+Authenticated Vercel HTTP checks confirmed login and forgot-password return 200, login contains email/password inputs, and anonymous Clients/Today requests redirect to login. Deployment protection remains enabled. No real invitation or recovery email was sent, and no user's password or session was changed.
+
+Remaining: Coris signs in with his existing credentials and completes the client/invite checks. Real invitation delivery and password recovery are unverified. Supabase Auth redirect allowlist/template compatibility still needs checking before recovery acceptance. No Git hosting connection has been added. Coris's live dashboard and extension acceptance checks remain outstanding. Phase 2 has not started.
 
 ## Screenshots
 

@@ -24,12 +24,12 @@ On 16 October 2026 the corrected connector reached Prospects (`paprxejgeepvtbqmf
 
 1. Completed: project identity, columns, constraints and policy names checked. Staging replay used the repository baseline and all preceding migrations before Phase 1.
 2. Completed: `signals_phase_one` applied; exactly one verified owner administrator confirmed. Do not apply it again or modify old migrations.
-3. Created Vercel project `corisleachmans-projects/prospect-signals` (`prj_YUvk7szPeJuOy5p9rj4PVJ5VUFSV`), rooted at `apps/signals`, Next.js, Node 24. Build: `npm run build`; install: `npm ci --ignore-scripts`. Deployment protection is enabled. No deployment or Git connection yet.
+3. Created Vercel project `corisleachmans-projects/prospect-signals` (`prj_YUvk7szPeJuOy5p9rj4PVJ5VUFSV`), rooted at `apps/signals`, Next.js, Node 24. Build: `npm run build`; install: `npm ci --ignore-scripts`. Deployment protection is enabled. First production deployment is live at https://prospect-signals.vercel.app; no Git connection yet.
 4. Set the app's environment variables from `.env.example` in Vercel. Add the chosen preview/production origin to Supabase Auth's redirect allowlist, including `/auth/callback`. Use a stable preview alias while testing; changing the host invalidates the intended redirect origin.
 5. Keep the existing V1 Auth site URL and working redirects. Add this app's redirects rather than replacing them. Disable public signup for this invitation-only app only after confirming that shared-project V1 does not need signup; the app itself exposes no signup route.
 6. Password recovery's default PKCE template uses `/auth/callback?next=/set-password`. If the project uses custom templates, make the recovery template point to the new app's `/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/set-password`, without changing V1 flows. Verify this on staging first.
 7. Configure Resend's verified sender for workspace invitations. Auth tokens use the project's existing invitation expiry; workspace invitation tokens expire after seven days. Reconcile those settings and test expiry copy before launch.
-8. Run Supabase's database advisors/security checks on the staging project, then complete the checks below. Production database rollout is complete; app publication and real Auth/email checks remain pending.
+8. Run Supabase's database advisors/security checks on the staging project, then complete the checks below. Production database and app rollout are complete; real signed-in Auth/email checks remain pending.
 
 ## Coris's Phase 1 checks
 
