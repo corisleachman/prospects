@@ -54,6 +54,9 @@ export default async function Setup({
     <Frame admin email={user.email ?? ""}>
       <div className="setup-heading">
         <Link href="/clients">← All clients</Link>
+        <Link className="button secondary" href={"/clients/" + id + "/budget"}>
+          Budget and costs
+        </Link>
         <p className="eyebrow">Client setup</p>
         <h1>{client.name}</h1>
         <p className="muted">

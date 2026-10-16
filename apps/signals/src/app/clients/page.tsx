@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { money, budgetNumbers, type BudgetOverview } from "@/lib/budget";
 import { requireAdmin } from "@/lib/access";
 import { Frame } from "@/components/frame";
 import { Submit } from "@/components/submit";
@@ -25,7 +26,7 @@ export default async function Clients({
     await Promise.all([
       db
         .from("workspaces")
-        .select("id,name,status,timezone,created_at")
+        .select("id,name,status,timezone,created_at,paused_reason")
         .eq("is_signals_client", true)
         .order("created_at", { ascending: false }),
       db
@@ -37,6 +38,14 @@ export default async function Clients({
         .limit(50),
     ]);
   if (error || inviteError) throw new Error("Client list unavailable");
+  const budgetRows = await Promise.all(
+    (clients ?? []).map(async (c) => {
+      const r = await db.rpc("signals_budget_overview", { p_workspace: c.id });
+      if (r.error) throw new Error("Budget summary unavailable");
+      return [c.id, r.data as BudgetOverview | null] as const;
+    }),
+  );
+  const budgets = new Map(budgetRows);
   return (
     <Frame admin email={user.email ?? ""}>
       <div className="page-heading">
@@ -79,6 +88,7 @@ export default async function Clients({
                   <th>Client</th>
                   <th>Status</th>
                   <th>Timezone</th>
+                  <th>Budget</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,9 +98,23 @@ export default async function Clients({
                       <Link href={"/clients/" + c.id}>{c.name}</Link>
                     </td>
                     <td>
-                      <span className="badge">{c.status}</span>
+                      <span className="badge">
+                        {c.paused_reason?.startsWith("budget:")
+                          ? "Paused: budget " + c.paused_reason.slice(7)
+                          : c.status}
+                      </span>
                     </td>
                     <td>{c.timezone}</td>
+                    <td>
+                      <Link href={"/clients/" + c.id + "/budget"}>
+                        {budgets.get(c.id)
+                          ? money(budgets.get(c.id)!.budget.amount) +
+                            " · " +
+                            money(budgetNumbers(budgets.get(c.id)!).available) +
+                            " left"
+                          : "Set budget"}
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

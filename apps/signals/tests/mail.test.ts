@@ -64,3 +64,34 @@ test("missing configuration and failed delivery never look like success", async 
     delete process.env.RESEND_FROM;
   }
 });
+
+test("budget alerts use stable idempotency, trusted recipients and explicit test labels", async () => {
+  const { sendBudgetAlert } = await import("../src/lib/mail");
+  const original = global.fetch;
+  process.env.RESEND_API_KEY = "fixture";
+  process.env.RESEND_FROM = "Signals <signals@example.test>";
+  process.env.APP_ORIGIN = "https://signals.example.test";
+  let body: any, headers: any;
+  global.fetch = async (_url, init) => {
+    body = JSON.parse(String(init?.body));
+    headers = init?.headers;
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await sendBudgetAlert({
+      id: "fixture-alert",
+      threshold: 100,
+      is_test: true,
+      client_name: "A & B",
+      amount: 10,
+      recipients: ["owner@example.test"],
+    });
+    assert.deepEqual(body.to, ["owner@example.test"]);
+    assert.match(body.subject, /Test budget/);
+    assert.match(body.text, /paused/);
+    assert.equal(headers["Idempotency-Key"], "signals-budget-fixture-alert");
+    assert.match(body.html, /A &amp; B/);
+  } finally {
+    global.fetch = original;
+  }
+});
