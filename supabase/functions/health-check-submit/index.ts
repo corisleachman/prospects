@@ -1,12 +1,12 @@
 // health-check-submit — receives a completed new business health check from the website,
 // saves it to enquiries (source = 'health_check'), builds a branded PDF and emails it via Resend.
 // Secrets (Supabase function secrets): RESEND_API_KEY. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
-import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, PDFName, PDFString, rgb, StandardFonts, type PDFFont, type PDFPage } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 
 const FROM = "Coris Leachman <hello@corisleachman.com>";
 const REPLY_TO = "corisleachman@gmail.com";
-const BOOK_URL = "https://corisleachman.com/#book";
+const BOOK_URL = "https://calendar.app.google/qnfFXyo2wCBRpuB27";
 const SITE_URL = "https://corisleachman.com";
 
 // ---------- scoring model (mirrors the health check page) ----------
@@ -223,6 +223,12 @@ async function buildPdf(lead: { name: string; company: string }, r: ReturnType<t
   py -= pLines.length * 13.5 + 22;
   p2.drawRectangle({ x: px + 16, y: py - 8, width: 104, height: 24, color: C.lime });
   text(p2, "Book a call", px + 30, py, F.bm, 9.5, C.ink);
+  // make the lime button a clickable link to the booking page
+  const link = doc.context.register(doc.context.obj({
+    Type: "Annot", Subtype: "Link", Rect: [px + 16, py - 8, px + 120, py + 16], Border: [0, 0, 0],
+    A: { Type: "Action", S: "URI", URI: PDFString.of(BOOK_URL) },
+  }));
+  p2.node.set(PDFName.of("Annots"), doc.context.obj([link]));
 
   text(p2, "Questions about your results? Reply to the email this came with.", M, M + 14, F.b, 9, C.mutedNude);
   text(p2, `${date}  ·  corisleachman.com`, M, M, F.b, 9, C.mutedNude);
