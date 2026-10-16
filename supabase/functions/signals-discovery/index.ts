@@ -106,7 +106,7 @@ async function quote(
   if (kind === "refresh") {
     const { data, error } = await svc
       .from("campaign_prospects")
-      .select("companies(*)")
+      .select("companies!campaign_prospects_company_id_fkey(*)")
       .eq("campaign_id", p.id)
       .eq("workspace_id", p.workspace_id)
       .is("person_id", null)

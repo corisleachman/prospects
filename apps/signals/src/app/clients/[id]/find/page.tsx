@@ -69,7 +69,7 @@ export default async function Find({
     db
       .from("campaign_prospects")
       .select(
-        "id,company_id,person_id,source,last_refreshed_at,companies(*),people(*)",
+        "id,company_id,person_id,source,last_refreshed_at,companies!campaign_prospects_company_id_fkey(*),people!campaign_prospects_person_company_fk(*)",
       )
       .eq("workspace_id", id)
       .eq("campaign_id", p.id)

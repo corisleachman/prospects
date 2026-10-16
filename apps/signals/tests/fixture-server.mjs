@@ -388,6 +388,14 @@ const server = http.createServer(async (req, res) => {
       }
     return rows(role === "admin" ? list.slice().reverse() : []);
   }
+  if (
+    url.pathname === "/rest/v1/campaign_prospects" &&
+    /companies\(\*\)/.test(url.searchParams.get("select") ?? "")
+  )
+    return reply(
+      { message: "Ambiguous company relationship", code: "PGRST201" },
+      300,
+    );
   if (url.pathname === "/rest/v1/campaign_prospects")
     return rows(
       role === "admin"
