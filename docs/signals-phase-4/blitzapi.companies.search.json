@@ -1,0 +1,45 @@
+{
+  "id": "blitzapi.companies.search",
+  "method": "POST",
+  "input": {
+    "bodyType": "json",
+    "body": {
+      "company": {
+        "type": "object",
+        "required": false,
+        "note": "Name, industry, size, HQ, revenue, funding and keyword filters."
+      },
+      "max_results": {
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "min": 1,
+        "max": 50,
+        "example": 1
+      },
+      "cursor": {
+        "type": "string",
+        "required": false
+      }
+    }
+  },
+  "cost": {
+    "type": "per_result",
+    "value": 1,
+    "currency": "credit",
+    "per": 1,
+    "unit": "record",
+    "reported_charge": {
+      "path": "fair_usage.records_used",
+      "unit": "credit"
+    },
+    "source": "observed",
+    "source_url": "https://docs.blitz-api.ai/guide/reference/fair-use-policy",
+    "checked": "2026-10-16",
+    "confidence": "verified",
+    "note": "One record per returned person, company or job; fair_usage.records_used settled exactly against the free key-info balance in live calls. Empty pages use zero records.",
+    "usd": 0.000495
+  },
+  "observed": null,
+  "docs_url": "https://docs.blitz-api.ai/api-reference/company-search/company-search"
+}

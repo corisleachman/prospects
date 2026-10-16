@@ -1,15 +1,17 @@
-name: Signals Phase 1
+name: Signals verification
 on:
   pull_request:
     paths:
       - 'apps/signals/**'
-      - 'supabase/migrations/*signals_phase_one.sql'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/signals-discovery/**'
       - '.github/workflows/signals-phase-one.yml'
   push:
     branches: [main]
     paths:
       - 'apps/signals/**'
-      - 'supabase/migrations/*signals_phase_one.sql'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/signals-discovery/**'
       - '.github/workflows/signals-phase-one.yml'
 permissions:
   contents: read
@@ -30,6 +32,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run test
+      - run: npm run check:edge
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

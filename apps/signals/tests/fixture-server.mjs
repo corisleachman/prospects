@@ -18,6 +18,8 @@ const clients = [
     created_at: new Date().toISOString(),
   },
 ];
+const previews = [];
+const watches = [];
 const profiles = [];
 const budgets = [],
   budgetHistory = [],
@@ -94,6 +96,8 @@ const server = http.createServer(async (req, res) => {
         ).toString(),
       ).test_role ?? "";
   } catch {}
+  if (req.headers.authorization === "Bearer fixture-service-key")
+    role = "admin";
   function reply(value, status = 200) {
     res.writeHead(status, {
       "Content-Type": "application/json",
@@ -319,6 +323,126 @@ const server = http.createServer(async (req, res) => {
     }
     return reply(l.id);
   }
+  if (url.pathname === "/functions/v1/signals-discovery") {
+    if (role !== "admin") return reply({ error: "Not allowed" }, 403);
+    if (body.action === "estimate") {
+      const p = profiles.find((p) => p.id === body.profile_id);
+      const v = {
+        id: randomUUID(),
+        workspace_id: p.workspace_id,
+        profile_id: p.id,
+        status: "quoted",
+        estimated_gbp: 0.1,
+        actual_gbp: 0,
+        step: 0,
+        plan: { fx: 0.75, fx_date: "2026-10-16", limit: 25, profile: p },
+        result: { companies: [], people: [], warnings: [] },
+        created_at: new Date().toISOString(),
+        saved_at: null,
+        polls: 0,
+      };
+      previews.push(v);
+      return reply(v);
+    }
+    const v = previews.find((v) => v.id === body.id);
+    if (body.action === "start") {
+      v.status = "running";
+      v.result = {
+        companies: Array.from({ length: 10 }, (_, i) => ({
+          key: "domain:company" + i + ".test",
+          name: "Company " + i + " (test)",
+          website: "https://company" + i + ".test",
+          linkedin_url: "https://www.linkedin.com/company/example-" + i,
+          industry: "Consumer goods",
+          source: "discovered",
+          location: "US",
+        })),
+        people: Array.from({ length: 10 }, (_, i) => ({
+          key: "person:" + i,
+          name: "Person " + i + " (test)",
+          title: "CMO",
+          company_key: "domain:company" + i + ".test",
+          linkedin_url: "https://www.linkedin.com/in/example-" + i,
+        })),
+        warnings: [],
+      };
+      return reply({ id: v.id, queued: true });
+    }
+    return reply({ queued: true });
+  }
+  if (url.pathname === "/rest/v1/discovery_previews") {
+    const list = previews.filter(
+      (v) =>
+        (!url.searchParams.has("id") ||
+          v.id === url.searchParams.get("id").slice(3)) &&
+        (!url.searchParams.has("profile_id") ||
+          v.profile_id === url.searchParams.get("profile_id").slice(3)) &&
+        (!url.searchParams.has("workspace_id") ||
+          v.workspace_id === url.searchParams.get("workspace_id").slice(3)),
+    );
+    for (const v of list)
+      if (v.status === "running" && ++v.polls >= 3) {
+        v.status = "succeeded";
+        v.step = 2;
+        v.actual_gbp = 0.075;
+      }
+    return rows(role === "admin" ? list.slice().reverse() : []);
+  }
+  if (
+    url.pathname === "/rest/v1/campaign_prospects" &&
+    /companies\(\*\)/.test(url.searchParams.get("select") ?? "")
+  )
+    return reply(
+      { message: "Ambiguous company relationship", code: "PGRST201" },
+      300,
+    );
+  if (url.pathname === "/rest/v1/campaign_prospects")
+    return rows(
+      role === "admin"
+        ? watches.filter(
+            (w) =>
+              w.campaign_id === url.searchParams.get("campaign_id")?.slice(3),
+          )
+        : [],
+    );
+  if (url.pathname === "/rest/v1/discovery_refresh_log") return rows([]);
+  if (url.pathname === "/rest/v1/rpc/save_signals_watchlist") {
+    const v = previews.find((v) => v.id === body.p_id);
+    if (role !== "admin" || !v) return reply({ message: "Not allowed" }, 403);
+    for (let i = watches.length - 1; i >= 0; i--)
+      if (watches[i].campaign_id === v.profile_id) watches.splice(i, 1);
+    for (const c of v.result.companies.filter((c) =>
+      body.p_company_keys.includes(c.key),
+    ))
+      watches.push({
+        id: randomUUID(),
+        campaign_id: v.profile_id,
+        company_id: c.key,
+        person_id: null,
+        companies: c,
+        last_refreshed_at: new Date().toISOString(),
+      });
+    for (const x of v.result.people.filter((x) =>
+      body.p_person_keys.includes(x.key),
+    ))
+      watches.push({
+        id: randomUUID(),
+        campaign_id: v.profile_id,
+        company_id: x.company_key,
+        person_id: x.key,
+        companies: v.result.companies.find((c) => c.key === x.company_key),
+        people: x,
+        last_refreshed_at: new Date().toISOString(),
+      });
+    v.saved_at = new Date().toISOString();
+    return reply(body.p_company_keys.length);
+  }
+  if (url.pathname === "/rest/v1/rpc/set_signals_refresh") {
+    const p = profiles.find((p) => p.id === body.p_profile);
+    if (role !== "admin" || !p) return reply({ message: "Not allowed" }, 403);
+    p.watch_refresh_enabled = body.p_enabled;
+    return reply(null);
+  }
   if (url.pathname === "/rest/v1/campaigns")
     return rows(
       role === "admin"
@@ -401,6 +525,9 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/rest/v1/rpc/create_signals_client") {
     if (role !== "admin") return reply({ message: "Not allowed" }, 403);
     const item = {
+      logo_url: "",
+      profile_limit: 5,
+      setup_revision: 0,
       id: randomUUID(),
       name: body.p_name,
       status: "setup",
