@@ -21,3 +21,11 @@ Weekly refresh is off by default. Opting in checks people only at approved compa
 Node tests cover provider filters, link normalisation, receipt accounting, expired/stale quotes, escrow, selection boundaries, role isolation and abandoned calls. Browser tests cover approval, progress across unchanged polls, deselection, save, links and mobile overflow. Deno checks the deployed worker; Next builds the app. The core migration and scheduler were checked against Prospects in transactions that rolled back, with synthetic rows and no provider calls or email.
 
 The current BEFORE:WORK budget is a spent £10 test budget. It is preserved. Real discovery acceptance still needs an explicitly funded normal budget and a paid run for each profile. Phase 5 remains separate.
+
+## Rollout, 17 October 2026
+
+Both committed migrations are applied. Edge worker version 3 is active; app deployment `dpl_46qMfv4UMMFLyX9xgeQ3oDdi1a88` is READY. The authenticated browser generated a free quote for each real BEFORE:WORK profile: 25 companies and 25 people, maximum £0.159258 each, FX date 16 October. Both correctly block payment on the spent test budget. No paid discovery ledger rows were created and no refresh is enabled.
+
+Live checks caught and fixed an ambiguous company join and the ECB XML's single-quoted attributes. The fixture now rejects ambiguous joins; an adapter test checks both XML quote styles and stale rates. Final local validation: 35 Node tests, 13 browser tests (the discovery test repeated after the join fix), Deno check and Next production build pass. Security advisors retain only the project's existing pg_net extension warning.
+
+Draft PR: https://github.com/corisleachman/prospects/pull/35, stacked on Phase 3. Paid results and cost reconciliation still await an approved normal budget. Parent/sub-brand expansion remains unsupported by this adapter and fails explicitly before payment.
