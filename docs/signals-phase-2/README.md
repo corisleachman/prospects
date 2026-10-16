@@ -24,3 +24,11 @@ The complete migration and [live-check.sql](live-check.sql) passed against Prosp
 - Confirm client users and client admins still see Today, with no setup access.
 
 Stop for acceptance here. Phase 3, Find matches, paid calls, watch lists and collection are not implemented.
+
+## Rollout, 16 October 2026
+
+The committed Phase 2 migration was applied to Prospects after the rollback check. Post-application checks confirmed RLS on companies/people, the profile-limit trigger and the existing BEFORE:WORK client's five-profile allowance. Both entity tables remain empty. Security advisors reported only the pre-existing [pg_net extension warning](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public).
+
+Production deployment `dpl_FdMhxH48KY8e65E8C1ULdEkCY5GY` is READY at https://prospect-signals.vercel.app, from code commit `5fc78ba`. The authenticated browser showed BEFORE:WORK's setup page, its saved timezone and Growth placeholder plan, zero profiles and zero accepted members. No client configuration or invitation was changed during that check. GitHub CI passed in 1m13s, including all 21 Node tests and all 10 browser tests.
+
+Draft PR: https://github.com/corisleachman/prospects/pull/33. It is stacked on Phase 1's branch. Phase 3 is not started.
