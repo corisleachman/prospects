@@ -36,3 +36,11 @@ Coris's checks:
 - Top up or renew and confirm the prior client state returns.
 
 Stop for acceptance before Phase 4. Real alert delivery remains to be tested through Coris's explicit fake-cost action.
+
+## Rollout, 16 October 2026
+
+The committed migration was applied to Prospects after the rollback check. Post-application verification confirmed RLS on all six budget tables, both append-only triggers, no anonymous reservation execution and zero actual budgets, costs or alerts. Security advisors still report only the existing [pg_net extension warning](https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public).
+
+Deployment `dpl_8uYw8FZDM7Z6keN4e7B65ZFYhyyZ`, code commit `50d7765`, is READY at https://prospect-signals.vercel.app. The authenticated browser showed BEFORE:WORK's empty budget screen with the £10 test default and its saved timezone's current date. No form was submitted and no live email was sent. All 27 Node and 12 browser tests pass in GitHub CI.
+
+Draft PR: https://github.com/corisleachman/prospects/pull/34, stacked on Phase 2. Phase 4 is not started. Real alert delivery remains Coris's acceptance check.
