@@ -12,9 +12,13 @@ const clients = [
     timezone: "Europe/London",
     is_legacy_default: false,
     is_signals_client: true,
+    logo_url: "",
+    profile_limit: 5,
+    setup_revision: 0,
     created_at: new Date().toISOString(),
   },
 ];
+const profiles = [];
 let accepted = false;
 const used = new Set();
 function user(role) {
@@ -154,8 +158,99 @@ const server = http.createServer(async (req, res) => {
     );
   if (url.pathname === "/rest/v1/workspaces")
     return rows(
-      role === "admin" ? clients : clients.filter((c) => c.id === workspace),
+      (role === "admin"
+        ? clients
+        : clients.filter((c) => c.id === workspace)
+      ).filter(
+        (c) =>
+          !url.searchParams.has("id") ||
+          (url.searchParams.get("id").startsWith("eq.")
+            ? c.id === url.searchParams.get("id").slice(3)
+            : url.searchParams
+                .get("id")
+                .slice(4, -1)
+                .split(",")
+                .includes(c.id)),
+      ),
     );
+  if (url.pathname === "/rest/v1/campaigns")
+    return rows(
+      role === "admin"
+        ? profiles.filter(
+            (p) =>
+              p.workspace_id ===
+              url.searchParams.get("workspace_id")?.replace("eq.", ""),
+          )
+        : [],
+    );
+  if (url.pathname === "/rest/v1/rpc/signals_team") return reply([]);
+  if (url.pathname === "/rest/v1/rpc/create_signals_profile") {
+    const c = clients.find((c) => c.id === body.p_workspace_id);
+    if (role !== "admin" || !c) return reply({ message: "Not allowed" }, 403);
+    if (
+      profiles.filter((p) => p.workspace_id === c.id).length >= c.profile_limit
+    )
+      return reply(
+        { message: "Profile limit reached. Choose a larger placeholder plan." },
+        400,
+      );
+    const p = {
+      id: randomUUID(),
+      workspace_id: c.id,
+      name: "Profile " + (profiles.length + 1),
+      profile_type: "cold_outbound",
+      who: "",
+      criteria: {},
+      priority_titles: [],
+      relevant_moment: "",
+      conversation_to_open: "",
+      watch_list_size: 200,
+      when_no_person: "needs_person",
+      setup_revision: 0,
+    };
+    profiles.push(p);
+    return reply(p.id);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_profile") {
+    const p = profiles.find(
+      (p) => p.id === body.p_id && p.workspace_id === body.p_workspace_id,
+    );
+    if (role !== "admin" || !p) return reply({ message: "Not allowed" }, 403);
+    if (p.setup_revision !== body.p_revision)
+      return reply(
+        {
+          message: "Profile changed elsewhere. Reload before saving.",
+          code: "40001",
+        },
+        400,
+      );
+    Object.assign(p, body.p_profile, { setup_revision: p.setup_revision + 1 });
+    return reply(p.setup_revision);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_client") {
+    const c = clients.find((c) => c.id === body.p_id);
+    if (role !== "admin" || !c) return reply({ message: "Not allowed" }, 403);
+    if (c.setup_revision !== body.p_revision)
+      return reply(
+        {
+          message: "Setup changed elsewhere. Reload before saving.",
+          code: "40001",
+        },
+        400,
+      );
+    if (
+      profiles.filter((p) => p.workspace_id === c.id).length >
+      body.p_details.profile_limit
+    )
+      return reply(
+        {
+          message: "This plan has fewer profiles than the client already uses",
+        },
+        400,
+      );
+    Object.assign(c, body.p_details, { setup_revision: c.setup_revision + 1 });
+    return reply(c.setup_revision);
+  }
   if (url.pathname === "/rest/v1/workspace_invites") return rows([]);
   if (url.pathname === "/rest/v1/rpc/create_signals_client") {
     if (role !== "admin") return reply({ message: "Not allowed" }, 403);
