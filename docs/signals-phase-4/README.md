@@ -29,3 +29,11 @@ Both committed migrations are applied. Edge worker version 3 is active; app depl
 Live checks caught and fixed an ambiguous company join and the ECB XML's single-quoted attributes. The fixture now rejects ambiguous joins; an adapter test checks both XML quote styles and stale rates. Final local validation: 35 Node tests, 13 browser tests (the discovery test repeated after the join fix), Deno check and Next production build pass. Security advisors retain only the project's existing pg_net extension warning.
 
 Draft PR: https://github.com/corisleachman/prospects/pull/35, stacked on Phase 3. Paid results and cost reconciliation still await an approved normal budget. Parent/sub-brand expansion remains unsupported by this adapter and fails explicitly before payment.
+
+## Paid checks, 17 October 2026
+
+Coris approved renewal as a £10 normal budget and up to £1 total for both profile checks. Both succeeded with 25 companies and 25 people each. Total reported cost is £0.168540; £9.831460 remains and no reservations are held. See [paid-acceptance.md](paid-acceptance.md) for sample companies, people, source links and receipt reconciliation. The current worker is version 4.
+
+The real people response used numbered company URLs where company discovery used slugs. The adapter now matches by URL first, then a unique exact current employer name. The first run's paid responses were recovered through treg's read-only stored-result API and reprocessed with provenance attached; no repeat charge. The second run used the fix directly. GitHub CI passes.
+
+The broad current criteria also produced irrelevant companies. Candidates remain in the previews for review; no watch list was saved and weekly refresh is off. Technical execution and accounting are verified. Relevance acceptance remains open until the candidate selection or profile filters are reviewed.
