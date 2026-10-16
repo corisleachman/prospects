@@ -10,10 +10,16 @@ const corsHeaders = {
 
 const ACTOR_ID = "harvestapi~linkedin-profile-posts";
 const POST_PRICE_USD = 0.002;
-const SEARCH_ACTOR_ID = "harvestapi~linkedin-post-search";
-// Each post or comment costs $0.002, plus $0.002 for the author's main profile, which carries their location.
-const SEARCH_ITEM_PRICE_USD = 0.004;
-const SEARCH_ZERO_RESULT_PRICE_USD = 0.001;
+// New-prospect discovery runs through treg (https://treg.to), which bills HarvestAPI's LinkedIn
+// search per page of results rather than per post, and needs no Apify subscription.
+const TREG_URL = "https://treg.to/call";
+const TREG_POST_SEARCH = "harvestapi.linkedin.post.search";
+const TREG_POST_COMMENTS = "harvestapi.linkedin.post.comments";
+const TREG_PROFILE = "harvestapi.linkedin.user.profile.main";
+const TREG_PAGE_USD = 0.004; // catalog price per search or comments page (observed $0.002)
+const TREG_PROFILE_USD = 0.004; // basic profile, used for the author's location
+const TREG_CONCURRENCY = 5;
+const MAX_LOCATION_CHECKS = 30;
 
 type Contact = { id: string; name: string; company: string | null; linkedin_url: string | null; signal_scanned_at: string | null };
 type Classification = {
@@ -88,14 +94,25 @@ function cleanSourceUrl(value: string | null | undefined) {
   }
 }
 
-// V1 discovery is UK-only. LinkedIn post search has no location filter, so we read each
-// author's profile location and keep only people based in the United Kingdom.
+// V1 discovery is UK-only. true = based in the UK, false = elsewhere, null = no location given.
 const UK_LOCATION_RX = /\b(united kingdom|uk|england|scotland|wales|northern ireland|great britain|london)\b/i;
-function isUkAuthor(author: Record<string, any> | null | undefined) {
-  const location = author?.location;
+function ukLocation(location: Record<string, any> | null | undefined): boolean | null {
   const code = String(location?.countryCode || location?.parsed?.countryCode || "").toUpperCase();
   if (code) return code === "GB" || code === "UK";
-  return UK_LOCATION_RX.test(String(location?.linkedinText || location?.parsed?.text || ""));
+  const text = String(location?.linkedinText || location?.parsed?.text || "");
+  return text ? UK_LOCATION_RX.test(text) : null;
+}
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await fn(items[index]);
+    }
+  }));
+  return results;
 }
 
 function discoveryScore(text: string, parentText: string, authorInfo: string, observedAt: string | null) {
@@ -162,9 +179,10 @@ Deno.serve(async (req: Request) => {
       const postedLimit = ["24h", "week", "month"].includes(body.posted_limit) ? body.posted_limit : "week";
       const includeComments = body.include_comments === true;
       const maxComments = includeComments ? Math.min(5, Math.max(1, Number(body.max_comments_per_post || 3))) : 0;
-      const maximumItems = queries.length * maxPosts * (1 + maxComments);
-      const estimatedMaxCostUsd = maximumItems * SEARCH_ITEM_PRICE_USD + queries.length * SEARCH_ZERO_RESULT_PRICE_USD;
-      const recommendedCapUsd = Math.max(0.02, Math.ceil((estimatedMaxCostUsd + 0.01) * 100) / 100);
+      // Worst case: every query page, a comments page for every post, and the full location-check budget.
+      const maxCommentPages = includeComments ? queries.length * maxPosts : 0;
+      const estimatedMaxCostUsd = (queries.length + maxCommentPages) * TREG_PAGE_USD + MAX_LOCATION_CHECKS * TREG_PROFILE_USD;
+      const recommendedCapUsd = Math.ceil(estimatedMaxCostUsd * 100) / 100;
 
       if (action === "estimate_discovery") {
         return json({
@@ -172,21 +190,22 @@ Deno.serve(async (req: Request) => {
           maxPostsPerQuery: maxPosts,
           includeComments,
           maxCommentsPerPost: maxComments,
-          maximumItems,
+          maxLocationChecks: MAX_LOCATION_CHECKS,
           estimatedMaxCostUsd,
           recommendedCapUsd,
-          pricing: { itemUsd: SEARCH_ITEM_PRICE_USD, zeroResultQueryUsd: SEARCH_ZERO_RESULT_PRICE_USD },
+          pricing: { searchPageUsd: TREG_PAGE_USD, commentsPageUsd: TREG_PAGE_USD, locationCheckUsd: TREG_PROFILE_USD },
         });
       }
-      if (!apifyToken) return json({ error: "APIFY_TOKEN is not configured." }, 503);
-      if (body.confirm_paid_run !== true) return json({ error: "Paid run not confirmed.", estimate: { maximumItems, estimatedMaxCostUsd, recommendedCapUsd } }, 402);
+      const tregToken = Deno.env.get("TREG_TOKEN");
+      if (!tregToken) return json({ error: "TREG_TOKEN is not configured." }, 503);
+      if (body.confirm_paid_run !== true) return json({ error: "Paid run not confirmed.", estimate: { estimatedMaxCostUsd, recommendedCapUsd } }, 402);
 
       const { data: runRow, error: runInsertError } = await supabase
         .from("prospect_signal_runs")
         .insert({
           user_id: authData.user.id,
           status: "running",
-          actor_id: SEARCH_ACTOR_ID.replace("~", "/"),
+          actor_id: "treg/" + TREG_POST_SEARCH,
           contact_count: 0,
           requested_posts_per_contact: maxPosts,
           estimated_max_cost_usd: recommendedCapUsd,
@@ -194,111 +213,136 @@ Deno.serve(async (req: Request) => {
         .select("id")
         .single();
       if (runInsertError) throw runInsertError;
-
-      const actorInput = {
-        searchQueries: queries,
-        postedLimit,
-        sortBy: "date",
-        maxPosts,
-        scrapeReactions: false,
-        scrapeComments: includeComments,
-        maxComments,
-        profileScraperMode: "main",
-        commentsProfileScraperMode: "main",
+      const failRun = async (message: string, status: number, extra: Record<string, unknown> = {}) => {
+        await supabase.from("prospect_signal_runs").update({ status: "failed", completed_at: new Date().toISOString(), error_message: message.slice(0, 1000) }).eq("id", runRow.id);
+        return json({ error: message, ...extra }, status);
       };
-      const endpoint = new URL("https://api.apify.com/v2/acts/" + SEARCH_ACTOR_ID + "/run-sync-get-dataset-items");
-      endpoint.searchParams.set("maxTotalChargeUsd", recommendedCapUsd.toFixed(2));
-      endpoint.searchParams.set("clean", "true");
-      endpoint.searchParams.set("format", "json");
 
-      const actorResponse = await fetch(endpoint, {
-        method: "POST",
-        headers: { Authorization: "Bearer " + apifyToken, "Content-Type": "application/json" },
-        body: JSON.stringify(actorInput),
-        signal: AbortSignal.timeout(120000),
-      });
-      const responseText = await actorResponse.text();
-      if (!actorResponse.ok) {
-        await supabase.from("prospect_signal_runs").update({ status: "failed", completed_at: new Date().toISOString(), error_message: responseText.slice(0, 1000) }).eq("id", runRow.id);
-        return json({ error: "Apify discovery run failed.", detail: responseText.slice(0, 500) }, 502);
-      }
+      let spentUsd = 0;
+      const treg = async (endpoint: string, params: Record<string, string>, maxCostUsd: number, timeoutMs = 60000) => {
+        const url = new URL(TREG_URL + "/" + endpoint);
+        for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+        const res = await fetch(url, {
+          headers: { "X-Treg-Token": tregToken, "X-Treg-Route-Max-Cost": maxCostUsd.toFixed(4) },
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        spentUsd += Number(res.headers.get("X-Treg-Cost-Micro") || 0) / 1e6;
+        const data = await res.json().catch(() => null);
+        return { status: res.status, ok: res.ok, data };
+      };
 
-      const items = JSON.parse(responseText);
+      // 1. One page of posts per query (up to 50 posts, billed per page).
+      const searches = await Promise.all(queries.map((query) => treg(TREG_POST_SEARCH, { search: query, postedLimit, sortBy: "date", page: "1" }, TREG_PAGE_USD)
+        .then((r) => ({ query, ...r }))
+        .catch((error) => ({ query, status: 0, ok: false, data: { error: String(error) } }))));
+      if (searches.some((s) => s.status === 402)) return await failRun("treg balance is too low for this search. Top up at treg.to.", 402);
+      const failed = searches.filter((s) => !s.ok);
+      if (failed.length === searches.length) return await failRun("LinkedIn post search failed.", 502, { detail: JSON.stringify(failed[0]?.data ?? null).slice(0, 400) });
+
       const { data: knownContacts, error: knownError } = await supabase.from("contacts").select("id,linkedin_url").not("linkedin_url", "is", null);
       if (knownError) throw knownError;
       const knownProfiles = new Set((knownContacts || []).map((contact) => cleanLinkedInProfile(contact.linkedin_url)).filter(Boolean).map((url) => url.toLowerCase()));
-      const found = new Map<string, Record<string, unknown>>();
-      let outsideUk = 0;
 
-      for (const item of Array.isArray(items) ? items : []) {
-        if (item?.type !== "post" || !item?.linkedinUrl || !item?.content) continue;
-        const observedAt = item?.postedAt?.date || (item?.postedAt?.timestamp ? new Date(item.postedAt.timestamp).toISOString() : null);
-        const query = String(item?.searchQuery || item?.query || "");
-        const postUrl = cleanSourceUrl(item.linkedinUrl);
-        const candidates = [{
-          sourceType: "linkedin_post",
-          sourceUrl: postUrl,
-          sourceText: String(item.content || ""),
-          parentText: "",
-          observedAt,
-          author: item.author,
-          raw: item,
-        }];
-        if (includeComments && Array.isArray(item.comments)) {
-          for (const comment of item.comments.slice(0, maxComments)) {
-            candidates.push({
-              sourceType: "linkedin_comment",
-              sourceUrl: String(comment.linkedinUrl || postUrl),
-              sourceText: String(comment.commentary || ""),
-              parentText: String(item.content || ""),
-              observedAt: comment.createdAt || observedAt,
-              author: comment.actor,
-              raw: { comment, parentPost: { id: item.id, linkedinUrl: item.linkedinUrl, content: item.content } },
-            });
+      type Candidate = { sourceType: string; sourceUrl: string; sourceText: string; parentText: string; observedAt: string | null; author: any; query: string; raw: unknown };
+      const candidates: Candidate[] = [];
+      const commentTargets: { post: any; query: string; observedAt: string | null; postUrl: string }[] = [];
+      let itemsChecked = 0;
+      for (const search of searches) {
+        const posts = Array.isArray(search.data?.elements) ? search.data.elements.slice(0, maxPosts) : [];
+        for (const item of posts) {
+          if (!item?.linkedinUrl || !item?.content) continue;
+          itemsChecked++;
+          const observedAt = item?.postedAt?.date || (item?.postedAt?.timestamp ? new Date(item.postedAt.timestamp).toISOString() : null);
+          const postUrl = cleanSourceUrl(item.linkedinUrl);
+          candidates.push({ sourceType: "linkedin_post", sourceUrl: postUrl, sourceText: String(item.content), parentText: "", observedAt, author: item.author, query: search.query, raw: item });
+          // Only pay for comments on posts that are on-topic and actually have some.
+          if (includeComments && Number(item?.engagement?.comments || 0) > 0 && discoveryScore(String(item.content), "", "", observedAt).subject >= 2) {
+            commentTargets.push({ post: item, query: search.query, observedAt, postUrl });
           }
-        }
-
-        for (const candidate of candidates) {
-          const profileUrl = cleanLinkedInProfile(candidate.author?.linkedinUrl);
-          if (!profileUrl || knownProfiles.has(profileUrl.toLowerCase()) || !candidate.sourceText) continue;
-          if (!isUkAuthor(candidate.author)) { outsideUk++; continue; }
-          const authorInfo = String(candidate.author?.info || candidate.author?.position || "");
-          const score = discoveryScore(candidate.sourceText, candidate.parentText, authorInfo, candidate.observedAt);
-          if (score.subject < 2 || score.audience < 1 || score.total < 5) continue;
-          const classified = classify(candidate.sourceText + " " + candidate.parentText, candidate.observedAt);
-          const key = profileUrl.toLowerCase() + "|" + candidate.sourceUrl;
-          const row = {
-            user_id: authData.user.id,
-            observed_at: candidate.observedAt,
-            linkedin_url: profileUrl,
-            name: candidate.author?.name || null,
-            company: null,
-            title: authorInfo || null,
-            source_url: candidate.sourceUrl,
-            source_text: candidate.sourceText,
-            source_type: candidate.sourceType,
-            search_query: query || null,
-            author_info: authorInfo || null,
-            parent_post_text: candidate.parentText || null,
-            signal_category: classified.category,
-            signal_polarity: classified.polarity,
-            subject_score: score.subject,
-            recency_score: score.recency,
-            contribution_score: score.contribution,
-            audience_score: score.audience,
-            relationship_score: score.relationship,
-            total_score: score.total,
-            working_hypothesis: classified.hypothesis,
-            suggested_action: score.total >= 7 ? "comment_or_connect" : "review",
-            draft_copy: discoveryDraft(candidate.sourceType, classified.category),
-            raw_payload: candidate.raw,
-          };
-          const previous = found.get(key);
-          if (!previous || Number(previous.total_score || 0) < score.total) found.set(key, row);
         }
       }
 
-      const rows = [...found.values()];
+      // 2. Comments for on-topic posts (one page each).
+      const commentPages = await mapLimit(commentTargets, TREG_CONCURRENCY, (target) => treg(TREG_POST_COMMENTS, { post: target.post.linkedinUrl, page: "1" }, TREG_PAGE_USD).catch(() => null));
+      commentTargets.forEach((target, index) => {
+        const comments = Array.isArray(commentPages[index]?.data?.elements) ? commentPages[index]!.data.elements.slice(0, maxComments) : [];
+        for (const comment of comments) {
+          if (!comment?.commentary) continue;
+          itemsChecked++;
+          candidates.push({
+            sourceType: "linkedin_comment",
+            sourceUrl: String(comment.linkedinUrl || target.postUrl),
+            sourceText: String(comment.commentary),
+            parentText: String(target.post.content || ""),
+            observedAt: comment.createdAt || target.observedAt,
+            author: comment.actor,
+            query: target.query,
+            raw: { comment, parentPost: { id: target.post.id, linkedinUrl: target.post.linkedinUrl, content: target.post.content } },
+          });
+        }
+      });
+
+      // 3. Score everything; keep the best row per person and conversation.
+      const found = new Map<string, Record<string, unknown>>();
+      for (const candidate of candidates) {
+        const profileUrl = cleanLinkedInProfile(candidate.author?.linkedinUrl);
+        if (!profileUrl || knownProfiles.has(profileUrl.toLowerCase()) || !candidate.sourceText) continue;
+        const authorInfo = String(candidate.author?.info || candidate.author?.position || "");
+        const score = discoveryScore(candidate.sourceText, candidate.parentText, authorInfo, candidate.observedAt);
+        if (score.subject < 2 || score.audience < 1 || score.total < 5) continue;
+        const classified = classify(candidate.sourceText + " " + candidate.parentText, candidate.observedAt);
+        const key = profileUrl.toLowerCase() + "|" + candidate.sourceUrl;
+        const row = {
+          user_id: authData.user.id,
+          observed_at: candidate.observedAt,
+          linkedin_url: profileUrl,
+          name: candidate.author?.name || null,
+          company: null,
+          title: authorInfo || null,
+          source_url: candidate.sourceUrl,
+          source_text: candidate.sourceText,
+          source_type: candidate.sourceType,
+          search_query: candidate.query || null,
+          author_info: authorInfo || null,
+          parent_post_text: candidate.parentText || null,
+          signal_category: classified.category,
+          signal_polarity: classified.polarity,
+          subject_score: score.subject,
+          recency_score: score.recency,
+          contribution_score: score.contribution,
+          audience_score: score.audience,
+          relationship_score: score.relationship,
+          total_score: score.total,
+          working_hypothesis: classified.hypothesis,
+          suggested_action: score.total >= 7 ? "comment_or_connect" : "review",
+          draft_copy: discoveryDraft(candidate.sourceType, classified.category),
+          raw_payload: candidate.raw,
+        };
+        const previous = found.get(key);
+        if (!previous || Number(previous.total_score || 0) < score.total) found.set(key, row);
+      }
+
+      // 4. LinkedIn search can't filter by location, so check where each relevant person is
+      //    based (highest scores first) and keep only people in the UK.
+      const relevant = [...found.values()].sort((a, b) => Number(b.total_score) - Number(a.total_score));
+      const people = [...new Set(relevant.map((row) => String(row.linkedin_url)))].slice(0, MAX_LOCATION_CHECKS);
+      const profiles = await mapLimit(people, TREG_CONCURRENCY, (url) => treg(TREG_PROFILE, { url, main: "true" }, TREG_PROFILE_USD).catch(() => null));
+      if (profiles.some((p) => p?.status === 402)) return await failRun("treg balance ran out while checking locations. Top up at treg.to.", 402);
+      const lookupFailed = profiles.filter((p) => !p?.ok).length;
+      if (people.length && lookupFailed === people.length) return await failRun("Location checks failed, so no prospects were saved.", 502, { detail: JSON.stringify(profiles[0]?.data ?? null).slice(0, 400) });
+      const ukPeople = new Set<string>();
+      let outsideUk = 0;
+      let unknownLocation = 0;
+      people.forEach((url, index) => {
+        if (!profiles[index]?.ok) return;
+        const location = profiles[index]?.data?.element?.location;
+        const verdict = ukLocation(location);
+        if (verdict === true) ukPeople.add(url);
+        else if (verdict === false) outsideUk++;
+        else unknownLocation++;
+      });
+      const rows = relevant.filter((row) => ukPeople.has(String(row.linkedin_url)));
+
       let stored: unknown[] = [];
       if (rows.length) {
         const { data, error } = await supabase
@@ -309,8 +353,20 @@ Deno.serve(async (req: Request) => {
         stored = data || [];
       }
       const completedAt = new Date().toISOString();
-      await supabase.from("prospect_signal_runs").update({ status: "succeeded", completed_at: completedAt, actual_item_count: Array.isArray(items) ? items.length : 0 }).eq("id", runRow.id);
-      return json({ runId: runRow.id, actorItems: Array.isArray(items) ? items.length : 0, qualifiedDiscoveries: rows.length, skippedOutsideUk: outsideUk, storedDiscoveries: stored, completedAt });
+      await supabase.from("prospect_signal_runs").update({ status: "succeeded", completed_at: completedAt, actual_item_count: itemsChecked }).eq("id", runRow.id);
+      return json({
+        runId: runRow.id,
+        actorItems: itemsChecked,
+        relevantPeople: people.length,
+        skippedOutsideUk: outsideUk,
+        skippedUnknownLocation: unknownLocation,
+        locationChecksFailed: lookupFailed,
+        qualifiedDiscoveries: rows.length,
+        storedDiscoveries: stored,
+        failedQueries: failed.map((s) => s.query),
+        spentUsd: Math.round(spentUsd * 10000) / 10000,
+        completedAt,
+      });
     }
 
     const contactIds = Array.isArray(body.contact_ids) ? [...new Set(body.contact_ids.map(String))] : [];

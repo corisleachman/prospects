@@ -4535,8 +4535,8 @@ function discoveryQueries(){return document.getElementById('discovery-queries').
 function updateDiscoveryEstimate(){
   const box=document.getElementById('discovery-estimate');if(!box)return;
   const queries=discoveryQueries().length, posts=Number(document.getElementById('discovery-max-posts').value||5), comments=document.getElementById('discovery-comments').checked?3:0;
-  const maximumItems=queries*posts*(1+comments), estimated=maximumItems*.004+queries*.001, cap=Math.max(.02,Math.ceil((estimated+.01)*100)/100);
-  box.innerHTML=`<b>${queries} queries</b> · up to ${queries*posts} posts${comments?' and '+queries*posts*comments+' comments':''}<br>Maximum estimated charge <span class="signal-cost">$${estimated.toFixed(2)}</span> · hard cap <span class="signal-cost">$${cap.toFixed(2)}</span>`;
+  const estimated=(queries+(comments?queries*posts:0))*.004+30*.004;
+  box.innerHTML=`<b>${queries} queries</b> · up to ${queries*posts} posts${comments?' and '+queries*posts*comments+' comments':''} · UK-based people only<br>Most it can cost <span class="signal-cost">$${estimated.toFixed(2)}</span> on treg (usually far less)`;
   document.getElementById('discovery-run-btn').disabled=!queries;
 }
 async function runDiscoverySearch(){
@@ -4546,11 +4546,11 @@ async function runDiscoverySearch(){
   const payload={search_queries:queries,max_posts_per_query:posts,posted_limit:period,include_comments:comments,max_comments_per_post:3};
   try{
     const estimate=await invokeSignalFunction({action:'estimate_discovery',...payload});
-    const message=`Search ${estimate.queries} LinkedIn themes from the ${period==='24h'?'last 24 hours':period==='week'?'last week':'last month'}?\n\nThis Actor charges $0.004 per post or comment (including the author's profile, used to keep only UK-based people) and $0.001 for a query with no results.\nMaximum estimated charge: $${Number(estimate.estimatedMaxCostUsd||0).toFixed(2)}\nHard run cap: $${Number(estimate.recommendedCapUsd||0).toFixed(2)}\n\nOnly UK-based people outside your CRM who meet the relevance threshold will be saved.`;
+    const message=`Search ${estimate.queries} LinkedIn themes from the ${period==='24h'?'last 24 hours':period==='week'?'last week':'last month'}?\n\nRuns on treg: $0.004 per search page (up to 50 posts)${comments?', $0.004 per comments page on on-topic posts':''}, and $0.004 to check where each relevant person is based (up to ${estimate.maxLocationChecks||30} people).\nMost it can cost: $${Number(estimate.estimatedMaxCostUsd||0).toFixed(2)}\n\nOnly UK-based people outside your CRM who meet the relevance threshold will be saved.`;
     if(!window.confirm(message)){status.textContent='Search cancelled.';btn.disabled=false;return;}
     status.textContent='Searching LinkedIn conversations…';
     const result=await invokeSignalFunction({action:'run_discovery',confirm_paid_run:true,...payload});
-    status.textContent=`${result.actorItems||0} items checked · ${result.qualifiedDiscoveries||0} relevant new-prospect signals saved${result.skippedOutsideUk?' · '+result.skippedOutsideUk+' skipped as outside the UK':''}`;
+    status.textContent=`${result.actorItems||0} posts and comments checked · ${result.qualifiedDiscoveries||0} UK prospect signals saved${result.skippedOutsideUk?' · '+result.skippedOutsideUk+' people outside the UK skipped':''}${result.skippedUnknownLocation?' · '+result.skippedUnknownLocation+' with no location skipped':''}${result.locationChecksFailed?' · '+result.locationChecksFailed+' location checks failed (not saved, try again)':''}${result.spentUsd!=null?' · cost $'+Number(result.spentUsd).toFixed(3):''}`;
     await loadSignalDiscoveries();toast('Discovery search complete');
   }catch(e){status.textContent='Error: '+e.message;}
   btn.disabled=false;
