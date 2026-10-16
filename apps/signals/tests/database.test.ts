@@ -472,5 +472,177 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       }
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261016165335_signals_phase_two.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Phase 2 saves optional criteria and rejects stale revisions",
+    async () => {
+      const profile = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [a],
+      );
+      const payload = {
+        name: "Consumer brands",
+        criteria: {
+          industries: ["Food"],
+          named_companies: [
+            {
+              name: "Example",
+              include_parent: true,
+              include_sub_brands: false,
+            },
+          ],
+        },
+        who: "CMOs",
+      };
+      const saved = await asUser<{ revision: number }>(
+        owner,
+        "select public.save_signals_profile($1,$2,0,$3::jsonb) as revision",
+        [a, profile, JSON.stringify(payload)],
+      );
+      assert.equal(saved.rows[0].revision, 1);
+      const row = (
+        await asUser<{
+          criteria: unknown;
+          who: string;
+          watch_list_size: number;
+        }>(
+          owner,
+          "select criteria,who,watch_list_size from public.campaigns where id=$1",
+          [profile],
+        )
+      ).rows[0];
+      assert.deepEqual(row.criteria, payload.criteria);
+      assert.equal(row.who, "CMOs");
+      assert.equal(row.watch_list_size, 200);
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.save_signals_profile($1,$2,0,$3::jsonb)",
+            [a, profile, JSON.stringify(payload)],
+          ),
+        /changed elsewhere/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.save_signals_profile($1,$2,1,$3::jsonb)",
+            [b, profile, JSON.stringify(payload)],
+          ),
+        /changed elsewhere/,
+      );
+    },
+  );
+  await t.test(
+    "Phase 2 database caps apply to RPC and direct inserts; downgrade fails",
+    async () => {
+      for (
+        let i = Number(
+          (
+            await db.query<{ n: number }>(
+              "select count(*)::int as n from public.campaigns where workspace_id=$1 and status<>'archived'",
+              [a],
+            )
+          ).rows[0].n,
+        );
+        i < 5;
+        i++
+      )
+        await adminScalar("select public.create_signals_profile($1) as id", [
+          a,
+        ]);
+      await assert.rejects(
+        () =>
+          adminScalar("select public.create_signals_profile($1) as id", [a]),
+        /Profile limit reached/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "insert into public.campaigns(workspace_id,name) values($1,'Direct extra')",
+            [a],
+          ),
+        /Profile limit reached/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_client($1,0,$2::jsonb)", [
+            a,
+            JSON.stringify({
+              name: "Client A",
+              timezone: "Europe/London",
+              profile_limit: 2,
+            }),
+          ]),
+        /fewer profiles/,
+      );
+      const saved = await asUser<{ revision: number }>(
+        owner,
+        "select public.save_signals_client($1,0,$2::jsonb) as revision",
+        [
+          a,
+          JSON.stringify({
+            name: "Client A updated",
+            timezone: "America/New_York",
+            profile_limit: 10,
+            logo_url: "https://example.test/logo.png",
+          }),
+        ],
+      );
+      assert.equal(saved.rows[0].revision, 1);
+      await adminScalar("select public.create_signals_profile($1) as id", [a]);
+    },
+  );
+  await t.test(
+    "Phase 2 setup and shared entities remain inaccessible to client roles",
+    async () => {
+      await assert.rejects(
+        () => asUser(alice, "select public.create_signals_profile($1)", [a]),
+        /Not allowed/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.save_signals_client($1,1,'{}'::jsonb)", [
+            a,
+          ]),
+        /Not allowed/,
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.signals_team($1)", [a])).rows
+          .length,
+        0,
+      );
+      await asUser(
+        owner,
+        "insert into public.companies(workspace_id,name,domain) values($1,'Example','example.test')",
+        [a],
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.companies")).rows.length,
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "insert into public.people(workspace_id,name) values($1,'Injected')",
+            [a],
+          ),
+        /row-level security/,
+      );
+      await assert.rejects(
+        () =>
+          adminScalar("select public.create_signals_profile($1) as id", [old]),
+        /Client unavailable/,
+      );
+    },
+  );
   await db.close();
 });

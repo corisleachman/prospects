@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/access";
 import { Frame } from "@/components/frame";
 import { Submit } from "@/components/submit";
@@ -83,7 +84,9 @@ export default async function Clients({
               <tbody>
                 {clients.map((c) => (
                   <tr key={c.id}>
-                    <td>{c.name}</td>
+                    <td>
+                      <Link href={"/clients/" + c.id}>{c.name}</Link>
+                    </td>
                     <td>
                       <span className="badge">{c.status}</span>
                     </td>
