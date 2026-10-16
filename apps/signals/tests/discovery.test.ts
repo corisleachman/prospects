@@ -96,7 +96,8 @@ test("normalisation keeps linked people, deduplicates, and never invents source 
         currentPositions: [
           {
             title: "CMO",
-            companyLinkedinUrl: "https://www.linkedin.com/company/example",
+            companyLinkedinUrl: "https://www.linkedin.com/company/1234",
+            companyName: "Example",
           },
         ],
       },
@@ -165,7 +166,8 @@ test("weekly refresh is limited to approved companies and retains person exclusi
         linkedinUrl: "https://linkedin.com/in/alex",
         currentPositions: [
           {
-            companyLinkedinUrl: "https://www.linkedin.com/company/example",
+            companyLinkedinUrl: "https://www.linkedin.com/company/1234",
+            companyName: "Example",
             title: "CMO",
           },
         ],

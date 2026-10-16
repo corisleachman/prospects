@@ -320,15 +320,29 @@ export function absorb(p: Plan, r: Result, call: Call, data: any) {
       const positions = Array.isArray(x.currentPositions)
         ? x.currentPositions
         : [];
-      const position = positions.find((pos: any) =>
-        r.companies.some(
-          (c) => c.linkedin_url === https(pos.companyLinkedinUrl, "company"),
-        ),
-      );
-      if (!position) continue;
-      const company = r.companies.find(
-        (c) => c.linkedin_url === https(position.companyLinkedinUrl, "company"),
-      )!;
+      // Harvest returns numeric LinkedIn company URLs while Blitz returns slugs.
+      // Prefer the URL; accept only a unique exact company name from the
+      // employer-filtered result when those representations differ.
+      const matched = positions
+        .map((pos: any) => {
+          const byUrl = r.companies.find(
+            (c) => c.linkedin_url === https(pos.companyLinkedinUrl, "company"),
+          );
+          const byName = r.companies.filter(
+            (c) =>
+              c.name.trim().toLowerCase() ===
+              String(pos.companyName ?? "")
+                .trim()
+                .toLowerCase(),
+          );
+          return {
+            position: pos,
+            company: byUrl ?? (byName.length === 1 ? byName[0] : undefined),
+          };
+        })
+        .find((x: any) => x.company);
+      if (!matched) continue;
+      const { position, company } = matched;
       const name =
         [x.firstName, x.lastName].filter(Boolean).join(" ").trim() ||
         String(x.name ?? "");
