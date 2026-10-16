@@ -2,6 +2,7 @@ declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 import {
   makePlan,
+  ecbRate,
   nextCall,
   absorb,
   receiptCost,
@@ -50,17 +51,7 @@ async function pricing() {
       return r.text();
     }),
   ]);
-  const usd = Number(xml.match(/currency="USD"\s+rate="([^"]+)"/)?.[1]),
-    gbp = Number(xml.match(/currency="GBP"\s+rate="([^"]+)"/)?.[1]),
-    date = xml.match(/time="(\d{4}-\d{2}-\d{2})"/)?.[1];
-  if (
-    !date ||
-    Date.now() - Date.parse(date) > 7 * 86400000 ||
-    Date.parse(date) > Date.now() + 86400000 ||
-    !usd ||
-    !gbp
-  )
-    throw new Error("A current ECB USD/GBP rate is required");
+  const { fx, date } = ecbRate(xml);
   if (
     company.endpoint?.cost?.type !== "per_result" ||
     people.endpoint?.cost?.type !== "per_call" ||
@@ -73,7 +64,7 @@ async function pricing() {
   return {
     companyRate: Number(company.endpoint.cost.usd),
     peopleRate: Number(people.endpoint.cost.usd),
-    fx: gbp / usd,
+    fx,
     date,
   };
 }

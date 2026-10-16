@@ -417,3 +417,24 @@ export function receiptCost(headers: Headers, cap: number) {
     throw new Error("Invalid provider cost receipt");
   return { usd: n, basis: "reported" };
 }
+
+export function ecbRate(xml: string, now = Date.now()) {
+  const usd = Number(
+    xml.match(/currency=["']USD["']\s+rate=["']([^"']+)["']/)?.[1],
+  );
+  const gbp = Number(
+    xml.match(/currency=["']GBP["']\s+rate=["']([^"']+)["']/)?.[1],
+  );
+  const date = xml.match(/time=["'](\d{4}-\d{2}-\d{2})["']/)?.[1];
+  if (
+    !date ||
+    now - Date.parse(date) > 7 * 86400000 ||
+    Date.parse(date) > now + 86400000 ||
+    !Number.isFinite(usd) ||
+    !Number.isFinite(gbp) ||
+    usd <= 0 ||
+    gbp <= 0
+  )
+    throw new Error("A current ECB USD/GBP rate is required");
+  return { fx: gbp / usd, date };
+}

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   makePlan,
+  ecbRate,
   nextCall,
   absorb,
   receiptCost,
@@ -193,4 +194,15 @@ test("unverified ownership expansion fails before a paid search", () => {
       ),
     /verified ownership/,
   );
+});
+
+test("ECB XML accepts published single quotes and rejects stale rates", () => {
+  const xml =
+    "<Cube time='2026-10-16'><Cube currency='USD' rate='1.1253'/><Cube currency='GBP' rate='0.84385'/></Cube>";
+  assert.equal(ecbRate(xml, Date.parse("2026-10-17")).fx, 0.84385 / 1.1253);
+  assert.deepEqual(
+    ecbRate(xml, Date.parse("2026-10-17")),
+    ecbRate(xml.replaceAll("'", '"'), Date.parse("2026-10-17")),
+  );
+  assert.throws(() => ecbRate(xml, Date.parse("2026-10-25")), /current ECB/);
 });
