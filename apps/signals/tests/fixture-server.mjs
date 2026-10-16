@@ -19,6 +19,10 @@ const clients = [
   },
 ];
 const profiles = [];
+const budgets = [],
+  budgetHistory = [],
+  ledger = [],
+  budgetAlerts = [];
 let accepted = false;
 const used = new Set();
 function user(role) {
@@ -173,6 +177,148 @@ const server = http.createServer(async (req, res) => {
                 .includes(c.id)),
       ),
     );
+  if (
+    [
+      "/rest/v1/budget_history",
+      "/rest/v1/cost_ledger",
+      "/rest/v1/budget_alerts",
+      "/rest/v1/provider_pricing",
+    ].includes(url.pathname)
+  ) {
+    const source = url.pathname.endsWith("budget_history")
+      ? budgetHistory
+      : url.pathname.endsWith("cost_ledger")
+        ? ledger
+        : url.pathname.endsWith("budget_alerts")
+          ? budgetAlerts
+          : [];
+    return rows(
+      role === "admin"
+        ? source
+            .filter(
+              (x) =>
+                x.workspace_id ===
+                url.searchParams.get("workspace_id")?.replace("eq.", ""),
+            )
+            .slice()
+            .reverse()
+        : [],
+    );
+  }
+  if (url.pathname === "/rest/v1/rpc/signals_budget_overview") {
+    const b = budgets.find(
+      (b) => b.workspace_id === body.p_workspace && b.status !== "closed",
+    );
+    if (role !== "admin" || !b) return reply(null);
+    const spent = ledger
+      .filter((l) => l.budget_id === b.id)
+      .reduce((s, l) => s + l.cost, 0);
+    return reply({
+      budget: b,
+      spent,
+      reserved: 0,
+      today_spent: spent,
+      days_left: 30,
+    });
+  }
+  if (url.pathname === "/rest/v1/rpc/pending_signals_budget_alerts")
+    return reply([]);
+  if (url.pathname === "/rest/v1/rpc/change_signals_budget") {
+    if (role !== "admin") return reply({ message: "Not allowed" }, 403);
+    let b = budgets.find(
+      (b) => b.workspace_id === body.p_workspace && b.status !== "closed",
+    );
+    if (["create", "renew"].includes(body.p_action)) {
+      if (b) b.status = "closed";
+      b = {
+        id: randomUUID(),
+        workspace_id: body.p_workspace,
+        amount: body.p_amount,
+        period_start: body.p_start,
+        period_end: body.p_end,
+        note: body.p_note,
+        currency: "GBP",
+        status: "active",
+        is_test: body.p_test,
+      };
+      budgets.push(b);
+    } else {
+      b.amount =
+        body.p_action === "top_up" ? b.amount + body.p_amount : body.p_amount;
+      b.status = "active";
+    }
+    const c = clients.find((c) => c.id === body.p_workspace);
+    if (c.paused_reason?.startsWith("budget:")) {
+      c.status = "setup";
+      c.paused_reason = null;
+    }
+    budgetHistory.push({
+      id: randomUUID(),
+      workspace_id: b.workspace_id,
+      budget_id: b.id,
+      action: body.p_action,
+      amount: b.amount,
+      actor_label: "coris@example.test",
+      note: body.p_note,
+      created_at: new Date().toISOString(),
+    });
+    return reply(b.id);
+  }
+  if (url.pathname === "/rest/v1/rpc/add_signals_test_cost") {
+    const b = budgets.find(
+      (b) => b.workspace_id === body.p_workspace && b.status === "active",
+    );
+    if (role !== "admin" || !b?.is_test)
+      return reply(
+        { message: "Only active test budgets allow fake costs" },
+        400,
+      );
+    const spent = ledger
+      .filter((l) => l.budget_id === b.id)
+      .reduce((s, l) => s + l.cost, 0);
+    if (body.p_amount > b.amount - spent)
+      return reply({ message: "Hard cap: insufficient budget" }, 400);
+    const l = {
+      id: randomUUID(),
+      workspace_id: b.workspace_id,
+      budget_id: b.id,
+      request_key: body.p_key,
+      cost: body.p_amount,
+      is_test: true,
+      stage: "collect",
+      provider: "test",
+      source_key: "manual-test",
+      units: { fake_calls: 1 },
+      cost_basis: "estimated",
+      outcome: "success",
+      created_at: new Date().toISOString(),
+    };
+    ledger.push(l);
+    for (const threshold of [80, 100])
+      if (
+        spent + l.cost >= (b.amount * threshold) / 100 &&
+        !budgetAlerts.some(
+          (a) => a.budget_id === b.id && a.threshold === threshold,
+        )
+      )
+        budgetAlerts.push({
+          id: randomUUID(),
+          workspace_id: b.workspace_id,
+          budget_id: b.id,
+          threshold,
+          status: "pending",
+          attempts: 0,
+          created_at: new Date().toISOString(),
+        });
+    if (spent + l.cost >= b.amount) {
+      b.status = "spent";
+      const c = clients.find((c) => c.id === b.workspace_id);
+      c.status = "paused";
+      c.paused_reason =
+        "budget:used up on " + new Date().toISOString().slice(0, 10);
+    }
+    return reply(l.id);
+  }
   if (url.pathname === "/rest/v1/campaigns")
     return rows(
       role === "admin"

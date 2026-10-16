@@ -644,5 +644,302 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    `create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;`,
+  );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261016222233_signals_phase_three.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Phase 3 reservations, thresholds, failed costs, hard cap and renewals",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Budget test','Europe/London') as id",
+      );
+      const bid = await adminScalar(
+        "select public.change_signals_budget($1,'create',10,current_date,current_date+30,'Test',false) as id",
+        [w],
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.change_signals_budget($1,'top_up',5,null,null,'',false)",
+            [w],
+          ),
+        /Not allowed/,
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.reserve_signals_cost($1,'optional',1,true) as id",
+            [w],
+          ),
+        /Daily soft cap/,
+      );
+      const r = await adminScalar(
+        "select public.reserve_signals_cost($1,'watched',8,false) as id",
+        [w],
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.reserve_signals_cost($1,'parallel',3,false) as id",
+            [w],
+          ),
+        /Hard cap/,
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.change_signals_budget($1,'renew',10,current_date,current_date+30,'',true) as id",
+            [w],
+          ),
+        /pending calls/,
+      );
+      const details = JSON.stringify({
+        stage: "triage",
+        provider: "fixture",
+        cost_basis: "reported",
+        outcome: "failed",
+        batch: true,
+        cached: true,
+        units: { input_tokens: 10, cache_read_input_tokens: 5 },
+      });
+      const cost = await adminScalar(
+        "select public.settle_signals_cost($1,8,$2::jsonb) as id",
+        [r, details],
+      );
+      assert.equal(
+        await adminScalar(
+          "select public.settle_signals_cost($1,8,$2::jsonb) as id",
+          [r, details],
+        ),
+        cost,
+      );
+      assert.equal(
+        (
+          await asUser(
+            owner,
+            "select threshold from public.budget_alerts where budget_id=$1",
+            [bid],
+          )
+        ).rows.length,
+        1,
+      );
+      await assert.rejects(
+        () =>
+          db.query("update public.cost_ledger set cost=0 where id=$1", [cost]),
+        /append-only/,
+      );
+      const finishReservation = await adminScalar(
+        "select public.reserve_signals_cost($1,'finish',2,false) as id",
+        [w],
+      );
+      await adminScalar(
+        "select public.settle_signals_cost($1,2,$2::jsonb) as id",
+        [finishReservation, details],
+      );
+      assert.equal(
+        (
+          await db.query<{ status: string }>(
+            "select status from public.client_budgets where id=$1",
+            [bid],
+          )
+        ).rows[0].status,
+        "spent",
+      );
+      assert.equal(
+        (
+          await db.query<{ status: string }>(
+            "select status from public.workspaces where id=$1",
+            [w],
+          )
+        ).rows[0].status,
+        "paused",
+      );
+      assert.equal(
+        (
+          await asUser(
+            owner,
+            "select threshold from public.budget_alerts where budget_id=$1",
+            [bid],
+          )
+        ).rows.length,
+        2,
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.reserve_signals_cost($1,'blocked',1,false) as id",
+            [w],
+          ),
+        /paused/,
+      );
+      await adminScalar(
+        "select public.change_signals_budget($1,'top_up',5,null,null,'More headroom',false) as id",
+        [w],
+      );
+      assert.equal(
+        (
+          await db.query<{ status: string }>(
+            "select status from public.workspaces where id=$1",
+            [w],
+          )
+        ).rows[0].status,
+        "setup",
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.change_signals_budget($1,'change',9,null,null,'Too low',false) as id",
+            [w],
+          ),
+        /smaller than/,
+      );
+      const over = await adminScalar(
+        "select public.reserve_signals_cost($1,'overrun',1,false) as id",
+        [w],
+      );
+      await adminScalar(
+        "select public.settle_signals_cost($1,7,$2::jsonb) as id",
+        [over, details],
+      );
+      assert.equal(
+        Number(
+          (
+            await db.query<{ cost: number }>(
+              "select sum(cost) as cost from public.cost_ledger where budget_id=$1",
+              [bid],
+            )
+          ).rows[0].cost,
+        ),
+        17,
+      );
+      const next = await adminScalar(
+        "select public.change_signals_budget($1,'renew',20,current_date,current_date+30,'Fresh period',false) as id",
+        [w],
+      );
+      assert.notEqual(next, bid);
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.add_signals_test_cost($1,1,'no-fake-real') as id",
+            [w],
+          ),
+        /only allowed/,
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.cost_ledger")).rows.length,
+        0,
+      );
+      assert.equal(
+        (
+          await asUser<{ data: unknown }>(
+            alice,
+            "select public.signals_budget_overview($1) as data",
+            [w],
+          )
+        ).rows[0].data,
+        null,
+      );
+      const cancel = await adminScalar(
+        "select public.reserve_signals_cost($1,'cancelled',2,false) as id",
+        [w],
+      );
+      await asUser(owner, "select public.cancel_signals_cost($1)", [cancel]);
+      const overview = (
+        await asUser<{ data: { spent: number; reserved: number } }>(
+          owner,
+          "select public.signals_budget_overview($1) as data",
+          [w],
+        )
+      ).rows[0].data;
+      assert.equal(Number(overview.spent), 0);
+      assert.equal(Number(overview.reserved), 0);
+      assert.equal(
+        (
+          await asUser(
+            owner,
+            "select * from public.budget_history where workspace_id=$1",
+            [w],
+          )
+        ).rows.length,
+        3,
+      );
+    },
+  );
+  await t.test(
+    "test budgets reject provider reservations and fake charges stay labelled",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Fake only','Europe/London') as id",
+      );
+      await adminScalar(
+        "select public.change_signals_budget($1,'create',10,current_date,current_date+30,'Test',true) as id",
+        [w],
+      );
+      await assert.rejects(
+        () =>
+          adminScalar(
+            "select public.reserve_signals_cost($1,'paid',1,false) as id",
+            [w],
+          ),
+        /explicit fake costs/,
+      );
+      await adminScalar(
+        "select public.add_signals_test_cost($1,10,'fake') as id",
+        [w],
+      );
+      assert.equal(
+        (
+          await db.query<{ is_test: boolean }>(
+            "select is_test from public.cost_ledger where workspace_id=$1",
+            [w],
+          )
+        ).rows[0].is_test,
+        true,
+      );
+    },
+  );
+  await t.test(
+    "budget alert failures retry without duplicating sent alerts",
+    async () => {
+      const alert = (
+        await asUser<{ id: string }>(
+          owner,
+          "select id from public.budget_alerts where status='pending' limit 1",
+        )
+      ).rows[0];
+      await asUser(owner, "select public.mark_signals_budget_alert($1,false)", [
+        alert.id,
+      ]);
+      await asUser(owner, "select public.mark_signals_budget_alert($1,true)", [
+        alert.id,
+      ]);
+      await asUser(owner, "select public.mark_signals_budget_alert($1,false)", [
+        alert.id,
+      ]);
+      const row = (
+        await asUser<{ status: string; attempts: number }>(
+          owner,
+          "select status,attempts from public.budget_alerts where id=$1",
+          [alert.id],
+        )
+      ).rows[0];
+      assert.equal(row.status, "sent");
+      assert.equal(row.attempts, 2);
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.mark_signals_budget_alert($1,true)", [
+            alert.id,
+          ]),
+        /Not allowed/,
+      );
+    },
+  );
   await db.close();
 });

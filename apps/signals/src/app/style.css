@@ -769,3 +769,54 @@ td:first-child {
   background: var(--navy);
   color: var(--cream);
 }
+.budget-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+.budget-totals dt {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.budget-totals dd {
+  font-size: 1.8rem;
+  margin: 0.4rem 0;
+}
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.check-label input {
+  width: auto;
+}
+.table-wrap code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+textarea {
+  max-width: 100%;
+  font: inherit;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.check-label,
+.inline-options label {
+  flex-direction: row;
+  align-items: center;
+}
+.check-label input,
+.inline-options input[type="checkbox"] {
+  min-height: 18px;
+  min-width: 18px;
+  padding: 0;
+  width: 18px;
+}
