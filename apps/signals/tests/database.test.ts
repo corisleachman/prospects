@@ -1702,7 +1702,7 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
   );
   await db.exec(
     await readFile(
-      resolve(migrations, "20261017162319_signals_delivery_defaults.sql"),
+      resolve(migrations, "20261017163607_signals_delivery_defaults.sql"),
       "utf8",
     ),
   );

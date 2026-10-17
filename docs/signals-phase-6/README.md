@@ -37,3 +37,5 @@ Migration: `20261017134828_signals_phase_six.sql`.
 On 17 October, the deployed worker collected 60 items in run `21bd05da-bf2d-4b06-b441-46963b503137`: 37 passed, 8 were too old, 4 were duplicates, 4 were non-English and 7 were financial notices. Cost: £0. No AI or email ran. Marketing Dive had already supplied three fresh items in the preceding transport check, so those were correctly counted as duplicates.
 
 Business Wire is blocked by its current robots rules. Muse exceeded the initial body limit; the reader now supports the sourcing test's 4 MB bound. Earlier transport failures remain visible as validation runs, with no paid costs.
+
+The follow-up trade-feed run `1fc3b314-8318-42a3-ac48-dd026f815fe0` succeeded for all three retained feeds. Muse returned 100 items, with 7 fresh and 93 too old. Adweek and Marketing Dive correctly dropped the previously collected items as duplicates. Total unique fresh evidence across the free checks: 47 items. The configured client budget and prior paid spend are unchanged.
