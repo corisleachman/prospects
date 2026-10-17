@@ -1,3 +1,5 @@
+import { TestLaunch } from "./components/test-launch";
+import { refreshTest } from "./test-actions";
 import { setupData } from "@/lib/setup-data";
 import { examples } from "@/lib/setup";
 import { Signals } from "./components/signals";
@@ -42,7 +44,7 @@ export default async function Setup({
     db
       .from("workspaces")
       .select(
-        "id,name,timezone,logo_url,website,client_type,profile_limit,setup_revision,status,default_max_cards_per_day,default_no_repeat_days,delivery_limits_revision",
+        "id,name,timezone,logo_url,website,client_type,profile_limit,setup_revision,status,latest_pipeline_test_id,first_morning_at,default_max_cards_per_day,default_no_repeat_days,delivery_limits_revision",
       )
       .eq("id", id)
       .eq("is_signals_client", true)
@@ -68,8 +70,12 @@ export default async function Setup({
   if (error || profileError || teamError || previewError || budgetError)
     throw new Error("Client setup unavailable");
   if (!client) redirect("/not-allowed");
-  const step = q.profile ? 2 : Math.min(6, Math.max(1, Number(q.step) || 1));
+  const step = q.profile ? 2 : Math.min(7, Math.max(1, Number(q.step) || 1));
   const settings = await setupData(db, id);
+  const test =
+    step === 7 && client.latest_pipeline_test_id
+      ? await refreshTest(id, client.latest_pipeline_test_id)
+      : null;
   const done = [
     !!client.name,
     !!profiles?.length,
@@ -106,7 +112,7 @@ export default async function Setup({
             "Who gets what",
             "Test and go live",
           ].map((name, i) =>
-            i < 6 ? (
+            i < 7 ? (
               <Link
                 key={name}
                 aria-current={step === i + 1 ? "step" : undefined}
@@ -223,11 +229,22 @@ export default async function Setup({
               }}
             />
           )}
+          {step === 7 && (
+            <TestLaunch
+              workspace={id}
+              initial={test}
+              sourceCount={settings.sources.filter((s) => s.enabled).length}
+              profileCount={profiles?.length ?? 0}
+              status={client.status}
+              firstMorning={client.first_morning_at}
+              timezone={client.timezone}
+            />
+          )}
           <div className="setup-next">
             <Link
               className="button secondary"
               href={
-                step < 6
+                step < 7
                   ? "/clients/" + id + "/setup?step=" + (step + 1)
                   : "/clients/" + id
               }

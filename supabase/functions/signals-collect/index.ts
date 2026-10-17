@@ -75,7 +75,7 @@ async function plan(workspace: string, test = false, includePaid = false) {
     svc
       .from("campaign_prospects")
       .select(
-        "company_id,person_id,companies!campaign_prospects_company_id_fkey(*),people!campaign_prospects_person_id_fkey(*)",
+        "company_id,person_id,companies!campaign_prospects_company_id_fkey(*),people!campaign_prospects_person_company_fk(*)",
       )
       .eq("workspace_id", workspace)
       .eq("group_type", "watchlist"),
@@ -114,6 +114,7 @@ async function plan(workspace: string, test = false, includePaid = false) {
         key: s.source_key + ":" + jobs.length,
         source_key: s.source_key,
         family: config.family,
+        optional: v.optional ?? true,
         provider: config.provider,
         hours,
       });
@@ -124,6 +125,7 @@ async function plan(workspace: string, test = false, includePaid = false) {
       for (let i = 0; i < companies.length; i += 6)
         job({
           adapter: "treg_news",
+          optional: false,
           query: companies
             .slice(i, i + 6)
             .map((c) => '"' + c.name.replace(/"/g, "") + '"')
@@ -159,6 +161,7 @@ async function plan(workspace: string, test = false, includePaid = false) {
           adapter: "apify_posts",
           url: p.linkedin_url,
           person_id: p.id,
+          optional: false,
           actor: "harvestapi~linkedin-profile-posts",
           cap_usd: 0.1,
         });
@@ -649,6 +652,18 @@ Deno.serve(async (req: Request) => {
           apify_configured: !!Deno.env.get("APIFY_TOKEN"),
           anthropic_configured: !!Deno.env.get("ANTHROPIC_API_KEY"),
         });
+      if (body.action === "start_scheduled") {
+        const p = await plan(body.workspace_id, false, true);
+        const id = await rpc("start_signals_scheduled_collection", {
+          p_workspace: body.workspace_id,
+          p_day: body.day,
+          p_next: body.next,
+          p_snapshot: p.snapshot,
+          p_jobs: p.jobs,
+        });
+        if (id) EdgeRuntime.waitUntil(work(id));
+        return reply({ id });
+      }
       if (body.action !== "work")
         return reply(
           { error: "Only existing runs may be continued by the worker" },

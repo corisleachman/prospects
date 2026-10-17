@@ -77,8 +77,8 @@ test("catch-up matches prototype structure at 1280 and 390, including real chip 
   await page.goto("/clients/" + w + "/setup?step=2");
   await expect(page.getByRole("link", { name: /Signals/ })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /Test and go live.*Coming in Phase 7/ }),
-  ).toBeDisabled();
+    page.getByRole("link", { name: /Test and go live$/ }),
+  ).toHaveAttribute("href", /step=7/);
   await page
     .getByLabel("Locations", { exact: true })
     .fill("California (US state),New York metro (city keyword)");

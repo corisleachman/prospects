@@ -1792,5 +1792,191 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017170906_signals_phase_seven.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Phase 7 pipeline data and model pricing stay isolated from client roles",
+    async () => {
+      assert.equal(
+        (await asUser(alice, "select * from public.pipeline_runs")).rows.length,
+        0,
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.message_drafts")).rows
+          .length,
+        0,
+      );
+      const rows = await db.query<{ currency: string }>(
+        "select currency from public.provider_pricing where pricing_key='anthropic/claude-haiku-5-5'",
+      );
+      assert.ok(rows.rows.length > 0);
+      assert.ok(rows.rows.every((r) => r.currency === "USD"));
+      await assert.rejects(
+        () => asUser(alice, "select public.signals_pipeline_setup($1)", [a]),
+        /Not allowed/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.publish_signals_cards(gen_random_uuid(),current_date)",
+          ),
+        /permission denied/,
+      );
+    },
+  );
+  await t.test(
+    "AI reservations settle failed token limits once and accept only the first successful result",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('AI accounting test','Europe/London') as id",
+      );
+      await adminScalar("select public.create_signals_profile($1) as id", [w]);
+      await asUser(
+        owner,
+        "select public.change_signals_budget($1,'create',1,current_date,current_date+30,'AI test',false)",
+        [w],
+      );
+      const run = await adminScalar(
+        "select public.start_signals_collection($1,'pipeline-test','{}',$2,'test') as id",
+        [
+          w,
+          JSON.stringify([
+            {
+              key: "rss",
+              source_key: "trade_press",
+              family: "publication",
+              provider: "rss",
+              cap_usd: 0,
+            },
+          ]),
+        ],
+      );
+      const task = (
+        await db.query<any>(
+          "select id from public.source_tasks where run_id=$1",
+          [run],
+        )
+      ).rows[0].id;
+      const item = (
+        await db.query<any>(
+          "insert into public.collection_items(workspace_id,run_id,source_task_id,item_index,source_key,item) values($1,$2,$3,0,'trade_press','{}') returning id",
+          [w, run, task],
+        )
+      ).rows[0].id;
+      await db.query(
+        "insert into public.pipeline_runs(id,workspace_id,status,snapshot,fingerprint,fallback_at) values($1,$2,'triage','{}','test',now()-interval '1 minute')",
+        [run, w],
+      );
+      const job = (
+        await db.query<any>(
+          "insert into public.pipeline_jobs(workspace_id,run_id,item_id,stage) values($1,$2,$3,'triage') returning id",
+          [w, run, item],
+        )
+      ).rows[0].id;
+      const call = crypto.randomUUID(),
+        second = crypto.randomUUID();
+      const args = [
+        job,
+        call,
+        "batch",
+        JSON.stringify({ model: "claude-haiku-5-5" }),
+        "{}",
+        1,
+        0.01,
+        null,
+      ];
+      await service(
+        "select public.reserve_signals_ai_call($1,$2,$3,$4,$5,$6,$7,$8)",
+        args,
+      );
+      assert.equal(
+        (
+          await service<any>(
+            "select public.reserve_signals_ai_call($1,$2,$3,$4,$5,$6,$7,$8) as id",
+            [job, second, ...args.slice(2)],
+          )
+        ).rows[0].id,
+        null,
+      );
+      const settle = [
+        call,
+        0.004,
+        JSON.stringify({ input_tokens: 100, output_tokens: 300 }),
+        "failed",
+        "max_tokens",
+        "Incomplete model response: max_tokens",
+        null,
+      ];
+      await service(
+        "select public.settle_signals_ai_call($1,$2,$3,$4,$5,$6,$7)",
+        settle,
+      );
+      await service(
+        "select public.settle_signals_ai_call($1,$2,$3,$4,$5,$6,$7)",
+        settle,
+      );
+      assert.equal(
+        (
+          await db.query("select id from public.cost_ledger where run_id=$1", [
+            run,
+          ])
+        ).rows.length,
+        1,
+      );
+      assert.equal(
+        (
+          await db.query<any>(
+            "select status,result from public.pipeline_jobs where id=$1",
+            [job],
+          )
+        ).rows[0].result,
+        null,
+      );
+      await db.query(
+        "update public.pipeline_jobs set status='pending' where id=$1",
+        [job],
+      );
+      await service(
+        "select public.reserve_signals_ai_call($1,$2,'live',$3,'{}',1,0.01,null)",
+        [job, second, JSON.stringify({ model: "claude-haiku-5-5" })],
+      );
+      await service(
+        "select public.settle_signals_ai_call($1,0.003,'{}','succeeded','end_turn',null,$2)",
+        [second, JSON.stringify({ reason: "First valid result" })],
+      );
+      assert.equal(
+        (
+          await db.query<any>(
+            "select result from public.pipeline_jobs where id=$1",
+            [job],
+          )
+        ).rows[0].result.reason,
+        "First valid result",
+      );
+      assert.equal(
+        (
+          await db.query<any>(
+            "select count(*)::int as n from public.cost_reservations where workspace_id=$1 and status='reserved'",
+            [w],
+          )
+        ).rows[0].n,
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.go_live_signals($1,$2,now()+interval '1 day',now()+interval '20 hours')",
+            [w, run],
+          ),
+        /Review a fresh test/,
+      );
+    },
+  );
   await db.close();
 });

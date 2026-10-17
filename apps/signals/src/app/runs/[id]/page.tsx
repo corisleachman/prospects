@@ -32,6 +32,13 @@ export default async function Run({
     .select("name")
     .eq("id", r.data.workspace_id)
     .single();
+  const pipeline = await db
+    .from("pipeline_runs")
+    .select("status,summary,error_summary")
+    .eq("id", id)
+    .maybeSingle();
+  if (pipeline.error) throw Error("Judging costs unavailable");
+  const stages = pipeline.data?.summary?.stages ?? {};
   return (
     <Frame admin email={user.email ?? ""}>
       <div className="screen-head">
@@ -45,6 +52,49 @@ export default async function Run({
       </div>
       {["queued", "running"].includes(r.data.status) && (
         <CollectionPoller id={id} />
+      )}
+      {pipeline.data && (
+        <section className="section">
+          <h2>Judging and writing</h2>
+          <p className="muted">
+            {pipeline.data.status} · {pipeline.data.summary?.usable ?? 0} usable
+            cards
+          </p>
+          {pipeline.data.error_summary && (
+            <p className="notice">{pipeline.data.error_summary}</p>
+          )}
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Cost</th>
+                  <th>Cache read tokens</th>
+                  <th>Failures</th>
+                  <th>Token-limit failures</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(stages).map(([stage, v]) => {
+                  const x = v as any;
+                  return (
+                    <tr key={stage}>
+                      <td>
+                        {stage === "triage"
+                          ? "Stage 1 · Triage"
+                          : "Stage 2 · Score and write"}
+                      </td>
+                      <td>{costMoney(x.cost ?? 0)}</td>
+                      <td>{x.cache_read_input_tokens ?? 0}</td>
+                      <td>{x.failures ?? 0}</td>
+                      <td>{x.max_tokens_failures ?? 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
       <section className="section">
         <h2>Sources and drops</h2>
@@ -90,8 +140,8 @@ export default async function Run({
       <section className="section">
         <h2>Items</h2>
         <p className="small-note">
-          Passing the filter means fresh and not duplicate. Relevance is judged
-          in Phase 7.
+          Passing the filter means fresh and not duplicate. Judging runs
+          separately against the client’s profiles.
         </p>
         {items.data?.map((x) => (
           <article className="collected-item" key={x.id}>

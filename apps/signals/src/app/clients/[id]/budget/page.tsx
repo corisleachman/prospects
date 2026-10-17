@@ -47,7 +47,9 @@ export default async function Budget({
       .limit(50),
     db
       .from("provider_pricing")
-      .select("pricing_key,rates,updated_at")
+      .select(
+        "pricing_key,rates,currency,pricing_source,verified_on,updated_at",
+      )
       .eq("workspace_id", id),
   ]);
   if (results.some((r) => r.error))
@@ -354,12 +356,12 @@ export default async function Budget({
         <details>
           <summary>Provider pricing settings</summary>
           <p className="small-note">
-            GBP rates used by future adapters. Keep the unit names in the rates
-            object. No prices are assumed and no paid calls run here.
+            Rates apply to future calls. USD prices are converted using the
+            recorded exchange rate. Verify model prices at least every 30 days.
           </p>
           {pricing.map((p) => (
             <p key={p.pricing_key}>
-              <strong>{p.pricing_key}</strong>{" "}
+              <strong>{p.pricing_key}</strong> {p.currency}{" "}
               <code>{JSON.stringify(p.rates)}</code>
             </p>
           ))}
@@ -373,6 +375,21 @@ export default async function Budget({
                 required
                 placeholder="provider/model"
               />
+            </label>
+            <label>
+              Currency
+              <select name="currency">
+                <option>GBP</option>
+                <option>USD</option>
+              </select>
+            </label>
+            <label>
+              Pricing source URL
+              <input type="url" name="source" />
+            </label>
+            <label>
+              Verified on
+              <input type="date" name="verified" />
             </label>
             <label>
               Rates (JSON)

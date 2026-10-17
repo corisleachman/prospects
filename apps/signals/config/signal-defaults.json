@@ -13,7 +13,10 @@
     "description": "New CMO, VP Marketing, Brand Director or VP Brand appointed.",
     "polarity": "positive",
     "enabled": true,
-    "scope_names": ["Enterprise portfolios", "Established growth brands"]
+    "scope_names": [
+      "Enterprise portfolios",
+      "Established growth brands"
+    ]
   },
   {
     "key": "agency_review",
@@ -29,7 +32,10 @@
     "description": "New product, new market or retail expansion.",
     "polarity": "positive",
     "enabled": true,
-    "scope_names": ["Established growth brands", "CPG investors"]
+    "scope_names": [
+      "Established growth brands",
+      "CPG investors"
+    ]
   },
   {
     "key": "investment",
@@ -37,7 +43,9 @@
     "description": "New funding or acquisition of a consumer brand.",
     "polarity": "positive",
     "enabled": true,
-    "scope_names": ["CPG investors"]
+    "scope_names": [
+      "CPG investors"
+    ]
   },
   {
     "key": "client_win",
@@ -45,7 +53,9 @@
     "description": "An agency wins a consumer client or expands scope.",
     "polarity": "positive",
     "enabled": true,
-    "scope_names": ["Creative agency partners"]
+    "scope_names": [
+      "Creative agency partners"
+    ]
   },
   {
     "key": "award",
@@ -63,7 +73,7 @@
     "polarity": "negative",
     "enabled": true,
     "scope": "all",
-    "tone_guidance": "Only acknowledge the news kindly. No pitch or opportunity framing. Never raise relevance for layoffs."
+    "tone_guidance": "Only acknowledge the news kindly. No offer, pitch or ask. Score on company/person fit and a fresh confirmed event only."
   },
   {
     "key": "lost_client",
@@ -71,7 +81,9 @@
     "description": "Off by default.",
     "polarity": "negative",
     "enabled": false,
-    "scope_names": ["Creative agency partners"],
+    "scope_names": [
+      "Creative agency partners"
+    ],
     "tone_guidance": "Acknowledge sensitively. No pitch."
   }
 ]
