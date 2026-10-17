@@ -2,6 +2,8 @@ declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
 import { createClient } from "@supabase/supabase-js";
 import {
   models,
+  rewriteRequest,
+  validateRewrite,
   request,
   upperCost,
   usageCost,
@@ -9,6 +11,7 @@ import {
   parseTriage,
   validateJudgment,
   selectPerson,
+  titleRank,
   sensitiveEnabled,
   schedule,
   localDate,
@@ -24,7 +27,14 @@ import {
   wholeWord,
   type Item,
 } from "../signals-collect/core.ts";
-import { ecbRate } from "../signals-discovery/core.ts";
+import {
+  makePlan,
+  nextCall,
+  absorb,
+  https,
+  receiptCost,
+  ecbRate,
+} from "../signals-discovery/core.ts";
 const base = Deno.env.get("SUPABASE_URL")!,
   key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   svc = createClient(base, key, {
@@ -448,42 +458,48 @@ async function submit(run: any, jobs: any[], mode: "batch" | "live") {
       calls.map((c) => c.id),
     );
   if (mode === "live") {
-    for (const c of calls) {
-      const call = (
-        await svc.from("pipeline_ai_calls").select("*").eq("id", c.id).single()
-      ).data;
-      try {
-        const message = await api("messages", c.params);
-        await settle(call, c.job, run, message);
-      } catch (e) {
-        if (e instanceof ProviderError) {
-          await settle(call, c.job, run, { usage: {} }, e.message);
-          if (
-            c.job.stage === "score" &&
-            !c.job.fallback_variant &&
-            e.status === 400
-          )
-            await svc
-              .from("pipeline_jobs")
-              .update({
-                status: "pending",
-                fallback_variant: true,
-                configuration_errors: [
-                  ...(c.job.configuration_errors ?? []),
-                  { step: "live", error: e.message },
-                ],
-              })
-              .eq("id", c.job.id);
-        } else
-          await settle(
-            call,
-            c.job,
-            run,
-            null,
-            "Live response unavailable; reserved cap recorded without retrying",
-          );
-      }
-    }
+    await Promise.all(
+      calls.map(async (c) => {
+        const call = (
+          await svc
+            .from("pipeline_ai_calls")
+            .select("*")
+            .eq("id", c.id)
+            .single()
+        ).data;
+        try {
+          const message = await api("messages", c.params);
+          await settle(call, c.job, run, message);
+        } catch (e) {
+          if (e instanceof ProviderError) {
+            await settle(call, c.job, run, { usage: {} }, e.message);
+            if (
+              c.job.stage === "score" &&
+              !c.job.fallback_variant &&
+              e.status === 400
+            )
+              await svc
+                .from("pipeline_jobs")
+                .update({
+                  status: "pending",
+                  fallback_variant: true,
+                  configuration_errors: [
+                    ...(c.job.configuration_errors ?? []),
+                    { step: "live", error: e.message },
+                  ],
+                })
+                .eq("id", c.job.id);
+          } else
+            await settle(
+              call,
+              c.job,
+              run,
+              null,
+              "Live response unavailable; reserved cap recorded without retrying",
+            );
+        }
+      }),
+    );
     return;
   }
   try {
@@ -1148,7 +1164,7 @@ async function work(id: string) {
           )
             eligible.push(j);
         }
-        if (eligible.length) await submit(r, eligible.slice(0, 3), "live");
+        if (eligible.length) await submit(r, eligible.slice(0, 8), "live");
       }
     }
     await saveCards(r);
@@ -1210,7 +1226,116 @@ async function work(id: string) {
     await svc.from("pipeline_runs").update({ lease_until: null }).eq("id", id);
   }
 }
+async function repairCompanyValidation(runId: string) {
+  const { data: run, error } = await svc
+    .from("pipeline_runs")
+    .select("*")
+    .eq("id", runId)
+    .single();
+  if (error) throw Error("Run unavailable");
+  const { data: jobs } = await svc
+    .from("pipeline_jobs")
+    .select("*")
+    .eq("run_id", runId)
+    .eq("stage", "triage")
+    .eq("status", "failed")
+    .eq("error_summary", "Company was not stated in the item");
+  let repaired = 0;
+  for (const job of jobs ?? []) {
+    const { data: calls } = await svc
+      .from("pipeline_ai_calls")
+      .select(
+        "*,pipeline_batches!pipeline_ai_calls_batch_id_workspace_id_fkey(provider_id)",
+      )
+      .eq("job_id", job.id)
+      .eq("stop_reason", "end_turn")
+      .not("completed_at", "is", null);
+    for (const c of calls ?? []) {
+      const provider = c.pipeline_batches?.provider_id;
+      if (!provider) continue;
+      const results = await api("messages/batches/" + provider + "/results");
+      for (const line of results.trim().split("\n")) {
+        const row = JSON.parse(line);
+        if (row.custom_id !== c.id || row.result.type !== "succeeded") continue;
+        try {
+          const value = parseTriage(
+            parseMessage(row.result.message),
+            run.snapshot.setup,
+            job.input.item,
+          );
+          const { error: save } = await svc
+            .from("pipeline_jobs")
+            .update({
+              status: "succeeded",
+              result: value,
+              error_summary: null,
+              promoted: false,
+              configuration_errors: [
+                ...(job.configuration_errors ?? []),
+                {
+                  validation_repair: "typographic apostrophe normalization",
+                  original_error: job.error_summary,
+                },
+              ],
+            })
+            .eq("id", job.id)
+            .eq("status", "failed");
+          if (save) throw save;
+          repaired++;
+        } catch {}
+      }
+    }
+  }
+  if (repaired)
+    await svc
+      .from("pipeline_runs")
+      .update({ status: "triage", completed_at: null, error_summary: null })
+      .eq("id", runId);
+  return { repaired };
+}
 async function globalWork() {
+  const lostPeople = await svc
+    .from("person_lookup_calls")
+    .select("id,delivery_id,actor_id,cap_gbp")
+    .is("completed_at", null)
+    .lt("created_at", new Date(Date.now() - 15 * 60000).toISOString())
+    .limit(20);
+  if (!lostPeople.error)
+    for (const c of lostPeople.data ?? [])
+      await rpc("finish_signals_person_lookup", {
+        p_delivery: c.delivery_id,
+        p_actor: c.actor_id,
+        p_person: null,
+        p_call: c.id,
+        p_cost: Number(c.cap_gbp),
+        p_usage: null,
+        p_error: "Person search receipt unavailable; reserved cap recorded",
+      });
+
+  const lost = await svc
+    .from("rewrite_calls")
+    .select("id,reservation_id")
+    .is("completed_at", null)
+    .lt("created_at", new Date(Date.now() - 15 * 60000).toISOString())
+    .limit(20);
+  if (!lost.error)
+    for (const call of lost.data ?? []) {
+      const { data: r } = await svc
+        .from("cost_reservations")
+        .select("estimated_cost")
+        .eq("id", call.reservation_id)
+        .single();
+      if (r)
+        await rpc("settle_signals_rewrite", {
+          p_call: call.id,
+          p_cost: Number(r.estimated_cost),
+          p_usage: null,
+          p_value: null,
+          p_error: "Rewrite receipt unavailable; reserved cap recorded",
+          p_stop: null,
+        });
+    }
+
   const orphan = await svc
     .from("collection_runs")
     .select("id,workspace_id,kind")
@@ -1294,6 +1419,322 @@ async function globalWork() {
     } catch {}
   }
 }
+async function rewrite(
+  delivery: string,
+  actor: string,
+  channel: "email" | "linkedin",
+) {
+  const context = await rpc("signals_rewrite_context", {
+    p_delivery: delivery,
+    p_actor: actor,
+    p_channel: channel,
+  });
+  if (!context.item || !context.judgment)
+    throw Error("Original evidence unavailable");
+  const { data: p, error } = await svc
+    .from("provider_pricing")
+    .select("*")
+    .eq("workspace_id", context.workspace_id)
+    .eq("pricing_key", "anthropic/" + models.stage2.model)
+    .single();
+  if (
+    error ||
+    !p.verified_on ||
+    Date.parse(p.verified_on) < Date.now() - 30 * 86400000
+  )
+    throw Error("Review model pricing before rewriting");
+  usageCost({}, p.rates, false);
+  let fx = 1;
+  if (p.currency === "USD") {
+    const response = await fetch(
+      "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+      { signal: AbortSignal.timeout(15000) },
+    );
+    if (!response.ok) throw Error("Exchange rate unavailable");
+    fx = ecbRate(await response.text()).fx;
+  }
+  const input = {
+    item: context.item,
+    profile_id: context.profile_id,
+    verified_person: context.person,
+    current_opener: context.current,
+  };
+  let params = rewriteRequest(context.setup, input, channel),
+    tokens: number;
+  try {
+    tokens = (
+      await api(
+        "messages/count_tokens",
+        Object.fromEntries(
+          Object.entries(params).filter(([k]) => k !== "max_tokens"),
+        ),
+      )
+    ).input_tokens;
+  } catch (e) {
+    if (!(e instanceof ProviderError) || e.status !== 400) throw e;
+    params = rewriteRequest(context.setup, input, channel, true);
+    tokens = (
+      await api(
+        "messages/count_tokens",
+        Object.fromEntries(
+          Object.entries(params).filter(([k]) => k !== "max_tokens"),
+        ),
+      )
+    ).input_tokens;
+  }
+  if (!Number.isInteger(tokens) || tokens < 0 || tokens + 256 > 100000)
+    throw Error("Rewrite input is too large");
+  const id = crypto.randomUUID(),
+    cap =
+      Math.ceil(
+        upperCost(tokens, models.stage2.fallback_max_tokens, p.rates, false) *
+          fx *
+          1e6,
+      ) / 1e6;
+  await rpc("reserve_signals_rewrite", {
+    p_delivery: delivery,
+    p_actor: actor,
+    p_channel: channel,
+    p_call: id,
+    p_cap: cap,
+    p_params: params,
+    p_rates: p.rates,
+    p_fx: fx,
+  });
+  let message: any = null,
+    value: any = null,
+    failure: string | null = null,
+    cost = 0,
+    usage: any = null;
+  try {
+    try {
+      message = await api("messages", params);
+    } catch (e) {
+      if (
+        e instanceof ProviderError &&
+        e.status === 400 &&
+        params.max_tokens !== models.stage2.fallback_max_tokens
+      ) {
+        params = rewriteRequest(context.setup, input, channel, true);
+        message = await api("messages", params);
+      } else throw e;
+    }
+    usage = message.usage ?? {};
+    cost = usageCost(usage, p.rates, false) * fx;
+    value = validateRewrite(
+      parseMessage(message),
+      context.setup,
+      context.item,
+      context.polarity,
+      context.person,
+      context.judgment,
+      channel,
+    );
+  } catch (e) {
+    failure = e instanceof Error ? e.message : "Rewrite failed";
+    if (!message) {
+      usage = e instanceof ProviderError ? {} : null;
+      cost = usage === null ? cap : 0;
+    }
+  }
+  const draftId = await rpc("settle_signals_rewrite", {
+    p_call: id,
+    p_cost: Math.ceil(cost * 1e6) / 1e6,
+    p_usage: usage,
+    p_value: value,
+    p_error: failure,
+    p_stop: message?.stop_reason ?? null,
+  });
+  if (failure) return { error: "Couldn't rewrite, try again", attempted: true };
+  const { data: draft, error: de } = await svc
+    .from("message_drafts")
+    .select("id,channel,body,subject,version")
+    .eq("id", draftId)
+    .single();
+  if (de) throw Error("Saved rewrite unavailable");
+  return { draft, attempted: true };
+}
+async function findPerson(
+  delivery: string,
+  actor: string,
+  approvedCap?: number,
+) {
+  const context = await rpc("signals_person_context", {
+      p_delivery: delivery,
+      p_actor: actor,
+    }),
+    profile = context.profile;
+  const selected = selectPerson(
+    { person: null } as Triage,
+    { title: "", excerpt: "" } as Item,
+    context.company.id,
+    context.people,
+    profile,
+  );
+  if (selected?.id) {
+    await rpc("finish_signals_person_lookup", {
+      p_delivery: delivery,
+      p_actor: actor,
+      p_person: selected.id,
+    });
+    return { found: true };
+  }
+  const linkedin = https(context.company.linkedin_url, "company");
+  if (!linkedin)
+    return {
+      message:
+        "No verified company LinkedIn page. Ask your client admin to review the company before a paid person search.",
+    };
+  if (!profile.priority_titles?.length)
+    return {
+      message:
+        "Ask your client admin to add priority job titles before searching.",
+    };
+  const [catalog, xml] = await Promise.all([
+    fetch(
+      "https://treg.to/catalog/endpoints/harvestapi.linkedin.leads.search",
+      { signal: AbortSignal.timeout(15000) },
+    ),
+    fetch("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", {
+      signal: AbortSignal.timeout(15000),
+    }),
+  ]);
+  if (!catalog.ok || !xml.ok) throw Error("Person search pricing unavailable");
+  const details = await catalog.json(),
+    usd = Number(details.endpoint?.cost?.usd);
+  if (
+    details.endpoint?.cost?.type !== "per_call" ||
+    details.endpoint.platform_blocked ||
+    !Number.isFinite(usd) ||
+    usd <= 0 ||
+    usd > 0.5
+  )
+    throw Error("Person search pricing needs review");
+  const fx = ecbRate(await xml.text()).fx,
+    cap = Math.ceil(usd * fx * 1e6) / 1e6;
+  if (approvedCap === undefined)
+    return { quote: { cap_gbp: cap, cap_usd: usd } };
+  if (!Number.isFinite(approvedCap) || approvedCap < cap)
+    throw Error("Search price changed; request a new estimate");
+  const token = Deno.env.get("TREG_TOKEN");
+  if (!token) throw Error("Person search key unavailable");
+  const id = crypto.randomUUID();
+  await rpc("begin_signals_person_lookup", {
+    p_delivery: delivery,
+    p_actor: actor,
+    p_call: id,
+    p_cap: cap,
+  });
+  let cost = cap,
+    usage: any = null,
+    error: string | null = null,
+    personId: string | null = null;
+  try {
+    const company = {
+      ...context.company,
+      key: context.company.id,
+      linkedin_url: linkedin,
+      website: context.company.website ?? "",
+      domain: context.company.domain ?? "",
+      revenue_band: "",
+      headcount_band: "",
+      source: "approved",
+      provider_ids: context.company.provider_ids ?? {},
+    };
+    const { plan, result } = makePlan(
+        { ...profile, watch_list_size: 25 },
+        [],
+        fx,
+        new Date().toISOString().slice(0, 10),
+        0.001,
+        usd,
+        "refresh",
+        [company],
+      ),
+      call = nextCall(plan, result);
+    if (!call || call.kind !== "people")
+      throw Error("Person search couldn't be built");
+    const url = new URL("https://treg.to/call/" + call.endpoint);
+    for (const [k, v] of Object.entries(call.query ?? {}))
+      url.searchParams.set(k, v);
+    const response = await fetch(url, {
+      headers: {
+        "X-Treg-Token": token,
+        "X-Treg-Route-Max-Cost": String(usd),
+        "Idempotency-Key": id,
+      },
+      signal: AbortSignal.timeout(65000),
+      redirect: "error",
+    });
+    const receipt = receiptCost(response.headers, usd);
+    cost = Math.ceil(receipt.usd * fx * 1e6) / 1e6;
+    usage =
+      receipt.basis === "reported"
+        ? {
+            treg_call_id: response.headers.get("X-Treg-Call-Id"),
+            cost_usd: receipt.usd,
+            usd_gbp: fx,
+          }
+        : null;
+    if (!response.ok)
+      throw Error("Person search returned HTTP " + response.status);
+    absorb(plan, result, call, await response.json());
+    const candidate = result.people
+      .filter((p) => titleRank(p.title, profile.priority_titles) < 999)
+      .sort(
+        (a, b) =>
+          titleRank(a.title, profile.priority_titles) -
+          titleRank(b.title, profile.priority_titles),
+      )[0];
+    if (candidate) {
+      const { data: existing, error: ee } = await svc
+        .from("people")
+        .select("id")
+        .eq("company_id", company.id)
+        .eq("linkedin_url", candidate.linkedin_url);
+      if (ee) throw Error("Person match unavailable");
+      if (existing?.length === 1) personId = existing[0].id;
+      else {
+        const { data: saved, error: se } = await svc
+          .from("people")
+          .insert({
+            workspace_id: context.workspace_id,
+            company_id: company.id,
+            name: candidate.name,
+            title: candidate.title,
+            linkedin_url: candidate.linkedin_url,
+            location: candidate.location,
+            provider_ids: candidate.provider_ids,
+            last_checked_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        if (se) throw Error("Person could not be saved");
+        personId = saved.id;
+      }
+    }
+  } catch (e) {
+    error = e instanceof Error ? e.message : "Person search failed";
+  }
+  await rpc("finish_signals_person_lookup", {
+    p_delivery: delivery,
+    p_actor: actor,
+    p_person: personId,
+    p_call: id,
+    p_cost: cost,
+    p_usage: usage,
+    p_error: error,
+  });
+  return error
+    ? { error: "Couldn't find a person, try again" }
+    : personId
+      ? { found: true }
+      : {
+          message:
+            "No matching person found. This card stays marked as needing a person.",
+        };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
@@ -1303,6 +1744,8 @@ Deno.serve(async (req: Request) => {
       if (!(await rpc("verify_signals_discovery_cron", { p_token: token })))
         return reply({ error: "Not allowed" }, 401);
       const b = await req.json();
+      if (b.action === "repair_company_validation")
+        return reply(await repairCompanyValidation(b.id));
       EdgeRuntime.waitUntil(b.id ? work(b.id) : globalWork());
       return reply({ queued: true });
     }
@@ -1312,6 +1755,11 @@ Deno.serve(async (req: Request) => {
     );
     const { data: u, error } = await svc.auth.getUser(jwt);
     if (error || !u.user) return reply({ error: "Sign in required" }, 401);
+    const b = await req.json();
+    if (b.action === "find_person")
+      return reply(await findPerson(b.delivery, u.user.id, b.approved_cap));
+    if (b.action === "rewrite")
+      return reply(await rewrite(b.delivery, u.user.id, b.channel));
     const { data: admin } = await svc
       .from("platform_admins")
       .select("user_id")
@@ -1319,7 +1767,6 @@ Deno.serve(async (req: Request) => {
       .eq("active", true)
       .maybeSingle();
     if (!admin) return reply({ error: "Not allowed" }, 403);
-    const b = await req.json();
     if (b.action === "start") {
       const c = await collect(
         {

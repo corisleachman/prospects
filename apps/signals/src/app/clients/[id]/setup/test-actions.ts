@@ -31,7 +31,7 @@ export async function refreshTest(workspace: string, id: string) {
   const { data: cards, error: ce } = await db
     .from("campaign_signals")
     .select(
-      "id,relevance,polarity,why_this_person,companies!campaign_signals_company_id_fkey(name),people!campaign_signals_person_id_fkey(name,title),signals!campaign_signals_signal_id_workspace_id_fkey(id,factual_summary),message_drafts(channel,body,subject,version)",
+      "id,relevance,polarity,why_this_person,companies!campaign_signals_company_id_fkey(name,industry,location),people!campaign_signals_person_id_fkey(name,title,linkedin_url),campaigns!campaign_signals_campaign_id_workspace_id_fkey(id,code,name),signals!campaign_signals_signal_id_workspace_id_fkey(id,factual_summary),message_drafts(channel,body,subject,version)",
     )
     .eq("workspace_id", workspace)
     .eq("pipeline_run_id", id)

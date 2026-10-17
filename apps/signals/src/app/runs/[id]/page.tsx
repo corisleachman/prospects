@@ -39,6 +39,15 @@ export default async function Run({
     .maybeSingle();
   if (pipeline.error) throw Error("Judging costs unavailable");
   const stages = pipeline.data?.summary?.stages ?? {};
+  const judgments = pipeline.data
+    ? await db
+        .from("pipeline_jobs")
+        .select("id,stage,status,result,error_summary,input,profile_id")
+        .eq("run_id", id)
+        .order("created_at")
+        .limit(2000)
+    : { data: [], error: null };
+  if (judgments.error) throw Error("Judgment log unavailable");
   return (
     <Frame admin email={user.email ?? ""}>
       <div className="screen-head">
@@ -137,6 +146,36 @@ export default async function Run({
           </table>
         </div>
       </section>
+      {!!judgments.data?.length && (
+        <section className="section">
+          <h2>Judgment log</h2>
+          <p className="small-note">
+            Includes sensitive signals kept for admin only.
+          </p>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Stage</th>
+                  <th>Score</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {judgments.data.map((j) => (
+                  <tr key={j.id}>
+                    <td>{j.input?.item?.title}</td>
+                    <td>{j.stage}</td>
+                    <td>{j.result?.relevance ?? j.result?.icp_fit ?? "–"}</td>
+                    <td>{j.error_summary ?? j.result?.reason ?? j.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       <section className="section">
         <h2>Items</h2>
         <p className="small-note">

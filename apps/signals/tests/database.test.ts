@@ -1978,5 +1978,235 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017171325_signals_phase_eight.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Today projections deny other clients and keep client users out of everyone view",
+    async () => {
+      await assert.rejects(
+        () =>
+          asUser(bob, "select public.signals_cards($1,true,false,null)", [a]),
+        /Not allowed/,
+      );
+      const ownWorkspace = await adminScalar(
+        "select public.create_signals_client('Projection test','Europe/London') as id",
+      );
+      await db.query(
+        "insert into public.workspace_members(workspace_id,user_id,role,status) values($1,$2,'client_user','active')",
+        [ownWorkspace, alice],
+      );
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.signals_cards($1,true,false,null)", [
+            ownWorkspace,
+          ]),
+        /Not allowed/,
+      );
+      const own = await asUser<any>(
+        alice,
+        "select public.signals_cards($1,false,false,null) as data",
+        [ownWorkspace],
+      );
+      assert.deepEqual(own.rows[0].data.cards, []);
+      assert.equal(
+        (await asUser(alice, "select * from public.rewrite_calls")).rows.length,
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.signals_rewrite_context(gen_random_uuid(),$1,'linkedin')",
+            [alice],
+          ),
+        /permission denied/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.signals_card_action(gen_random_uuid(),'marked_sent')",
+          ),
+        /Not allowed/,
+      );
+    },
+  );
+  await t.test(
+    "A sent card records its displayed version and blocks another client's actions",
+    async () => {
+      const w = await adminScalar(
+          "select public.create_signals_client('Card actions test','Europe/London') as id",
+        ),
+        p = await adminScalar(
+          "select public.create_signals_profile($1) as id",
+          [w],
+        );
+      await db.query(
+        "insert into public.workspace_members(workspace_id,user_id,role,status) values($1,$2,'client_user','active')",
+        [w, alice],
+      );
+      await db.query(
+        "insert into public.delivery_rules(workspace_id,user_id,profile_ids,enabled) values($1,$2,array[$3::uuid],true)",
+        [w, alice, p],
+      );
+      const company = (
+        await db.query<any>(
+          "insert into public.companies(workspace_id,name) values($1,'Test Brand') returning id",
+          [w],
+        )
+      ).rows[0].id;
+      const person = (
+        await db.query<any>(
+          "insert into public.people(workspace_id,company_id,name,title) values($1,$2,'Test Person','CMO') returning id",
+          [w, company],
+        )
+      ).rows[0].id;
+      const evidence = (
+        await db.query<any>(
+          "insert into public.evidence_items(workspace_id,source_family,provider_key,source_url,canonical_url,canonical_url_hash,title,excerpt,content_hash,published_at,published_date_known,submission_route) values($1,'publication','test','https://example.test/card','https://example.test/card',repeat('a',64),'Test campaign','Test Brand announced a major new campaign.',repeat('b',64),now(),true,'automated') returning id",
+          [w],
+        )
+      ).rows[0].id;
+      const rule = (
+        await db.query<any>(
+          "select id from public.signal_definitions where workspace_id=$1 and template_key='campaign_launch'",
+          [w],
+        )
+      ).rows[0].id;
+      const signal = (
+        await db.query<any>(
+          "insert into public.signals(workspace_id,company_id,person_id,signal_definition_id,event_date,event_date_precision,factual_summary,event_fingerprint,primary_evidence_item_id,classification_confidence,status) values($1,$2,$3,$4,current_date,'day','Test Brand announced a major new campaign.',repeat('c',64),$5,1,'verified') returning id",
+          [w, company, person, rule, evidence],
+        )
+      ).rows[0].id;
+      const card = (
+        await db.query<any>(
+          "insert into public.campaign_signals(workspace_id,campaign_id,signal_id,company_id,person_id,relevance,polarity,fresh_until,identity_confidence,qualification_state,why_this_person) values($1,$2,$3,$4,$5,7,'positive',now()+interval '1 day','high','ready','A major campaign') returning id",
+          [w, p, signal, company, person],
+        )
+      ).rows[0].id;
+      const d1 = (
+        await db.query<any>(
+          "insert into public.message_drafts(workspace_id,card_id,channel,body,version,model) values($1,$2,'linkedin','First draft',1,'test') returning id",
+          [w, card],
+        )
+      ).rows[0].id;
+      const d2 = (
+        await db.query<any>(
+          "insert into public.message_drafts(workspace_id,card_id,channel,body,version,model) values($1,$2,'linkedin','Visible second draft',2,'test') returning id",
+          [w, card],
+        )
+      ).rows[0].id;
+      const delivery = (
+        await db.query<any>(
+          "insert into public.card_deliveries(workspace_id,user_id,card_id,local_day,position,no_repeat_until) values($1,$2,$3,current_date,1,current_date+30) returning id",
+          [w, alice, card],
+        )
+      ).rows[0].id;
+      await asUser(
+        owner,
+        "select public.change_signals_budget($1,'create',1,current_date,current_date+30,'Rewrite test',false)",
+        [w],
+      );
+      for (const body of ["Version three", "Version four"]) {
+        const call = crypto.randomUUID();
+        await service(
+          "select public.reserve_signals_rewrite($1,$2,'linkedin',$3,0.01,$4,'{}',1)",
+          [
+            delivery,
+            alice,
+            call,
+            JSON.stringify({ model: "claude-sonnet-5-5" }),
+          ],
+        );
+        await service(
+          "select public.settle_signals_rewrite($1,0.001,'{}',$2,null,'end_turn')",
+          [call, JSON.stringify({ body, subject: null })],
+        );
+      }
+      await assert.rejects(
+        () =>
+          service(
+            "select public.reserve_signals_rewrite($1,$2,'linkedin',gen_random_uuid(),0.01,$3,'{}',1)",
+            [delivery, alice, JSON.stringify({ model: "claude-sonnet-5-5" })],
+          ),
+        /Three rewrites/,
+      );
+      assert.equal(
+        (
+          await db.query<any>(
+            "select count(*)::int n from public.cost_ledger where workspace_id=$1 and stage='rewrite'",
+            [w],
+          )
+        ).rows[0].n,
+        2,
+      );
+      const projected = await asUser<any>(
+        alice,
+        "select public.signals_cards($1) as data",
+        [w],
+      );
+      assert.equal(projected.rows[0].data.cards.length, 1);
+      await assert.rejects(
+        () =>
+          asUser(
+            bob,
+            "select public.signals_card_action($1,'marked_sent',$2)",
+            [delivery, d2],
+          ),
+        /Not allowed/,
+      );
+      await asUser(alice, "select public.signals_card_action($1,'copied',$2)", [
+        delivery,
+        d1,
+      ]);
+      await asUser(
+        alice,
+        "select public.signals_card_action($1,'marked_sent',$2)",
+        [delivery, d2],
+      );
+      const event = (
+        await db.query<any>(
+          "select draft_id,actor_id from public.outreach_events where delivery_id=$1",
+          [delivery],
+        )
+      ).rows[0];
+      assert.equal(event.draft_id, d2);
+      assert.equal(event.actor_id, alice);
+      assert.equal(
+        (
+          await asUser<any>(alice, "select public.signals_cards($1) as data", [
+            w,
+          ])
+        ).rows[0].data.cards.length,
+        0,
+      );
+      await asUser(
+        alice,
+        "select public.signals_card_action($1,'marked_replied')",
+        [delivery],
+      );
+      assert.equal(
+        (
+          await db.query<any>(
+            "select state from public.card_deliveries where id=$1",
+            [delivery],
+          )
+        ).rows[0].state,
+        "replied",
+      );
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.signals_card_action($1,'restored')", [
+            delivery,
+          ]),
+        /Only dismissed/,
+      );
+    },
+  );
   await db.close();
 });

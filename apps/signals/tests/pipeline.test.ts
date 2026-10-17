@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   request,
+  rewriteRequest,
+  upperCost,
   usageCost,
   parseMessage,
   parseTriage,
@@ -230,4 +232,41 @@ test("London and New York schedules use local email times through daylight savin
     true,
   );
   assert.equal(after.email, "2026-10-26T07:00:00.000Z");
+});
+
+test("rewrite requests generate only the selected tab and reserve the highest cache-write price", () => {
+  const r = rewriteRequest(
+    setup,
+    { item: { title: "A campaign" } },
+    "linkedin",
+  );
+  assert.deepEqual(Object.keys(r.output_config.format.schema.properties), [
+    "body",
+  ]);
+  assert.equal(r.model, "claude-sonnet-5-5");
+  assert.equal(r.max_tokens, 800);
+  assert.deepEqual(r.thinking, { type: "between_tools" });
+  const email = rewriteRequest(setup, {}, "email", true);
+  assert.deepEqual(Object.keys(email.output_config.format.schema.properties), [
+    "subject",
+    "body",
+  ]);
+  assert.equal(email.max_tokens, 1500);
+  assert.equal("thinking" in email, false);
+  assert.equal(
+    upperCost(
+      1000,
+      100,
+      {
+        input_per_million: 2,
+        output_per_million: 10,
+        cache_read_per_million: 0.1,
+        cache_write_per_million: 2.5,
+        cache_write_1h_per_million: 4,
+        batch_multiplier: 0.5,
+      },
+      false,
+    ),
+    0.006024,
+  );
 });

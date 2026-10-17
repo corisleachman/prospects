@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
+import { SignalCard } from "@/components/signal-card";
 import { testCommand } from "../test-actions";
 async function command(
   action: "start" | "refresh" | "review" | "launch",
@@ -245,44 +246,29 @@ export function TestLaunch({
   );
 }
 function Sample({ card: c }: { card: any }) {
-  const [tab, setTab] = useState("linkedin"),
-    d = c.message_drafts?.find((x: any) => x.channel === tab);
   return (
-    <article className="signal-card">
-      <div className="screen-head">
-        <div>
-          <h3>
-            {c.people?.name ?? "Person needs review"} · {c.people?.title ?? ""}
-          </h3>
-          <p className="muted">{c.companies?.name}</p>
-        </div>
-        <span
-          className={"badge " + (c.polarity === "negative" ? "sensitive" : "")}
-        >
-          {c.polarity === "negative" ? "Sensitive" : c.polarity} · {c.relevance}
-          /10
-        </span>
-      </div>
-      <h4>What happened</h4>
-      <p>{c.signals?.factual_summary}</p>
-      {c.sources?.map((s: any) => (
-        <a key={s.id} href={s.source_url} target="_blank" rel="noreferrer">
-          {s.source_name ?? "Open source"} ↗{" "}
-        </a>
-      ))}
-      <p className="notice">Why this person: {c.why_this_person}</p>
-      <div className="profile-tabs">
-        {["linkedin", "email"].map((t) => (
-          <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
-            {t === "linkedin" ? "LinkedIn" : "Email"}
-          </button>
-        ))}
-      </div>
-      <div className="copy-box">
-        {tab === "email" && <p>{d?.subject}</p>}
-        <p>{d?.body ?? "No draft for this channel"}</p>
-        {tab === "linkedin" && <small>{d?.body?.length ?? 0} characters</small>}
-      </div>
-    </article>
+    <SignalCard
+      preview
+      budgetAvailable={false}
+      onHandled={() => {}}
+      card={{
+        ...c,
+        person_name: c.people?.name,
+        person_title: c.people?.title,
+        company_name: c.companies?.name,
+        industry: c.companies?.industry,
+        location: c.companies?.location,
+        profile_code: c.campaigns?.code,
+        profile_name: c.campaigns?.name,
+        sensitive: c.polarity === "negative",
+        factual_summary: c.signals?.factual_summary,
+        drafts: c.message_drafts,
+        sources: c.sources?.map((s: any) => ({
+          url: s.source_url,
+          name: s.source_name,
+          published_at: s.published_at,
+        })),
+      }}
+    />
   );
 }

@@ -21,6 +21,8 @@ const clients = [
 ];
 const previews = [];
 const pipelines = [];
+let clientCards = [],
+  cardEvents = [];
 const collections = [],
   collectionItems = [],
   collectionTasks = [],
@@ -217,6 +219,77 @@ const server = http.createServer(async (req, res) => {
       : reply({ code: "bad_jwt", msg: "Invalid token" }, 401);
   if (url.pathname === "/fixture/resend")
     return reply({ id: "fixture-message" });
+  if (url.pathname === "/fixture/cards") {
+    if (body.clear) {
+      clientCards = [];
+      return reply({ cleared: true });
+    }
+    clientCards = [0, 1, 2].map((n) => ({
+      id: randomUUID(),
+      card_id: randomUUID(),
+      user_id: client,
+      local_day: new Date().toISOString().slice(0, 10),
+      position: n + 1,
+      state: "open",
+      no_repeat_until: "2026-11-16",
+      created_at: new Date().toISOString(),
+      relevance: n === 2 ? 8 : 7,
+      polarity: n === 2 ? "negative" : "positive",
+      sensitive: n === 2,
+      fresh_until: new Date(Date.now() + 86400000).toISOString(),
+      why_this_person:
+        n === 2
+          ? "Confirmed changes at the company; acknowledgment only."
+          : "A new campaign gives a specific reason to connect.",
+      profile_id: "20000000-0000-0000-0000-000000000001",
+      profile_code: "01B",
+      profile_name: "Established growth brands",
+      company_name: n === 2 ? "Lumen (test)" : "Example Brand (test)",
+      industry: "Consumer goods",
+      location: "New York",
+      person_name: ["Jordan Wells", "Morgan Reed", "Sam Lewis"][n],
+      person_title: "VP Marketing",
+      linkedin_url: "https://www.linkedin.com/in/example-person",
+      recipient_name: "Jordan",
+      factual_summary:
+        n === 2
+          ? "Lumen announced a restructure of its marketing team."
+          : "Example Brand announced a major new brand campaign.",
+      sources: [
+        {
+          name: "Trade test",
+          url: "https://example.test/news",
+          published_at: new Date(Date.now() - 4 * 3600000).toISOString(),
+          primary: true,
+        },
+      ],
+      drafts: [
+        {
+          id: randomUUID(),
+          channel: "linkedin",
+          body:
+            n === 2
+              ? "I saw the news about the restructure at Lumen. Thinking of you and the team."
+              : "I saw Example Brand’s new campaign, thought it’d be good to connect.",
+          version: 1,
+        },
+        {
+          id: randomUUID(),
+          channel: "email",
+          subject: "Example Brand’s campaign",
+          body:
+            n === 2
+              ? "I saw the news about Lumen. Thinking of you and the team."
+              : "I saw the new campaign at Example Brand. Thought it’d be good to connect.",
+          version: 1,
+        },
+      ],
+      rewrite_counts: {},
+    }));
+    cardEvents = [];
+    return reply({ seeded: true });
+  }
+  if (url.pathname === "/fixture/card-events") return reply(cardEvents);
   if (!role) return reply({ message: "Not authenticated" }, 401);
   if (url.pathname === "/rest/v1/platform_admins")
     return rows(role === "admin" ? [{ user_id: owner }] : []);
@@ -283,7 +356,58 @@ const server = http.createServer(async (req, res) => {
     }
     return reply(null);
   }
+  if (url.pathname === "/rest/v1/rpc/signals_cards")
+    return reply({
+      cards: clientCards.filter((c) => body.p_history || c.state === "open"),
+      profiles: [
+        {
+          id: "20000000-0000-0000-0000-000000000001",
+          code: "01B",
+          name: "Established growth brands",
+        },
+      ],
+      can_everyone: ["admin", "manager"].includes(role),
+      can_export: ["admin", "manager"].includes(role),
+      sent_week: clientCards.filter((c) => c.state === "sent").length,
+      budget_available: true,
+      next_time: "07:30",
+    });
+  if (url.pathname === "/rest/v1/rpc/signals_card_action") {
+    const c = clientCards.find((c) => c.id === body.p_delivery);
+    if (!c) return reply({ message: "Not allowed" }, 400);
+    cardEvents.push(body);
+    if (body.p_action === "marked_sent") {
+      c.state = "sent";
+      c.sent_at = new Date().toISOString();
+      c.sent_draft_id = body.p_draft;
+    }
+    if (body.p_action === "not_relevant") {
+      c.state = "dismissed";
+      c.dismissed_at = new Date().toISOString();
+      c.feedback = { reason: body.p_reason };
+    }
+    if (body.p_action === "marked_replied") c.state = "replied";
+    if (body.p_action === "restored") c.state = "open";
+    return reply(null);
+  }
   if (url.pathname === "/functions/v1/signals-pipeline") {
+    if (body.action === "rewrite") {
+      const c = clientCards.find((c) => c.id === body.delivery),
+        channel = body.channel;
+      if (!c) return reply({ error: "Not allowed" }, 403);
+      const version = c.drafts.filter((d) => d.channel === channel).length + 1;
+      if (version > 4) return reply({ error: "Three rewrites used" }, 400);
+      const draft = {
+        id: randomUUID(),
+        channel,
+        subject: channel === "email" ? "A fresh subject" : null,
+        body: "I noticed Example Brand’s new campaign. Thought it’d be good to connect.",
+        version,
+      };
+      c.drafts.push(draft);
+      c.rewrite_counts[channel] = (c.rewrite_counts[channel] ?? 0) + 1;
+      return reply({ draft, attempted: true });
+    }
     if (role !== "admin") return reply({ error: "Not allowed" }, 403);
     if (body.action === "work") return reply({ id: body.id });
     const id = randomUUID(),

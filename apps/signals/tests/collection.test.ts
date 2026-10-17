@@ -206,10 +206,35 @@ test("reports group only when brand, stated event, date and headline match; prim
   assert.equal(grouped.get("different"), "different");
 });
 
-test('pinned transport decodes bounded HTTP responses and rejects truncated chunks',async()=>{
- const {decodeHTTP,publicSourceURL,publicAddress}=await import('../../../supabase/functions/signals-collect/public-http');
- const encode=(s:string)=>new TextEncoder().encode(s);
- const r=decodeHTTP(encode('HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n'));assert.equal(new TextDecoder().decode(r.body),'hello');
- assert.throws(()=>decodeHTTP(encode('HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n9\r\nhello\r\n')),/Incomplete/);
- assert.throws(()=>publicSourceURL('https://127.0.0.1/feed'));assert.equal(publicAddress('169.254.169.254'),false);
+test("pinned transport decodes bounded HTTP responses and rejects truncated chunks", async () => {
+  const { decodeHTTP, publicSourceURL, publicAddress } =
+    await import("../../../supabase/functions/signals-collect/public-http");
+  const encode = (s: string) => new TextEncoder().encode(s);
+  const r = decodeHTTP(
+    encode(
+      "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n",
+    ),
+  );
+  assert.equal(new TextDecoder().decode(r.body), "hello");
+  assert.throws(
+    () =>
+      decodeHTTP(
+        encode(
+          "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n9\r\nhello\r\n",
+        ),
+      ),
+    /Incomplete/,
+  );
+  assert.throws(() => publicSourceURL("https://127.0.0.1/feed"));
+  assert.equal(publicAddress("169.254.169.254"), false);
+});
+
+test("whole-word matching accepts typographic apostrophes without substring matches", () => {
+  assert.equal(wholeWord("Arby’s hires a new CMO", "Arby's"), true);
+  assert.equal(wholeWord("Arby&rsquo;s hires a new CMO", "Arby's"), true);
+  assert.equal(
+    wholeWord("A Gorenje oven is a kind of appliance", "KIND Snacks"),
+    false,
+  );
+  assert.equal(wholeWord("Kindness matters", "KIND"), false);
 });
