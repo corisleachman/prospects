@@ -134,7 +134,7 @@ test("client admin also has no setup access", async ({ page }) => {
   await login(page, "manager@example.test");
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByText("Your client’s cards.", { exact: false }),
+    page.getByRole("link", { name: "Everyone", exact: true }),
   ).toBeVisible();
   await page.goto("/clients");
   await expect(

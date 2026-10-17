@@ -37,3 +37,5 @@ Pricing seeds were checked on 17 October 2026 against [Anthropic pricing](https:
 Migration `20261017170906_signals_phase_seven.sql` and scheduler `20261017171100_signals_pipeline_scheduler.sql` are applied. `signals-pipeline` v3 and `signals-collect` v7 are active. Vercel deployment `dpl_3wecJfudo1NzDLaWf5KaNJHRaSvT` is Ready.
 
 Real test `0c7e7a08-5d62-4beb-8554-d34301cd9ecd` reuses 45 still-fresh evidence items and buys no additional source data. Its first Haiku batch is queued with the provider. Provider completion, actual stage costs and cache reads remain to be verified. BEFORE:WORK remains in setup; no recipient emails are sent. Normal spend before judging is £0.168540; earlier fake budget charges are excluded.
+
+The bounded provider test has now settled. See [the provider test record](provider-test.md): £0.026671, cache hits at both stages, zero usable cards and one remaining evidence-validation failure. It remains partial and cannot authorize launch.

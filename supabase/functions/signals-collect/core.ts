@@ -25,6 +25,10 @@ export function plain(value: unknown): string {
     .replace(/&amp;/gi, "&")
     .replace(/&(?:quot|#34);/gi, '"')
     .replace(/&(?:apos|#39);/gi, "'")
+    .replace(/&(?:rsquo|lsquo|#8216|#8217);/gi, "'")
+    .replace(/&(?:rdquo|ldquo|#8220|#8221);/gi, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
     .replace(/&nbsp;/gi, " ")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
@@ -65,11 +69,13 @@ export function dated(raw: unknown, now = new Date()): string | null {
 }
 export function wholeWord(text: string, name: string) {
   if (!name.trim()) return false;
-  const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped = plain(name)
+    .normalize("NFKC")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
     "(^|[^\\p{L}\\p{N}])" + escaped + "(?=$|[^\\p{L}\\p{N}])",
     "iu",
-  ).test(text);
+  ).test(plain(text).normalize("NFKC"));
 }
 export function brands(item: Item, companies: Company[]) {
   const text = plain(item.title + " " + item.excerpt);

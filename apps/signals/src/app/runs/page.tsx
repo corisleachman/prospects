@@ -11,7 +11,7 @@ export default async function Runs({
   searchParams: Promise<{ run?: string; error?: string }>;
 }) {
   const [a, q] = await Promise.all([adminSummary(), searchParams]);
-  const [cr, st] = await Promise.all([
+  const [cr, st, pr] = await Promise.all([
     a.db
       .from("collection_runs")
       .select("id,workspace_id,kind")
@@ -23,8 +23,14 @@ export default async function Runs({
       .not("collection_source_key", "is", null)
       .order("created_at", { ascending: false })
       .limit(2000),
+    a.db
+      .from("pipeline_runs")
+      .select("id,workspace_id,status,summary")
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
-  if (cr.error || st.error) throw Error("Collection runs unavailable");
+  if (cr.error || st.error || pr.error)
+    throw Error("Collection runs unavailable");
   const groups = new Map<string, any>();
   for (const t of st.data ?? []) {
     const key = t.run_id + ":" + t.collection_source_key;
@@ -52,6 +58,28 @@ export default async function Runs({
     if (t.error_summary) g.errors.push(t.error_summary);
     for (const [k, n] of Object.entries(t.drop_counts ?? {}))
       g.drops[k] = (g.drops[k] ?? 0) + Number(n);
+  }
+  for (const p of pr.data ?? []) {
+    for (const [source, values] of Object.entries(p.summary?.sources ?? {})) {
+      const v = values as any,
+        key = p.id + ":" + source,
+        g = groups.get(key) ?? {
+          run: p.id,
+          workspace: p.workspace_id,
+          source,
+          statuses: [],
+          errors: [],
+          drops: {},
+        };
+      Object.assign(g, {
+        items: v.items ?? 0,
+        fresh: v.fresh ?? 0,
+        usable: v.usable ?? 0,
+        cost: v.cost ?? 0,
+        pipelineStatus: p.status,
+      });
+      groups.set(key, g);
+    }
   }
   const selected = a.runs.find((r) => r.id === q.run),
     active = selected && ["queued", "running"].includes(selected.status);
@@ -96,7 +124,7 @@ export default async function Runs({
           sources to add news search and LinkedIn. News search is capped at
           US$0.002 per query and LinkedIn posts at US$0.10 per watched person.
           Each paid call needs budget available and stays within the daily
-          allowance. No AI or email runs in this phase.
+          allowance. Use setup step 7 to test judging and review cards.
         </p>
       </section>
       {active && <CollectionPoller id={selected.id} />}
@@ -146,9 +174,9 @@ export default async function Runs({
                     <td>{g.source.replaceAll("_", " ")}</td>
                     <td>{g.items}</td>
                     <td>{g.fresh}</td>
-                    <td title="Judging starts in Phase 7">Pending judging</td>
+                    <td>{g.pipelineStatus ? g.usable : "Pending judging"}</td>
                     <td>{costMoney(g.cost)}</td>
-                    <td>–</td>
+                    <td>{g.usable ? costMoney(g.cost / g.usable) : "–"}</td>
                     <td>
                       <span
                         className={

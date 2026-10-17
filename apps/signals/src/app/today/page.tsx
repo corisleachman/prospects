@@ -1,112 +1,87 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { access } from "@/lib/access";
+import { cardContext } from "@/lib/cards";
 import { Frame } from "@/components/frame";
+import { Cards } from "./cards";
 export default async function Today({
   searchParams,
 }: {
-  searchParams: Promise<{ workspace?: string; viewAs?: string }>;
+  searchParams: Promise<{
+    workspace?: string;
+    viewAs?: string;
+    show?: string;
+    recipient?: string;
+  }>;
 }) {
-  const [ctx, q] = await Promise.all([access("/today"), searchParams]);
-  const viewing = ctx.isAdmin && q.viewAs === "1" && q.workspace;
-  const ids = viewing ? [q.workspace!] : ctx.members.map((m) => m.workspace_id);
-  if (!ids.length)
-    return (
-      <Frame admin={ctx.isAdmin} email={ctx.user.email ?? ""}>
-        <p className="eyebrow">Today</p>
-        <h1>
-          {ctx.isAdmin
-            ? "Your clients’ next conversations."
-            : "Your account is ready."}
-        </h1>
-        <p className="intro">
-          {ctx.isAdmin
-            ? "Create a client and invite their team to get started."
-            : "Accept your workspace invitation to see your Today view."}
-        </p>
-        {ctx.isAdmin && (
-          <Link className="button" href="/clients">
-            Open Clients
-          </Link>
-        )}
-      </Frame>
-    );
-  if (q.workspace && !ids.includes(q.workspace)) redirect("/not-allowed");
-  const { data: workspaces, error } = await ctx.db
-    .from("workspaces")
-    .select("id,name,timezone")
-    .in("id", ids)
-    .eq("is_signals_client", true)
-    .neq("status", "archived");
-  if (error) throw new Error("Workspace unavailable");
-  const workspace = workspaces?.find((w) => w.id === (q.workspace ?? ids[0]));
-  if (!workspace) redirect("/not-allowed");
-  const member = ctx.members.find((m) => m.workspace_id === workspace.id);
-  const today = new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: workspace.timezone,
-  }).format(new Date());
+  const q = await searchParams,
+    ctx = await cardContext(q),
+    w = ctx.workspace,
+    base = "workspace=" + w.id + (ctx.viewing ? "&viewAs=1" : ""),
+    date = new Intl.DateTimeFormat("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: w.timezone,
+    }).format(new Date());
   return (
     <Frame
-      admin={ctx.isAdmin && !viewing}
-      workspace={workspace.name}
+      admin={false}
       email={ctx.user.email ?? ""}
+      workspace={w.name}
+      clientViewQuery={base}
+      openCount={ctx.data.cards?.length ?? 0}
     >
-      {viewing && (
-        <p className="notice">
-          Viewing as {workspace.name}.{" "}
-          <Link href={"/clients/" + workspace.id}>Exit</Link>
+      {ctx.viewing && (
+        <p className="viewing-bar">
+          Viewing as {w.name}. <Link href={"/clients/" + w.id}>Exit</Link>
         </p>
       )}
-      <div className="page-heading">
+      <div className="screen-head">
         <div>
-          <p className="eyebrow">
-            {workspace.name} / {today}
+          <h1>Today</h1>
+          <p className="muted">
+            {date} ·{" "}
+            {
+              new Set(
+                ctx.data.cards?.map(
+                  (c: any) => c.person_name ?? c.company_name,
+                ),
+              ).size
+            }{" "}
+            people worth reaching out to
           </p>
-          <h1>
-            Today’s reasons
-            <br />
-            <em>to connect.</em>
-          </h1>
         </div>
-        <p className="page-lede">
-          {member?.role === "client_admin"
-            ? "Your client’s cards"
-            : "Your cards"}
-          .<br />
-          Fresh evidence, considered carefully.
-        </p>
-      </div>
-      {workspaces && workspaces.length > 1 && (
-        <nav className="workspace-switcher" aria-label="Choose workspace">
-          {workspaces.map((w) => (
+        {ctx.data.can_everyone && (
+          <nav className="profile-tabs" aria-label="Show cards">
             <Link
-              key={w.id}
-              aria-current={w.id === workspace.id ? "page" : undefined}
-              href={"/today?workspace=" + w.id}
+              href={"/today?" + base + "&show=mine"}
+              aria-current={
+                q.show === "mine" || (q.show !== "everyone" && !ctx.viewing)
+                  ? "page"
+                  : undefined
+              }
             >
-              {w.name}
+              Mine
             </Link>
-          ))}
-        </nav>
+            <Link
+              href={"/today?" + base + "&show=everyone"}
+              aria-current={
+                q.show === "everyone" || (ctx.viewing && q.show !== "mine")
+                  ? "page"
+                  : undefined
+              }
+            >
+              Everyone
+            </Link>
+          </nav>
+        )}
+      </div>
+      {w.status === "paused" && (
+        <p className="notice">Paused until your budget renews</p>
       )}
-      <section className="today-empty">
-        <p className="eyebrow">No cards yet</p>
-        <div className="empty-line" aria-hidden="true" />
-        <h2>
-          A good reason
-          <br />
-          is worth waiting for.
-        </h2>
-        <p>
-          Nothing strong enough today.
-          <br />
-          We only show fresh, relevant signals.
-        </p>
-        <span className="badge">You choose when to reach out</span>
-      </section>
+      <Cards
+        data={ctx.data}
+        nextTime={ctx.data.next_time?.slice(0, 5) ?? "07:30"}
+      />
     </Frame>
   );
 }

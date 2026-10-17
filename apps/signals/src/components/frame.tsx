@@ -6,12 +6,16 @@ export function Frame({
   email,
   workspace,
   client,
+  clientViewQuery = "",
+  openCount,
 }: {
   children: React.ReactNode;
   admin?: boolean;
   email: string;
   workspace?: string;
   client?: { id: string; name: string };
+  clientViewQuery?: string;
+  openCount?: number;
 }) {
   return (
     <>
@@ -46,9 +50,22 @@ export function Frame({
                 <Link href="/budgets">Budgets</Link>
               </>
             ) : (
-              <Link href="/today">
-                Today <span>↗</span>
-              </Link>
+              <>
+                <Link
+                  href={
+                    "/today" + (clientViewQuery ? "?" + clientViewQuery : "")
+                  }
+                >
+                  Today <span>{openCount ?? "↗"}</span>
+                </Link>
+                <Link
+                  href={
+                    "/history" + (clientViewQuery ? "?" + clientViewQuery : "")
+                  }
+                >
+                  Sent and history
+                </Link>
+              </>
             )}
           </nav>
           <div className="sidebar-footer">
