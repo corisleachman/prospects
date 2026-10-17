@@ -205,3 +205,11 @@ test("reports group only when brand, stated event, date and headline match; prim
   assert.equal(grouped.get("other"), "other");
   assert.equal(grouped.get("different"), "different");
 });
+
+test('pinned transport decodes bounded HTTP responses and rejects truncated chunks',async()=>{
+ const {decodeHTTP,publicSourceURL,publicAddress}=await import('../../../supabase/functions/signals-collect/public-http');
+ const encode=(s:string)=>new TextEncoder().encode(s);
+ const r=decodeHTTP(encode('HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n'));assert.equal(new TextDecoder().decode(r.body),'hello');
+ assert.throws(()=>decodeHTTP(encode('HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n9\r\nhello\r\n')),/Incomplete/);
+ assert.throws(()=>publicSourceURL('https://127.0.0.1/feed'));assert.equal(publicAddress('169.254.169.254'),false);
+});
