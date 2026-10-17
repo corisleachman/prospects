@@ -107,10 +107,13 @@ export async function savePricing(form: FormData) {
   } catch {
     finish(workspace, "Enter a JSON object for rates.");
   }
-  const { error } = await db.rpc("save_signals_pricing", {
+  const { error } = await db.rpc("save_signals_pricing_currency", {
     p_workspace: workspace,
     p_key: String(form.get("key")),
     p_rates: rates,
+    p_currency: String(form.get("currency") ?? "GBP"),
+    p_source: String(form.get("source") ?? ""),
+    p_verified: String(form.get("verified") ?? "") || null,
   });
   finish(workspace, error?.message);
 }

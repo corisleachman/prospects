@@ -1471,3 +1471,20 @@ input[type="checkbox"]:checked:after {
 .collection-form{display:flex;gap:16px;align-items:end;flex-wrap:wrap}.collection-form label{min-width:240px;max-width:100%}.collected-item{padding:24px 0;border-bottom:1px solid var(--line)}.collected-item h3{margin:12px 0}.collected-item p{max-width:75ch}.collected-item a{color:var(--coral)}
 
 .client-limits{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 0;border-block:1px solid var(--line);margin:20px 0}.client-limits label{display:flex;align-items:center;gap:10px}.client-limits input{width:80px}.client-limits p{flex-basis:100%;margin:0}.recipient-limits summary .small-note{display:inline;margin-left:8px}
+
+/* Pipeline review shares the app's paper and ink treatment. */
+.test-launch .stat-tiles { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:24px 0; }
+.test-launch .stat-tiles>div {border-top:1px solid var(--line,#dedbd4);padding:16px 0;}
+.test-launch .stat-tiles strong {display:block;font-size:28px;margin-top:8px;}
+.check-label {display:flex;align-items:center;gap:10px;margin:18px 0;}
+.check-label input {width:auto;}
+.sample-cards {margin:24px 0;}
+.signal-card {border:1px solid var(--line,#dedbd4);padding:24px;margin-bottom:20px;background:var(--paper,#f8f6ef);}
+.copy-box {background:#f0ede5;padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.badge.sensitive {background:#f7e9c9;color:#70521c;}
+.spinner {display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:turn 1s linear infinite;}
+@keyframes turn {to{transform:rotate(360deg)}}
+@media(max-width:700px){.test-launch .stat-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}.signal-card{padding:16px;}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none;}}
+
+.skip:not(:focus) {clip-path:inset(50%);width:1px;height:1px;overflow:hidden;padding:0;}

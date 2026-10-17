@@ -20,6 +20,7 @@ const clients = [
   },
 ];
 const previews = [];
+const pipelines = [];
 const collections = [],
   collectionItems = [],
   collectionTasks = [],
@@ -282,6 +283,56 @@ const server = http.createServer(async (req, res) => {
     }
     return reply(null);
   }
+  if (url.pathname === "/functions/v1/signals-pipeline") {
+    if (role !== "admin") return reply({ error: "Not allowed" }, 403);
+    if (body.action === "work") return reply({ id: body.id });
+    const id = randomUUID(),
+      w = clients.find((c) => c.id === body.workspace_id);
+    const p = {
+      id,
+      workspace_id: w.id,
+      status: "ready",
+      samples_reviewed: false,
+      created_at: new Date().toISOString(),
+      summary: {
+        items_collected: 47,
+        fresh: 12,
+        usable: 0,
+        cost: 0.008,
+        unmatched: 8,
+        below_seven: 4,
+        drops: { too_old: 20, duplicate: 15 },
+        stages: {
+          triage: { cost: 0.002, cache_read_input_tokens: 12000 },
+          score: { cost: 0.006, cache_read_input_tokens: 4000 },
+        },
+      },
+    };
+    pipelines.push(p);
+    w.latest_pipeline_test_id = id;
+    return reply({ id });
+  }
+  if (url.pathname === "/rest/v1/pipeline_runs")
+    return rows(
+      role === "admin"
+        ? pipelines.filter(
+            (p) =>
+              !url.searchParams.has("id") ||
+              p.id === url.searchParams.get("id").slice(3),
+          )
+        : [],
+    );
+  if (url.pathname === "/rest/v1/campaign_signals") return rows([]);
+  if (url.pathname === "/rest/v1/rpc/review_signals_test") {
+    const p = pipelines.find((p) => p.id === body.p_run);
+    if (p) p.samples_reviewed = true;
+    return reply(null);
+  }
+  if (url.pathname === "/rest/v1/rpc/go_live_signals")
+    return reply(
+      { message: "Invite an active recipient and choose their profiles first" },
+      400,
+    );
   if (url.pathname === "/rest/v1/collection_runs")
     return rows(role === "admin" ? collections : []);
   if (url.pathname === "/rest/v1/collection_items")

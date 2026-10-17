@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
-    "check:edge": "deno check --config ../../supabase/functions/signals-discovery/deno.json ../../supabase/functions/signals-discovery/index.ts && deno check --config ../../supabase/functions/signals-collect/deno.json ../../supabase/functions/signals-collect/index.ts"
+    "check:edge": "deno check --config ../../supabase/functions/signals-discovery/deno.json ../../supabase/functions/signals-discovery/index.ts && deno check --config ../../supabase/functions/signals-collect/deno.json ../../supabase/functions/signals-collect/index.ts && deno check --config ../../supabase/functions/signals-pipeline/deno.json ../../supabase/functions/signals-pipeline/index.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
