@@ -91,7 +91,8 @@ async function collect(body: Record<string, unknown>, jwt = key) {
       signal: AbortSignal.timeout(30000),
     }),
     data = await r.json();
-  if (!r.ok || data.error) throw Error(data.error ?? data.message ?? ("Collection HTTP " + r.status));
+  if (!r.ok || data.error)
+    throw Error(data.error ?? data.message ?? "Collection HTTP " + r.status);
   return data;
 }
 async function register(id: string, fallback?: string) {
@@ -1009,6 +1010,22 @@ async function summary(run: any) {
     reused = triage.filter(
       (j) => !tasks.some((t) => t.id === j.input.source_task_id),
     ).length;
+  for (const job of triage.filter(
+    (j) => !tasks.some((t) => t.id === j.input.source_task_id),
+  )) {
+    const source = (sources[job.input.source_key] ??= {
+      items: 0,
+      fresh: 0,
+      usable: 0,
+      cost: 0,
+      statuses: [],
+    });
+    source.items++;
+    source.fresh++;
+  }
+  drops.duplicate =
+    (drops.duplicate ?? 0) +
+    triage.filter((j) => /Duplicate report/.test(j.error_summary ?? "")).length;
   return {
     items_collected: sourceItems + reused,
     raw_collected: sourceItems,
@@ -1153,6 +1170,7 @@ async function work(id: string) {
         .update({
           status: noSource ? "failed" : failed ? "partial" : "ready",
           summary: s,
+          error_summary: null,
           completed_at: new Date().toISOString(),
         })
         .eq("id", id);
@@ -1170,7 +1188,11 @@ async function work(id: string) {
           .update({ published: true })
           .eq("id", id);
       }
-    } else await svc.from("pipeline_runs").update({ summary: s }).eq("id", id);
+    } else
+      await svc
+        .from("pipeline_runs")
+        .update({ summary: s, error_summary: null })
+        .eq("id", id);
   } catch (e) {
     const error = e instanceof Error ? e.message : "Judging interrupted";
     await svc

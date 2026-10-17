@@ -267,7 +267,11 @@ export function upperCost(
 ) {
   return (
     (((tokens + 256) *
-      Math.max(r.input_per_million, r.cache_write_per_million) +
+      Math.max(
+        r.input_per_million,
+        r.cache_write_per_million,
+        r.cache_write_1h_per_million,
+      ) +
       maxOutput * r.output_per_million) *
       (batch ? r.batch_multiplier : 1)) /
     1e6

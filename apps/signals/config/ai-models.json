@@ -15,7 +15,7 @@
     "fallback_max_tokens": 1500
   },
   "effort": "low",
-  "cache_ttl": "5m",
+  "cache_ttl": "1h",
   "pricing_verified": "2026-10-17",
   "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
   "rates": {
