@@ -290,6 +290,10 @@ async function settle(
     } else cost = usageCost(usage, call.rates, call.mode === "batch") * call.fx;
     if (!error) {
       const result = parseMessage(message);
+      await svc
+        .from("pipeline_ai_calls")
+        .update({ model_output: result })
+        .eq("id", call.id);
       value =
         job.stage === "triage"
           ? parseTriage(result, run.snapshot.setup, job.input.item)
@@ -1521,8 +1525,13 @@ async function rewrite(
     }
     usage = message.usage ?? {};
     cost = usageCost(usage, p.rates, false) * fx;
+    const parsed = parseMessage(message);
+    await svc
+      .from("rewrite_calls")
+      .update({ model_output: parsed })
+      .eq("id", id);
     value = validateRewrite(
-      parseMessage(message),
+      parsed,
       context.setup,
       context.item,
       context.polarity,

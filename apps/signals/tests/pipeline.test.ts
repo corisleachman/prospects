@@ -4,6 +4,7 @@ import {
   request,
   rewriteRequest,
   upperCost,
+  emailSentenceCount,
   usageCost,
   parseMessage,
   parseTriage,
@@ -268,5 +269,19 @@ test("rewrite requests generate only the selected tab and reserve the highest ca
       false,
     ),
     0.006024,
+  );
+});
+
+test("email limits count body sentences without treating the greeting and configured sign-off as extra sentences", () => {
+  assert.equal(
+    emailSentenceCount(
+      "Hi Jenna,\n\nI saw the news. Thought it would be good to connect.\n\nCoris",
+      "Coris",
+    ),
+    2,
+  );
+  assert.equal(
+    emailSentenceCount("Hi Jenna,\nOne. Two. Three. Four.\nCoris", "Coris"),
+    4,
   );
 });

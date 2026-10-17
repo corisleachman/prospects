@@ -419,12 +419,8 @@ export function validateJudgment(
     throw Error("The supporting quote is absent from the source");
   if (value.opener_linkedin.length > setup.voice.linkedin_length)
     throw Error("LinkedIn opener exceeds the client limit");
-  const sentences = [
-    ...new Intl.Segmenter("en", { granularity: "sentence" }).segment(
-      value.email_body,
-    ),
-  ].filter((s) => s.segment.trim());
-  if (sentences.length > 3) throw Error("Email opener exceeds three sentences");
+  if (emailSentenceCount(value.email_body, setup.voice.sign_off) > 3)
+    throw Error("Email opener exceeds three sentences");
   const messages =
     value.opener_linkedin + " " + value.email_body + " " + value.email_subject;
   if (
@@ -575,4 +571,20 @@ export function validateRewrite(
     body: value.body,
     subject: channel === "email" ? value.subject : null,
   };
+}
+
+export function emailSentenceCount(body: string, signOff: string) {
+  let text = body.trim(),
+    signature = signOff.trim();
+  if (signature && text.endsWith(signature))
+    text = text.slice(0, -signature.length).trim();
+  text = text
+    .replace(
+      /\n(?:best(?: wishes)?|kind regards|thanks|cheers|regards),?\s*$/i,
+      "",
+    )
+    .replace(/^(?:hi|hello|dear|hey)\s+[^\n.!?]{1,80},?\s*\n+/i, "");
+  return [
+    ...new Intl.Segmenter("en", { granularity: "sentence" }).segment(text),
+  ].filter((s) => s.segment.trim()).length;
 }
