@@ -24,6 +24,14 @@ test("Today keeps fresh rewrite versions, sends the visible one and moves feedba
   await expect(page.locator(".signal-card").last()).toContainText("Sensitive");
   await card.getByRole("button", { name: "Rewrite", exact: true }).click();
   await expect(card).toContainText("Version 2 of 2");
+  await request.post("http://127.0.0.1:54329/fixture/rewrite-failure", {
+    data: {},
+  });
+  await card.getByRole("button", { name: "Rewrite", exact: true }).click();
+  await expect(card.getByRole("status")).toContainText(
+    "Couldn't rewrite, try again",
+  );
+  await expect(card).toContainText("Version 2 of 2");
   await card.getByRole("button", { name: "Previous version" }).click();
   await expect(card).toContainText("Version 1 of 2");
   await card.getByRole("button", { name: "Next version" }).click();
@@ -61,9 +69,7 @@ test("Today keeps fresh rewrite versions, sends the visible one and moves feedba
   expect(
     events.find((e: any) => e.p_action === "marked_sent").p_draft,
   ).toBeTruthy();
-  await page
-    .getByRole("link", { name: /^Sent and history/ })
-    .click();
+  await page.getByRole("link", { name: /^Sent and history/ }).click();
   await expect(page.getByText("Sent linkedin · Version 2")).toBeVisible();
   await expect(
     page.getByText("Not relevant · Wrong person", { exact: true }),
@@ -78,9 +84,7 @@ test("Today keeps fresh rewrite versions, sends the visible one and moves feedba
       path: resolve(dir, `app-history-${width}.png`),
       fullPage: true,
     });
-    await proto
-      .getByRole("button", { name: /^Sent and history/ })
-      .click();
+    await proto.getByRole("button", { name: /^Sent and history/ }).click();
     await proto.screenshot({
       path: resolve(dir, `prototype-history-${width}.png`),
       fullPage: true,
@@ -92,4 +96,20 @@ test("Today keeps fresh rewrite versions, sends the visible one and moves feedba
   await expect(
     page.getByText("Restored to Today", { exact: true }),
   ).toBeVisible();
+});
+
+test("salespeople cannot export another recipient's history", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill("client@example.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("correct-password-123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/today$/);
+  const response = await page.request.get(
+    "/history/export?workspace=10000000-0000-0000-0000-000000000001&show=everyone",
+  );
+  expect(response.status()).toBe(403);
 });

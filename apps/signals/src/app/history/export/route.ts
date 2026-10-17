@@ -1,7 +1,19 @@
+import { access } from "@/lib/access";
 import { cardContext } from "@/lib/cards";
 export async function GET(request: Request) {
-  const url = new URL(request.url),
-    ctx = await cardContext(Object.fromEntries(url.searchParams), true);
+  const url = new URL(request.url);
+  const permissions = await access("/history");
+  if (
+    !permissions.isAdmin &&
+    !permissions.members.some(
+      (m) =>
+        m.role === "client_admin" &&
+        (!url.searchParams.get("workspace") ||
+          m.workspace_id === url.searchParams.get("workspace")),
+    )
+  )
+    return new Response("Not allowed", { status: 403 });
+  const ctx = await cardContext(Object.fromEntries(url.searchParams), true);
   if (!ctx.data.can_export) return new Response("Not allowed", { status: 403 });
   const from = url.searchParams.get("from") ?? "",
     to = url.searchParams.get("to") ?? "";
@@ -9,7 +21,7 @@ export async function GET(request: Request) {
     return new Response("Invalid date", { status: 400 });
   const cell = (v: unknown) => {
     let s = String(v ?? "");
-    if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
+    if (/^\s*[=+@\-]/.test(s)) s = "'" + s;
     return '"' + s.replaceAll('"', '""') + '"';
   };
   const rows = ctx.data.cards

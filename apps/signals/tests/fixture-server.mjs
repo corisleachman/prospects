@@ -21,6 +21,7 @@ const clients = [
 ];
 const previews = [];
 const pipelines = [];
+let failRewrite = false;
 let clientCards = [],
   cardEvents = [];
 const collections = [],
@@ -289,6 +290,10 @@ const server = http.createServer(async (req, res) => {
     cardEvents = [];
     return reply({ seeded: true });
   }
+  if (url.pathname === "/fixture/rewrite-failure") {
+    failRewrite = true;
+    return reply({ ok: true });
+  }
   if (url.pathname === "/fixture/card-events") return reply(cardEvents);
   if (!role) return reply({ message: "Not authenticated" }, 401);
   if (url.pathname === "/rest/v1/platform_admins")
@@ -392,6 +397,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (url.pathname === "/functions/v1/signals-pipeline") {
     if (body.action === "rewrite") {
+      if (failRewrite) {
+        failRewrite = false;
+        return reply({ error: "Provider failure", attempted: true });
+      }
       const c = clientCards.find((c) => c.id === body.delivery),
         channel = body.channel;
       if (!c) return reply({ error: "Not allowed" }, 403);

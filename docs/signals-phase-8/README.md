@@ -32,3 +32,9 @@ Find a person checks the profile's approved watch-list people first. A paid fall
 ## Validation
 
 Schema checks cover cross-client access, salesperson/everyone restrictions and the exact sent draft version. Browser checks exercise rewrite navigation, sent, feedback, reply, restore and admin CSV access. Paired screenshots use fictional local fixtures, with no external email or paid model call.
+
+## Deployment record
+
+Migrations `20261017173136_signals_phase_eight.sql`, `20261017173146_signals_pipeline_minute_tick.sql`, `20261017173231_signals_person_lookup_audit.sql` and `20261017173402_signals_model_output_audit.sql` are applied. Pipeline v5 and collector v8 are active. Vercel deployment `dpl_4vnfY9iKnVRSTFw5ZK69rU9PqT6f` is Ready. Subsequent CSV export hardening is deployed in the next recorded app release.
+
+66 local tests pass. The 19 unchanged browser flows passed; the updated client-admin layout assertion and both Phase 8 flows pass separately, including a failed rewrite retaining the visible version and a salesperson receiving HTTP 403 for CSV. No real emails were sent. The bounded provider result is recorded in `docs/signals-phase-7/provider-test.md` and remains a partial test, not a launch approval.
