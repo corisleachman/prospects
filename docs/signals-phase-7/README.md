@@ -31,3 +31,9 @@ Setup step 7 runs an isolated test, shows drops/costs and sample openers, and re
 Local schema/RLS, budget settlement and core pipeline checks pass. The browser contract test exercises Run test, reviewed results and a rejected launch without an active recipient. It captures both widths without page overflow. Production deployment and a real provider test are recorded below after verification.
 
 Pricing seeds were checked on 17 October 2026 against [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), [batch processing](https://platform.claude.com/docs/en/build-with-claude/batch-processing) and [prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching). Prices remain editable per client with currency, source and verification date. USD is converted with the saved ECB rate.
+
+## Production verification in progress
+
+Migration `20261017170906_signals_phase_seven.sql` and scheduler `20261017171100_signals_pipeline_scheduler.sql` are applied. `signals-pipeline` v3 and `signals-collect` v7 are active. Vercel deployment `dpl_3wecJfudo1NzDLaWf5KaNJHRaSvT` is Ready.
+
+Real test `0c7e7a08-5d62-4beb-8554-d34301cd9ecd` reuses 45 still-fresh evidence items and buys no additional source data. Its first Haiku batch is queued with the provider. Provider completion, actual stage costs and cache reads remain to be verified. BEFORE:WORK remains in setup; no recipient emails are sent. Normal spend before judging is £0.168540; earlier fake budget charges are excluded.
