@@ -1527,5 +1527,270 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017134828_signals_phase_six.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Phase 6 collections enforce budgets, platform access, exclusive claims and recorded charges",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Collection test','Europe/London') as id",
+      );
+      await adminScalar("select public.create_signals_profile($1) as id", [w]);
+      const jobs = [
+        {
+          key: "news:0",
+          source_key: "news_search",
+          family: "web_search",
+          provider: "treg_anyapi_news",
+          cap_usd: 0.002,
+          adapter: "treg_news",
+        },
+      ];
+      const args = [
+        w,
+        "one",
+        JSON.stringify({ fx: 0.8 }),
+        JSON.stringify(jobs),
+        "manual",
+      ];
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.start_signals_collection($1,$2,$3,$4,$5)",
+            args,
+          ),
+        /Budget paused/,
+      );
+      const today = (
+        await db.query<{ today: string }>("select current_date::text as today")
+      ).rows[0].today;
+      await asUser(
+        owner,
+        "select public.change_signals_budget($1,'create',1,$2::date,($2::date+30),'Collection test',false)",
+        [w, today],
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.start_signals_collection($1,$2,$3,$4,$5)",
+            args,
+          ),
+        /Not allowed/,
+      );
+      const id = await adminScalar(
+        "select public.start_signals_collection($1,$2,$3,$4,$5) as id",
+        args,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.start_signals_collection($1,'two',$2,$3,'manual')",
+            [w, args[2], args[3]],
+          ),
+        /already in progress/,
+      );
+      const task = (
+        await db.query<{ id: string }>(
+          "select id from public.source_tasks where run_id=$1",
+          [id],
+        )
+      ).rows[0].id;
+      const service = async (sql: string, params: unknown[] = []) =>
+        db.transaction(async (tx) => {
+          await tx.exec("set local role service_role");
+          await tx.query("select set_config('request.jwt.claims',$1,true)", [
+            JSON.stringify({ role: "service_role" }),
+          ]);
+          return tx.query<any>(sql, params);
+        });
+      await service("select public.claim_signals_collection_task($1,0.8)", [
+        task,
+      ]);
+      assert.equal(
+        (
+          await service(
+            "select public.claim_signals_collection_task($1,0.8) as claimed",
+            [task],
+          )
+        ).rows[0].claimed,
+        null,
+      );
+      await service(
+        "select public.finish_signals_collection_task($1,0.0008,0.001,'reported',$2,null,'receipt')",
+        [task, JSON.stringify({ items: 2, fresh: 1, drops: { too_old: 1 } })],
+      );
+      await service(
+        "select public.finish_signals_collection_task($1,0.0008,0.001,'reported',$2,null,'receipt')",
+        [task, JSON.stringify({ items: 2, fresh: 1 })],
+      );
+      assert.equal(
+        (
+          await db.query("select * from public.cost_ledger where run_id=$1", [
+            id,
+          ])
+        ).rows.length,
+        1,
+      );
+      const costly = (
+        await db.query<{ id: string }>(
+          "insert into public.source_tasks(workspace_id,run_id,task_key,source_family,provider_key,collection_source_key,input,estimated_cost_usd) values($1,$2,'too-costly','web_search','treg_anyapi_news','news_search','{}',2) returning id",
+          [w, id],
+        )
+      ).rows[0].id;
+      assert.equal(
+        (
+          await service(
+            "select public.claim_signals_collection_task($1,0.8) as claimed",
+            [costly],
+          )
+        ).rows[0].claimed,
+        null,
+      );
+      const skipped = (
+        await db.query<{ status: string; error_code: string }>(
+          "select status,error_code from public.source_tasks where id=$1",
+          [costly],
+        )
+      ).rows[0];
+      assert.equal(skipped.status, "cancelled");
+      assert.equal(skipped.error_code, "budget_paused");
+
+      assert.equal(
+        (
+          await asUser(
+            alice,
+            "select * from public.collection_runs where workspace_id=$1",
+            [w],
+          )
+        ).rows.length,
+        0,
+      );
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.claim_signals_collection_task($1,0.8)", [
+            task,
+          ]),
+        /permission denied/,
+      );
+    },
+  );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017135020_signals_collection_worker_keys.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Only service credentials can authenticate an internal collection worker",
+    async () => {
+      await assert.rejects(
+        () => asUser(owner, "select public.signals_collection_worker_access()"),
+        /permission denied/,
+      );
+      const result = await service<{ allowed: boolean }>(
+        "select public.signals_collection_worker_access() as allowed",
+      );
+      assert.equal(result.rows[0].allowed, true);
+    },
+  );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017163607_signals_delivery_defaults.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Client-wide delivery limits inherit, keep individual overrides and reject stale edits",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Delivery defaults','Europe/London') as id",
+      );
+      const invite = await adminScalar(
+        "select public.create_signals_invite($1,'alice@example.test','client_user',$2) as id",
+        [w, "8".repeat(64)],
+      );
+      const id = (
+        await db.query<{ id: string }>(
+          "select id from public.delivery_rules where invite_id=$1",
+          [invite],
+        )
+      ).rows[0].id;
+      await asUser(
+        owner,
+        "select public.save_signals_delivery_limits($1,0,15,45)",
+        [w],
+      );
+      let row = (
+        await db.query<any>("select * from public.delivery_rules where id=$1", [
+          id,
+        ])
+      ).rows[0];
+      assert.equal(row.max_cards_per_day, 15);
+      assert.equal(row.no_repeat_days, 45);
+      assert.equal(row.max_cards_override, null);
+      await asUser(owner, "select public.save_signals_delivery($1,$2,$3,$4)", [
+        w,
+        id,
+        row.setup_revision,
+        JSON.stringify({
+          role: "client_user",
+          profile_ids: [],
+          max_cards_override: 5,
+          repeat_days_override: null,
+        }),
+      ]);
+      await asUser(
+        owner,
+        "select public.save_signals_delivery_limits($1,1,20,60)",
+        [w],
+      );
+      row = (
+        await db.query<any>("select * from public.delivery_rules where id=$1", [
+          id,
+        ])
+      ).rows[0];
+      assert.equal(row.max_cards_per_day, 5);
+      assert.equal(row.no_repeat_days, 60);
+      assert.equal(row.max_cards_override, 5);
+      assert.equal(row.repeat_days_override, null);
+      const next = await adminScalar(
+        "select public.create_signals_invite($1,'new@example.test','client_user',$2) as id",
+        [w, "7".repeat(64)],
+      );
+      const inherited = (
+        await db.query<any>(
+          "select * from public.delivery_rules where invite_id=$1",
+          [next],
+        )
+      ).rows[0];
+      assert.equal(inherited.max_cards_per_day, 20);
+      assert.equal(inherited.no_repeat_days, 60);
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.save_signals_delivery_limits($1,1,10,30)",
+            [w],
+          ),
+        /changed elsewhere/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.save_signals_delivery_limits($1,2,10,30)",
+            [w],
+          ),
+        /Not allowed/,
+      );
+    },
+  );
   await db.close();
 });

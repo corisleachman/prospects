@@ -3,18 +3,25 @@ import { useState, useTransition } from "react";
 import { useAutosave, SaveStatus } from "@/components/autosave";
 import { Submit } from "@/components/submit";
 import { inviteClientMember } from "../../../actions";
-import { saveRecipient, removeRecipient, restoreRecipient } from "../actions";
-import type { Recipient, SetupProfile } from "@/lib/setup";
+import {
+  saveRecipient,
+  saveClientLimits,
+  removeRecipient,
+  restoreRecipient,
+} from "../actions";
+import type { Recipient, SetupProfile, DeliveryLimits } from "@/lib/setup";
 function PersonRow({
   initial,
   workspace,
   profiles,
   onRemoved,
+  defaults,
 }: {
   initial: Recipient;
   workspace: string;
   profiles: SetupProfile[];
   onRemoved: (v: Recipient, revision: number) => void;
+  defaults: DeliveryLimits;
 }) {
   const a = useAutosave(
       initial,
@@ -40,7 +47,34 @@ function PersonRow({
           {v.pending ? " · invite sent" : ""}
         </span>
         <details className="recipient-limits">
-          <summary>Limits</summary>
+          <summary>
+            <span>Limits</span>{" "}
+            <span className="small-note">
+              {v.max_cards_per_day} a day
+              {v.max_cards_override != null ? " (custom)" : ""} ·{" "}
+              {v.no_repeat_days} days
+              {v.repeat_days_override != null ? " (custom)" : ""}
+            </span>
+          </summary>
+          <label className="check-label">
+            <input
+              type="checkbox"
+              aria-label={"Override daily card cap for " + v.email}
+              checked={v.max_cards_override != null}
+              onChange={(e) =>
+                a.edit({
+                  ...v,
+                  max_cards_override: e.target.checked
+                    ? v.max_cards_per_day
+                    : null,
+                  max_cards_per_day: e.target.checked
+                    ? v.max_cards_per_day
+                    : defaults.daily,
+                })
+              }
+            />
+            Override daily card cap
+          </label>
           <label>
             Daily card cap
             <input
@@ -48,11 +82,35 @@ function PersonRow({
               type="number"
               min={1}
               max={100}
-              value={v.max_cards_per_day}
+              disabled={v.max_cards_override == null}
+              value={v.max_cards_override ?? defaults.daily}
               onChange={(e) =>
-                a.edit({ ...v, max_cards_per_day: Number(e.target.value) })
+                a.edit({
+                  ...v,
+                  max_cards_override: Number(e.target.value),
+                  max_cards_per_day: Number(e.target.value),
+                })
               }
             />
+          </label>
+          <label className="check-label">
+            <input
+              type="checkbox"
+              aria-label={"Override repeat window for " + v.email}
+              checked={v.repeat_days_override != null}
+              onChange={(e) =>
+                a.edit({
+                  ...v,
+                  repeat_days_override: e.target.checked
+                    ? v.no_repeat_days
+                    : null,
+                  no_repeat_days: e.target.checked
+                    ? v.no_repeat_days
+                    : defaults.repeat,
+                })
+              }
+            />
+            Override repeat window
           </label>
           <label>
             Days before repeat
@@ -61,9 +119,14 @@ function PersonRow({
               type="number"
               min={1}
               max={365}
-              value={v.no_repeat_days}
+              disabled={v.repeat_days_override == null}
+              value={v.repeat_days_override ?? defaults.repeat}
               onChange={(e) =>
-                a.edit({ ...v, no_repeat_days: Number(e.target.value) })
+                a.edit({
+                  ...v,
+                  repeat_days_override: Number(e.target.value),
+                  no_repeat_days: Number(e.target.value),
+                })
               }
             />
           </label>
@@ -140,17 +203,74 @@ function PersonRow({
     </tr>
   );
 }
+function ClientLimits({
+  workspace,
+  initial,
+  onSaved,
+}: {
+  workspace: string;
+  initial: DeliveryLimits;
+  onSaved: (limits: DeliveryLimits, routes: Recipient[]) => void;
+}) {
+  const a = useAutosave(
+    { daily: initial.daily, repeat: initial.repeat },
+    initial.revision,
+    "signals:" + workspace + ":delivery-defaults",
+    async (v, r) => {
+      const result = await saveClientLimits(workspace, v, r);
+      if (result.error) return { error: result.error };
+      onSaved({ ...v, revision: result.revision! }, result.routes ?? []);
+      return { revision: result.revision! };
+    },
+  );
+  return (
+    <div className="client-limits">
+      <strong>Limits</strong>
+      <label>
+        Cards per person per day
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={a.value.daily}
+          onChange={(e) =>
+            a.edit({ ...a.value, daily: Number(e.target.value) })
+          }
+        />
+      </label>
+      <label>
+        Repeat window (days)
+        <input
+          type="number"
+          min={1}
+          max={365}
+          value={a.value.repeat}
+          onChange={(e) =>
+            a.edit({ ...a.value, repeat: Number(e.target.value) })
+          }
+        />
+      </label>
+      <SaveStatus {...a} />
+      <p className="small-note">
+        Applies to everyone unless their row has an override.
+      </p>
+    </div>
+  );
+}
 export function Recipients({
   workspace,
   initial,
   profiles,
   timezone,
+  limits,
 }: {
   workspace: string;
   initial: Recipient[];
   profiles: SetupProfile[];
   timezone: string;
+  limits: DeliveryLimits;
 }) {
+  const [defaults, setDefaults] = useState(limits);
   const [rows, setRows] = useState(initial),
     [inviting, setInviting] = useState(false),
     [removed, setRemoved] = useState<{
@@ -201,6 +321,16 @@ export function Recipients({
           </button>
         </p>
       )}
+      <ClientLimits
+        workspace={workspace}
+        initial={limits}
+        onSaved={(next, routes) => {
+          setDefaults(next);
+          setRows((old) =>
+            old.map((r) => ({ ...r, ...routes.find((x) => x.id === r.id) })),
+          );
+        }}
+      />
       <div className="table-wrap">
         <table className="routing-table">
           <thead>
@@ -215,7 +345,8 @@ export function Recipients({
           <tbody>
             {rows.map((row) => (
               <PersonRow
-                key={row.id}
+                key={row.id + ":" + row.setup_revision}
+                defaults={defaults}
                 initial={row}
                 workspace={workspace}
                 profiles={profiles}

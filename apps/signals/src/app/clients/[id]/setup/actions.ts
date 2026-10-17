@@ -165,3 +165,28 @@ export async function restoreRecipient(
     p_value: v,
   });
 }
+
+export async function saveClientLimits(
+  workspace: string,
+  value: { daily: number; repeat: number },
+  revision: number,
+) {
+  const {db}=await requireAdmin();
+  if (
+    !Number.isInteger(value.daily) ||
+    value.daily < 1 ||
+    value.daily > 100 ||
+    !Number.isInteger(value.repeat) ||
+    value.repeat < 1 ||
+    value.repeat > 365
+  )
+    return { error: "Choose 1–100 cards and a repeat window of 1–365 days." };
+  const { data, error } = await db.rpc("save_signals_delivery_limits", {
+    p_workspace: workspace,
+    p_revision: revision,
+    p_daily: value.daily,
+    p_repeat: value.repeat,
+  });
+  if (error) return { error: error.message };
+  return { revision: data.revision, routes: data.routes as Recipient[] };
+}

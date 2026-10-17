@@ -16,7 +16,7 @@ The app keeps its existing cream/navy/coral style and fonts. Each pair uses the 
 Differences:
 - The source list contains the four tested adapters. LinkedIn says “posts”, because comments and reactions weren't collected. Job changes stays unavailable until a dated provider is verified. The three working trade feeds are retained.
 - Default rule scopes resolve against actual profile names, with editable profile-code chips. Unmatched templates display “Choose profiles” rather than targeting an unrelated profile.
-- Daily card caps and repeat windows sit under each recipient's expandable Limits control. These brief requirements are absent from the prototype table.
+- A client-wide Limits line defaults to 10 cards a day and 30 days. Each row inherits those values unless either is overridden. Its collapsed summary marks custom values. Coris requested these controls in addition to the prototype table.
 - Extra URLs have visible pending, dated, undated or failed states and an explicit Check action. Private addresses and redirect targets are rejected before requests.
 - Draft voice settings can be saved before all three message examples are supplied. The go-live phase will require complete settings.
 - Step 7 remains unavailable until Phase 7. No schedule is enabled here.

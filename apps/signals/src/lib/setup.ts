@@ -45,6 +45,8 @@ export type Recipient = {
   role: string;
   profile_ids: string[];
   max_cards_per_day: number;
+  max_cards_override: number | null;
+  repeat_days_override: number | null;
   no_repeat_days: number;
   morning_email_time: string | null;
   setup_revision: number;
@@ -76,3 +78,9 @@ export function examples(text: string) {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
+export type DeliveryLimits = {
+  daily: number;
+  repeat: number;
+  revision: number;
+};

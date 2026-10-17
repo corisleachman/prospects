@@ -66,3 +66,15 @@ export function tokenCostGBP(
   }
   return Math.ceil(cost * 1000000) / 1000000;
 }
+
+export function costMoney(v: number | string) {
+  const n = Number(v);
+  return n > 0 && n < 0.01
+    ? new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: "GBP",
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 6,
+      }).format(n)
+    : money(n);
+}
