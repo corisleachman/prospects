@@ -44,3 +44,14 @@ The committed migration was applied to Prospects after the rollback check. Post-
 Deployment `dpl_8uYw8FZDM7Z6keN4e7B65ZFYhyyZ`, code commit `50d7765`, is READY at https://prospect-signals.vercel.app. The authenticated browser showed BEFORE:WORK's empty budget screen with the £10 test default and its saved timezone's current date. No form was submitted and no live email was sent. All 27 Node and 12 browser tests pass in GitHub CI.
 
 Draft PR: https://github.com/corisleachman/prospects/pull/34, stacked on Phase 2. Phase 4 is not started. Real alert delivery remains Coris's acceptance check.
+
+
+## UI catch-up, 17 October 2026
+
+The prototype guides the layout and controls; the app keeps its visual style. See [the catch-up record](../signals-ui-catchup/README.md) for verification and approved differences.
+
+| View | App 1280 | Prototype 1280 | App 390 | Prototype 390 |
+|---|---|---|---|---|
+| budgets | [App](catchup-app-budgets-1280.png) | [Reference](catchup-prototype-budgets-1280.png) | [App](catchup-app-budgets-390.png) | [Reference](catchup-prototype-budgets-390.png) |
+
+Differences: Budgets stay GBP and use actual periods. Monthly spend excludes test charges. Per-usable-card metrics remain `–` until cards exist. Existing detailed budget actions stay on their separate screen.

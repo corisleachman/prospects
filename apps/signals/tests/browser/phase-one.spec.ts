@@ -26,15 +26,20 @@ test("admin signs in, creates a client and signs out", async ({ page }) => {
   await login(page, "coris@example.test");
   await expect(page).toHaveURL(/\/clients$/);
   await expect(
-    page.getByRole("heading", { name: "A workspace for every client." }),
+    page.getByRole("heading", { name: "Clients", exact: true }),
   ).toBeVisible();
+  await page.getByRole("link", { name: "+ New client", exact: true }).click();
   await page.getByLabel("Client name").fill("New Client (test)");
   await page
     .getByRole("button", { name: "Create client", exact: true })
     .click();
-  await expect(page.getByRole("status")).toContainText("Client created");
+  await expect(page).toHaveURL(/\/setup\?step=1/);
+  await page
+    .getByRole("link", { name: "Clients", exact: false })
+    .first()
+    .click();
   await expect(
-    page.getByRole("cell", { name: "New Client (test)", exact: true }),
+    page.getByRole("link", { name: "New Client (test)", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: resolve("../../docs/signals-phase-1/clients-desktop.png"),

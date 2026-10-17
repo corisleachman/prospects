@@ -2,219 +2,145 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/access";
 import { Frame } from "@/components/frame";
-import { Submit } from "@/components/submit";
-import type { Profile, ClientDetails } from "@/lib/profile";
-import { Details } from "./details";
-import { ProfileEditor } from "./profile-editor";
-import { addProfile, saveMemberName } from "./actions";
-import { inviteClientMember } from "../actions";
-export default async function Setup({
+import { RowLink } from "@/components/row-link";
+import { money } from "@/lib/budget";
+export default async function Overview({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{
-    profile?: string;
-    error?: string;
-    memberSaved?: string;
-  }>;
 }) {
-  const [{ id }, q, { db, user }] = await Promise.all([
-    params,
-    searchParams,
-    requireAdmin(),
-  ]);
-  if (!/^[a-f0-9-]{36}$/i.test(id)) redirect("/not-allowed");
-  const [
-    { data: client, error },
-    { data: profiles, error: profileError },
-    { data: team, error: teamError },
-  ] = await Promise.all([
+  const [{ id }, { db, user }] = await Promise.all([params, requireAdmin()]);
+  const [w, p, t, watch, b] = await Promise.all([
     db
       .from("workspaces")
-      .select("id,name,timezone,logo_url,profile_limit,setup_revision,status")
+      .select("id,name,status,timezone,client_type")
       .eq("id", id)
       .eq("is_signals_client", true)
       .maybeSingle(),
     db
       .from("campaigns")
-      .select(
-        "id,name,profile_type,who,criteria,priority_titles,relevant_moment,conversation_to_open,watch_list_size,when_no_person,setup_revision",
-      )
+      .select("id,code,name,profile_type,who,priority_titles")
       .eq("workspace_id", id)
       .neq("status", "archived")
       .order("created_at"),
     db.rpc("signals_team", { p_workspace_id: id }),
+    db
+      .from("campaign_prospects")
+      .select("campaign_id,company_id,person_id")
+      .eq("workspace_id", id)
+      .not("company_id", "is", null)
+      .eq("group_type", "watchlist"),
+    db.rpc("signals_budget_overview", { p_workspace: id }),
   ]);
-  if (error || profileError || teamError)
-    throw new Error("Client setup unavailable");
-  if (!client) redirect("/not-allowed");
-  const selected = profiles?.find((p) => p.id === q.profile) ?? profiles?.[0];
+  if ([w, p, t, watch, b].some((r) => r.error))
+    throw new Error("Client overview unavailable");
+  if (!w.data) redirect("/not-allowed");
+  const client = w.data;
   return (
-    <Frame admin email={user.email ?? ""}>
-      <div className="setup-heading">
-        <Link href="/clients">← All clients</Link>
-        <Link className="button secondary" href={"/clients/" + id + "/budget"}>
-          Budget and costs
-        </Link>
-        <Link className="button secondary" href={"/clients/" + id + "/find"}>
-          Find matches and watch list
-        </Link>
-        <p className="eyebrow">Client setup</p>
-        <h1>{client.name}</h1>
-        <p className="muted">
-          Start with the client and the people they want to reach.
-        </p>
-      </div>
-      {q.error && (
-        <p role="alert" className="notice">
-          {q.error.slice(0, 300)}
-        </p>
-      )}
-      <div className="client-setup">
-        <aside className="setup-nav" aria-label="Setup steps">
-          <a href="#details">01 Client details</a>
-          <a href="#profiles">02 ICP profiles</a>
-          <p className="small-note">Further setup follows in later phases.</p>
-        </aside>
-        <div className="setup-content">
-          {client.status === "archived" ? (
-            <p className="notice">
-              This client is archived. Setup is read-only.
-            </p>
-          ) : (
-            <div id="details">
-              <Details initial={client as ClientDetails} userId={user.id} />
-            </div>
-          )}
-          <section className="section" id="profiles">
-            <div className="section-heading">
-              <h2>Profiles</h2>
-              <span className="count">
-                {profiles?.length ?? 0} / {client.profile_limit}
-              </span>
-            </div>
-            <div className="profile-tabs" aria-label="Choose a profile">
-              {profiles?.map((p) => (
-                <Link
-                  key={p.id}
-                  href={"/clients/" + id + "?profile=" + p.id + "#profiles"}
-                  aria-current={selected?.id === p.id ? "page" : undefined}
-                >
-                  {p.name}
-                </Link>
-              ))}
-            </div>
-            {client.status !== "archived" && (
-              <form action={addProfile}>
-                <input type="hidden" name="workspace" value={id} />
-                <Submit>Add profile</Submit>
-              </form>
-            )}
-            <p className="small-note">
-              {(profiles?.length ?? 0) >= client.profile_limit
-                ? "Profile limit reached. Choose a larger placeholder plan to add more."
-                : "New profiles start as drafts. Nothing runs automatically."}
-            </p>
-          </section>
-          {selected && client.status !== "archived" && (
-            <ProfileEditor
-              key={selected.id}
-              initial={selected as Profile}
-              workspace={id}
-              userId={user.id}
-            />
-          )}
-          <section className="section">
-            <div className="section-heading">
-              <h2>Team</h2>
-              <span className="count">{team?.length ?? 0} members</span>
-            </div>
-            {q.memberSaved && <p role="status">Name saved.</p>}
-            {team?.length ? (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Access</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {team.map(
-                      (m: {
-                        user_id: string;
-                        display_name: string;
-                        email: string;
-                        role: string;
-                        status: string;
-                      }) => (
-                        <tr key={m.user_id}>
-                          <td>
-                            <form
-                              action={saveMemberName}
-                              className="member-name"
-                            >
-                              <input
-                                type="hidden"
-                                name="workspace"
-                                value={id}
-                              />
-                              <input
-                                type="hidden"
-                                name="user"
-                                value={m.user_id}
-                              />
-                              <input
-                                name="name"
-                                aria-label={"Name for " + m.email}
-                                defaultValue={m.display_name}
-                                maxLength={120}
-                              />
-                              <Submit>Save name</Submit>
-                            </form>
-                          </td>
-                          <td>{m.email}</td>
-                          <td>
-                            {m.role === "client_admin"
-                              ? "Client admin"
-                              : "Client user"}
-                          </td>
-                          <td>{m.status}</td>
-                        </tr>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="muted">No one has accepted an invitation yet.</p>
-            )}
-            {client.status !== "archived" && (
-              <details>
-                <summary>Invite a team member</summary>
-                <form action={inviteClientMember}>
-                  <input type="hidden" name="workspace" value={id} />
-                  <label>
-                    Email address
-                    <input name="email" type="email" required maxLength={254} />
-                  </label>
-                  <label>
-                    Access
-                    <select name="role">
-                      <option value="client_user">Client user</option>
-                      <option value="client_admin">Client admin</option>
-                    </select>
-                  </label>
-                  <Submit pending="Sending invitation…">Send invitation</Submit>
-                </form>
-              </details>
-            )}
-          </section>
+    <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
+      <div className="screen-head">
+        <div>
+          <h1>{client.name}</h1>
+          <p className="muted">
+            {client.client_type || "Type not set"} · {p.data?.length ?? 0}{" "}
+            profiles · {t.data?.length ?? 0} users ·{" "}
+            <span className="badge">
+              {client.status === "setup" ? "Setting up" : client.status}
+            </span>
+          </p>
+        </div>
+        <div className="inline-options">
+          <Link
+            className="button secondary"
+            href={"/today?workspace=" + id + "&viewAs=1"}
+          >
+            View as client
+          </Link>
+          <Link className="button" href={"/clients/" + id + "/setup"}>
+            Edit setup
+          </Link>
         </div>
       </div>
+      <div className="stats-grid">
+        <div className="stat-tile">
+          <span>Budget this month</span>
+          <strong>
+            {b.data
+              ? money(b.data.spent) + " / " + money(b.data.budget.amount)
+              : "Not set"}
+          </strong>
+          <small>{b.data ? "Renews " + b.data.budget.period_end : ""}</small>
+        </div>
+        <div className="stat-tile">
+          <span>Companies watched</span>
+          <strong>
+            {new Set((watch.data ?? []).map((x) => x.company_id)).size}
+          </strong>
+        </div>
+        <div className="stat-tile">
+          <span>Morning list time</span>
+          <strong>Not configured</strong>
+          <small>{client.timezone}</small>
+        </div>
+      </div>
+      <section className="section">
+        <div className="section-heading">
+          <h2>Profiles</h2>
+          <Link href={"/clients/" + id + "/setup?step=2"}>Edit profiles</Link>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                {[
+                  "Profile",
+                  "Type",
+                  "Who",
+                  "Titles",
+                  "Watching",
+                  "Sent to",
+                ].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {p.data?.map((x) => {
+                const rows = (watch.data ?? []).filter(
+                  (w) => w.campaign_id === x.id,
+                );
+                return (
+                  <RowLink
+                    key={x.id}
+                    href={"/clients/" + id + "/setup?step=2&profile=" + x.id}
+                  >
+                    <td>
+                      <Link
+                        href={
+                          "/clients/" + id + "/setup?step=2&profile=" + x.id
+                        }
+                      >
+                        <span className="mono">{x.code}</span> {x.name}
+                      </Link>
+                    </td>
+                    <td>{x.profile_type.replaceAll("_", " ")}</td>
+                    <td>{x.who || "–"}</td>
+                    <td>{x.priority_titles.join(", ") || "–"}</td>
+                    <td>
+                      {new Set(rows.map((r) => r.company_id)).size} companies ·{" "}
+                      {rows.filter((r) => r.person_id).length} people
+                    </td>
+                    <td>Not configured</td>
+                  </RowLink>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!p.data?.length && (
+          <p className="muted">Add an ICP profile in setup to get started.</p>
+        )}
+      </section>
     </Frame>
   );
 }

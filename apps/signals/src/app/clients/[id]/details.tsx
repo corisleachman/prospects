@@ -58,6 +58,36 @@ export function Details({
           </datalist>
         </label>
         <label>
+          Website
+          <input
+            type="url"
+            value={d.website ?? ""}
+            maxLength={2000}
+            placeholder="https://example.com"
+            onChange={(e) => change("website", e.target.value)}
+          />
+        </label>
+        <label>
+          Client type
+          <select
+            value={d.client_type ?? ""}
+            onChange={(e) => change("client_type", e.target.value)}
+          >
+            {[
+              "",
+              "Ad agency",
+              "Consultancy",
+              "Consumer brand",
+              "Software business",
+              "Other",
+            ].map((t) => (
+              <option key={t} value={t}>
+                {t || "Not set"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Logo URL <span className="muted">Optional · HTTPS</span>
           <input
             type="url"

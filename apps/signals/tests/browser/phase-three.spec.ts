@@ -56,9 +56,11 @@ test("budget changes are recorded; fake costs spend and pause a test budget", as
     fullPage: true,
   });
   await page.goto("/clients");
-  await expect(page.getByText(/Paused: budget used up on/)).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "£10.00 · £0.00 left", exact: true }),
+    page.getByText("Paused: budget used up", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "£0.00", exact: true }),
   ).toBeVisible();
   await page.goto(path);
   await page.setViewportSize({ width: 390, height: 844 });

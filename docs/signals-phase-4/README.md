@@ -37,3 +37,14 @@ Coris approved renewal as a £10 normal budget and up to £1 total for both prof
 The real people response used numbered company URLs where company discovery used slugs. The adapter now matches by URL first, then a unique exact current employer name. The first run's paid responses were recovered through treg's read-only stored-result API and reprocessed with provenance attached; no repeat charge. The second run used the fix directly. GitHub CI passes.
 
 The broad current criteria also produced irrelevant companies. Candidates remain in the previews for review; no watch list was saved and weekly refresh is off. Technical execution and accounting are verified. Relevance acceptance remains open until the candidate selection or profile filters are reviewed.
+
+
+## UI catch-up, 17 October 2026
+
+The prototype guides the layout and controls; the app keeps its visual style. See [the catch-up record](../signals-ui-catchup/README.md) for verification and approved differences.
+
+| View | App 1280 | Prototype 1280 | App 390 | Prototype 390 |
+|---|---|---|---|---|
+| find | [App](catchup-app-find-1280.png) | [Reference](catchup-prototype-find-1280.png) | [App](catchup-app-find-390.png) | [Reference](catchup-prototype-find-390.png) |
+
+Differences: The prototype only has an inline sample preview; the app retains a full estimate-and-approve screen. Coris approved truthful ownership and opt-in refresh copy. Saved people nest under one company. Absent revenue/headcount bands say Not provided. No extra paid searches were run.

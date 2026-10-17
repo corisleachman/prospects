@@ -401,6 +401,7 @@ const server = http.createServer(async (req, res) => {
       role === "admin"
         ? watches.filter(
             (w) =>
+              !url.searchParams.has("campaign_id") ||
               w.campaign_id === url.searchParams.get("campaign_id")?.slice(3),
           )
         : [],
@@ -416,6 +417,7 @@ const server = http.createServer(async (req, res) => {
     ))
       watches.push({
         id: randomUUID(),
+        workspace_id: v.workspace_id,
         campaign_id: v.profile_id,
         company_id: c.key,
         person_id: null,
@@ -427,6 +429,7 @@ const server = http.createServer(async (req, res) => {
     ))
       watches.push({
         id: randomUUID(),
+        workspace_id: v.workspace_id,
         campaign_id: v.profile_id,
         company_id: x.company_key,
         person_id: x.key,
@@ -443,13 +446,19 @@ const server = http.createServer(async (req, res) => {
     p.watch_refresh_enabled = body.p_enabled;
     return reply(null);
   }
+  if (url.pathname === "/rest/v1/rpc/signals_admin_month_spend")
+    return reply(
+      ledger.filter((l) => !l.is_test).reduce((n, l) => n + l.cost, 0),
+    );
+  if (url.pathname === "/rest/v1/search_runs") return rows([]);
   if (url.pathname === "/rest/v1/campaigns")
     return rows(
       role === "admin"
         ? profiles.filter(
             (p) =>
+              !url.searchParams.has("workspace_id") ||
               p.workspace_id ===
-              url.searchParams.get("workspace_id")?.replace("eq.", ""),
+                url.searchParams.get("workspace_id")?.replace("eq.", ""),
           )
         : [],
     );
@@ -468,6 +477,9 @@ const server = http.createServer(async (req, res) => {
       id: randomUUID(),
       workspace_id: c.id,
       name: "Profile " + (profiles.length + 1),
+      code: String(
+        profiles.filter((p) => p.workspace_id === c.id).length + 1,
+      ).padStart(2, "0"),
       profile_type: "cold_outbound",
       who: "",
       criteria: {},

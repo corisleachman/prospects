@@ -1,3 +1,4 @@
+import { industries, canonicalLocation } from "./provider-filters";
 export type NamedCompany = {
   name: string;
   website: string;
@@ -6,6 +7,7 @@ export type NamedCompany = {
 };
 export type Profile = {
   id: string;
+  code?: string;
   name: string;
   profile_type: string;
   who: string;
@@ -13,8 +15,13 @@ export type Profile = {
     industries?: string[];
     locations?: string[];
     company_types?: string[];
-    revenue_range?: { min?: number; max?: number; currency?: string };
-    headcount_range?: { min?: number; max?: number };
+    revenue_range?: {
+      min?: number;
+      max?: number;
+      currency?: string;
+      upper_open?: boolean;
+    };
+    headcount_range?: { min?: number; max?: number; upper_open?: boolean };
     named_companies?: NamedCompany[];
   };
   priority_titles: string[];
@@ -29,6 +36,8 @@ export type ClientDetails = {
   name: string;
   timezone: string;
   logo_url: string;
+  website?: string;
+  client_type?: string;
   profile_limit: number;
   setup_revision: number;
 };
@@ -39,6 +48,18 @@ export function lines(s: string) {
     .filter(Boolean);
 }
 export function validateProfile(p: Profile) {
+  if (
+    (p.criteria.industries?.length ?? 0) > 50 ||
+    (p.criteria.locations?.length ?? 0) > 50 ||
+    p.priority_titles.length > 70
+  )
+    throw new Error("Use up to 50 industries or locations and 70 titles.");
+  if (p.code && !/^[A-Z0-9]{1,8}$/.test(p.code))
+    throw new Error("Use up to 8 letters or numbers for the profile code.");
+  if (p.criteria.industries?.some((v) => !industries.includes(v)))
+    throw new Error("Choose industries from the provider list.");
+  if (p.criteria.locations?.some((v) => !canonicalLocation(v)))
+    throw new Error("Choose a supported country or state.");
   if (!p.name.trim() || p.name.length > 120)
     throw new Error("Enter a profile name, up to 120 characters.");
   if (!["cold_outbound", "introducer", "partner"].includes(p.profile_type))

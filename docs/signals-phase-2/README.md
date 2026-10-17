@@ -32,3 +32,15 @@ The committed Phase 2 migration was applied to Prospects after the rollback chec
 Production deployment `dpl_FdMhxH48KY8e65E8C1ULdEkCY5GY` is READY at https://prospect-signals.vercel.app, from code commit `5fc78ba`. The authenticated browser showed BEFORE:WORK's setup page, its saved timezone and Growth placeholder plan, zero profiles and zero accepted members. No client configuration or invitation was changed during that check. GitHub CI passed in 1m13s, including all 21 Node tests and all 10 browser tests.
 
 Draft PR: https://github.com/corisleachman/prospects/pull/33. It is stacked on Phase 1's branch. Phase 3 is not started.
+
+
+## UI catch-up, 17 October 2026
+
+The prototype guides the layout and controls; the app keeps its visual style. See [the catch-up record](../signals-ui-catchup/README.md) for verification and approved differences.
+
+| View | App 1280 | Prototype 1280 | App 390 | Prototype 390 |
+|---|---|---|---|---|
+| details | [App](catchup-app-details-1280.png) | [Reference](catchup-prototype-details-1280.png) | [App](catchup-app-details-390.png) | [Reference](catchup-prototype-details-390.png) |
+| profiles | [App](catchup-app-profiles-1280.png) | [Reference](catchup-prototype-profiles-1280.png) | [App](catchup-app-profiles-390.png) | [Reference](catchup-prototype-profiles-390.png) |
+
+Differences: Profile codes are editable and unique. Exact provider industry strings replace shorthand. Coris approved labelled city/metro keywords and explicit related-brand names. Website/type metadata, logo and plan controls remain. Steps 3–7 are disabled until their phases.

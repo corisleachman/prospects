@@ -1,3 +1,4 @@
+import providerValues from "./provider-values.json" with { type: "json" };
 export type Company = {
   key: string;
   name: string;
@@ -5,6 +6,8 @@ export type Company = {
   domain: string;
   linkedin_url: string;
   industry: string;
+  revenue_band?: string;
+  headcount_band?: string;
   location: string;
   source: string;
   provider_ids: Record<string, string>;
@@ -47,6 +50,8 @@ export type Plan = {
   kind: "find" | "refresh";
   company_page: number;
   company_cursor: string | null;
+  location_groups?: Record<string, unknown>[];
+  location_group?: number;
   company_done: boolean;
   named_index: number;
   people_group: number;
@@ -155,37 +160,73 @@ export function makePlan(
   if (!Number.isFinite(fx) || fx <= 0 || companyRate <= 0 || peopleRate <= 0)
     throw new Error("Pricing is unavailable.");
   const filters: Record<string, any> = {};
+  const locationGroups: Record<string, unknown>[] = [];
+  if (c.industries?.some((v: string) => !providerValues.industries.includes(v)))
+    throw new Error("Choose industries from the provider list.");
   if (c.industries?.length)
     filters.industry = { include: c.industries.filter(Boolean) };
-  if (c.locations?.length)
-    filters.hq = { country_code: countries(c.locations.filter(Boolean)) };
+  if (c.locations?.length) {
+    const location = c.locations.filter(Boolean) as string[];
+    const states = location
+      .filter((v) => v.endsWith(" (US state)"))
+      .map((v) => v.slice(0, -11));
+    const metros = location
+      .filter((v) => v in providerValues.metros)
+      .map((v) => (providerValues.metros as Record<string, string>)[v]);
+    const country = location.filter(
+      (v) => !v.endsWith(" (US state)") && !(v in providerValues.metros),
+    );
+    if (country.length)
+      locationGroups.push({ country_code: countries(country) });
+    if (states.length)
+      locationGroups.push({ country_code: ["US"], state: { include: states } });
+    if (metros.length) locationGroups.push({ city: { include: metros } });
+    if (locationGroups.length === 1) filters.hq = locationGroups[0];
+  }
   if (keywords.filter(Boolean).length)
     filters.keywords = { include: keywords.filter(Boolean) };
   if (
     c.headcount_range &&
     (c.headcount_range.min !== undefined || c.headcount_range.max !== undefined)
   )
-    filters.employee_count = c.headcount_range;
+    filters.employee_count = {
+      min: c.headcount_range.min ?? 0,
+      max: c.headcount_range.max ?? 0,
+    };
   if (c.revenue_range && (c.revenue_range.min > 0 || c.revenue_range.max > 0)) {
     if (c.revenue_range.currency && c.revenue_range.currency !== "USD")
       throw new Error(
         "BlitzAPI revenue filters use USD. Set the profile revenue currency to USD first.",
       );
-    filters.revenue = { ...c.revenue_range };
-    delete filters.revenue.currency;
+    filters.revenue = {
+      min: c.revenue_range.min ?? 0,
+      max: c.revenue_range.max ?? 0,
+    };
   }
-  if (kind === "find" && !Object.keys(filters).length && !named.length)
+  if (
+    kind === "find" &&
+    !Object.keys(filters).length &&
+    !locationGroups.length &&
+    !named.length
+  )
     throw new Error(
       "Add industries, locations, size or search keywords before finding matches.",
     );
+  const pagesPerLocation = Math.ceil(Math.max(limit - named.length, 0) / 50);
   const maxCompanyPages =
-    kind === "find" ? Math.ceil(Math.max(limit - named.length, 0) / 50) : 0;
+    kind === "find" ? pagesPerLocation * Math.max(locationGroups.length, 1) : 0;
   const namedCosts = kind === "find" ? named.length : 0,
     companyPagesCost = Array.from(
       { length: maxCompanyPages },
       (_, i) =>
         Math.ceil(
-          Math.min(50, Math.max(limit - named.length - i * 50, 0)) *
+          Math.min(
+            50,
+            Math.max(
+              limit - named.length - (i % Math.max(pagesPerLocation, 1)) * 50,
+              0,
+            ),
+          ) *
             companyRate *
             fx *
             1e6,
@@ -213,6 +254,8 @@ export function makePlan(
     kind,
     company_page: 0,
     company_cursor: null,
+    location_groups: locationGroups.length ? locationGroups : [{}],
+    location_group: 0,
     company_done: kind === "refresh" || maxCompanyPages === 0,
     named_index: kind === "refresh" ? named.length : 0,
     people_group: 0,
@@ -240,15 +283,17 @@ export function nextCall(p: Plan, r: Result): Call | null {
     x.name?.trim(),
   );
   if (!p.company_done && p.company_page < p.max_company_pages) {
-    const count = Math.min(
-      50,
-      Math.max(p.limit - named.length - p.company_page * 50, 0),
-    );
+    const count = Math.min(50, Math.max(p.limit - r.companies.length, 0));
     return {
       endpoint: "blitzapi.companies.search",
       method: "POST",
       body: {
-        company: p.filters,
+        company: {
+          ...p.filters,
+          ...(p.location_groups?.length
+            ? { hq: p.location_groups[p.location_group ?? 0] }
+            : {}),
+        },
         max_results: count,
         ...(p.company_cursor ? { cursor: p.company_cursor } : {}),
       },
@@ -299,9 +344,19 @@ function normalCompany(x: any, source = "discovered"): Company | null {
     domain,
     linkedin_url: li,
     industry: String(x.industry ?? ""),
+    revenue_band:
+      typeof x.revenue === "string"
+        ? x.revenue
+        : typeof x.revenue?.range === "string"
+          ? x.revenue.range
+          : "",
+    headcount_band: String(x.size ?? ""),
     location: [x.hq?.city, x.hq?.country_code].filter(Boolean).join(", "),
     source,
-    provider_ids: { blitzapi: String(x.id ?? "") },
+    provider_ids: {
+      blitzapi: String(x.id ?? ""),
+      ...(x.linkedin_id ? { linkedin: String(x.linkedin_id) } : {}),
+    },
   };
 }
 export function absorb(p: Plan, r: Result, call: Call, data: any) {
@@ -326,7 +381,10 @@ export function absorb(p: Plan, r: Result, call: Call, data: any) {
       const matched = positions
         .map((pos: any) => {
           const byUrl = r.companies.find(
-            (c) => c.linkedin_url === https(pos.companyLinkedinUrl, "company"),
+            (c) =>
+              c.linkedin_url === https(pos.companyLinkedinUrl, "company") ||
+              (!!pos.companyId &&
+                c.provider_ids.linkedin === String(pos.companyId)),
           );
           const byName = r.companies.filter(
             (c) =>
@@ -411,14 +469,19 @@ export function absorb(p: Plan, r: Result, call: Call, data: any) {
       )
       .slice(0, p.limit);
     if (call.kind === "companies") {
-      if (p.company_page === 0)
-        r.company_total = Number(
-          data.total_results ?? data.results_length ?? data.results.length,
-        );
+      if (!p.company_cursor)
+        r.company_total =
+          (r.company_total ?? 0) +
+          Number(
+            data.total_results ?? data.results_length ?? data.results.length,
+          );
       p.company_page++;
       p.company_cursor = typeof data.cursor === "string" ? data.cursor : null;
+      if (!p.company_cursor) p.location_group = (p.location_group ?? 0) + 1;
       p.company_done =
-        !p.company_cursor || p.company_page >= p.max_company_pages;
+        r.companies.length >= p.limit ||
+        (p.location_group ?? 0) >= (p.location_groups?.length ?? 1) ||
+        p.company_page >= p.max_company_pages;
     } else p.named_index++;
   }
 }

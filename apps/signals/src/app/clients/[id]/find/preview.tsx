@@ -153,9 +153,10 @@ export function Preview({
           </p>
           {p.result.company_total !== undefined && (
             <p className="small-note">
-              The company provider reports {p.result.company_total} results for
-              the discovery query. Counts can include candidates outside your
-              ICP; this preview has not been judged by AI.
+              The company provider reports {p.result.company_total} results
+              across the discovery queries before de-duplication. Counts can
+              include candidates outside your ICP; this preview has not been
+              judged by AI.
             </p>
           )}
           <div className="section-heading">
@@ -169,6 +170,8 @@ export function Preview({
                   <th>Keep</th>
                   <th>Company</th>
                   <th>Industry / location</th>
+                  <th>Revenue</th>
+                  <th>Headcount</th>
                   <th>Source</th>
                 </tr>
               </thead>
@@ -222,6 +225,8 @@ export function Preview({
                       <br />
                       {c.location}
                     </td>
+                    <td>{c.revenue_band || "Not provided"}</td>
+                    <td>{c.headcount_band || "Not provided"}</td>
                     <td>{c.source}</td>
                   </tr>
                 ))}
