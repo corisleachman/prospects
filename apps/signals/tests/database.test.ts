@@ -947,6 +947,12 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       "utf8",
     ),
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017124341_signals_ui_catchup.sql"),
+      "utf8",
+    ),
+  );
   async function service<T>(sql: string, params: unknown[] = []) {
     return db.transaction(async (tx) => {
       await tx.exec("set local role service_role");
@@ -1232,6 +1238,55 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
           )
         ).rows.length,
         0,
+      );
+    },
+  );
+  await t.test(
+    "profile codes are unique within a client, not across clients",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Codes','Europe/London') as id",
+      );
+      const p = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      const p2 = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      const rows = (
+        await db.query<{ code: string }>(
+          "select code from public.campaigns where workspace_id=$1 order by code",
+          [w],
+        )
+      ).rows;
+      assert.deepEqual(
+        rows.map((r) => r.code),
+        ["01", "02"],
+      );
+      await asUser(owner, "select public.save_signals_profile($1,$2,0,$3)", [
+        w,
+        p,
+        JSON.stringify({ name: "First", code: "01B" }),
+      ]);
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_profile($1,$2,0,$3)", [
+            w,
+            p2,
+            JSON.stringify({ name: "Second", code: "01B" }),
+          ]),
+        /duplicate key/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.save_signals_profile($1,$2,1,$3)", [
+            w,
+            p,
+            JSON.stringify({ name: "Hack", code: "XXX" }),
+          ]),
+        /Not allowed/,
       );
     },
   );

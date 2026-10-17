@@ -1,3 +1,4 @@
+import { Keywords } from "./keywords";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/access";
@@ -49,7 +50,7 @@ export default async function Find({
   const p = profiles?.find((x) => x.id === q.profile) ?? profiles?.[0];
   if (!p)
     return (
-      <Frame admin email={user.email ?? ""}>
+      <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
         <h1>Add a profile first.</h1>
         <Link href={"/clients/" + id}>Open setup</Link>
       </Frame>
@@ -92,9 +93,9 @@ export default async function Find({
     !["paused", "archived"].includes(client.status),
   );
   return (
-    <Frame admin email={user.email ?? ""}>
+    <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
       <div className="setup-heading">
-        <Link href={"/clients/" + id}>← Client setup</Link>
+        <Link href={"/clients/" + id + "/setup?step=2"}>← Client setup</Link>
         <p className="eyebrow">{client.name} / Find matches</p>
         <h1>
           Choose who
@@ -109,7 +110,7 @@ export default async function Find({
             href={"/clients/" + id + "/find?profile=" + x.id}
             aria-current={p.id === x.id ? "page" : undefined}
           >
-            {x.name}
+            <span className="mono">{x.code}</span> {x.name}
           </Link>
         ))}
       </nav>
@@ -121,7 +122,9 @@ export default async function Find({
       <section className="section">
         <div className="section-heading">
           <h2>{p.name}</h2>
-          <Link href={"/clients/" + id + "?profile=" + p.id}>Edit profile</Link>
+          <Link href={"/clients/" + id + "/setup?step=2&profile=" + p.id}>
+            Edit profile
+          </Link>
         </div>
         <p className="small-note">
           Industry, country, revenue and headcount filters come from the saved
@@ -132,18 +135,7 @@ export default async function Find({
         <form action={estimateMatches}>
           <input type="hidden" name="workspace" value={id} />
           <input type="hidden" name="profile" value={p.id} />
-          <label>
-            Company search keywords
-            <span className="small-note">
-              One per line. Suggested from company descriptions; review these
-              before estimating.
-            </span>
-            <textarea
-              name="keywords"
-              rows={3}
-              defaultValue={defaultKeywords(p).join("\n")}
-            />
-          </label>
+          <Keywords initial={defaultKeywords(p)} key={p.id} />
           <label>
             Companies to preview
             <input
@@ -184,59 +176,57 @@ export default async function Find({
           </span>
         </div>
         {watch?.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Person / role</th>
-                  <th>Refreshed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {watch.map((x: any) => (
-                  <tr key={x.id}>
-                    <td>
-                      {x.companies?.website || x.companies?.linkedin_url ? (
-                        <a
-                          href={x.companies.website || x.companies.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {x.companies.name} ↗
-                        </a>
-                      ) : (
-                        x.companies?.name
-                      )}
-                    </td>
-                    <td>
-                      {x.people ? (
-                        <>
+          <div>
+            {watch
+              .filter((x: any) => !x.person_id)
+              .map((x: any) => (
+                <div className="company-watch" key={x.id}>
+                  <h3>
+                    {x.companies?.website || x.companies?.linkedin_url ? (
+                      <a
+                        href={x.companies.website || x.companies.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {x.companies.name} ↗
+                      </a>
+                    ) : (
+                      x.companies?.name
+                    )}
+                  </h3>
+                  <p className="small-note">
+                    {x.companies?.industry} · {x.companies?.location}
+                    {x.last_refreshed_at
+                      ? " · Refreshed " +
+                        new Date(x.last_refreshed_at).toLocaleDateString(
+                          "en-GB",
+                        )
+                      : ""}
+                  </p>
+                  <ul>
+                    {watch
+                      .filter(
+                        (person: any) =>
+                          person.company_id === x.company_id &&
+                          person.person_id,
+                      )
+                      .map((person: any) => (
+                        <li key={person.id}>
                           <a
-                            href={x.people.linkedin_url}
+                            href={person.people?.linkedin_url}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            {x.people.name} ↗
+                            {person.people?.name} ↗
                           </a>
-                          <br />
-                          {x.people.title}
-                        </>
-                      ) : (
-                        "Company watch"
-                      )}
-                    </td>
-                    <td>
-                      {x.last_refreshed_at
-                        ? new Date(x.last_refreshed_at).toLocaleDateString(
-                            "en-GB",
-                          )
-                        : ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          <span className="small-note">
+                            {person.people?.title}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
           </div>
         ) : (
           <p className="muted">

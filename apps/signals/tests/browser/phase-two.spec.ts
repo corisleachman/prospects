@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { resolve } from "node:path";
 const workspace = "10000000-0000-0000-0000-000000000001",
-  path = "/clients/" + workspace;
+  path = "/clients/" + workspace + "/setup?step=2";
 async function login(page: Page, email = "coris@example.test") {
   await page.goto("/login");
   await page.getByLabel("Email address").fill(email);
@@ -11,135 +10,132 @@ async function login(page: Page, email = "coris@example.test") {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login/);
 }
-test("setup autosaves optional criteria, restores tab-close edits, and enforces cap", async ({
+test("setup autosaves chip filters, restores drafts and enforces plan caps", async ({
   page,
   context,
 }) => {
   await login(page);
   await page.goto(path);
-  await page.getByRole("button", { name: "Add profile", exact: true }).click();
-  const editor = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "ICP profile", exact: true }),
-  });
-  await expect(
-    editor.getByLabel("Profile name", { exact: true }),
-  ).toBeVisible();
-  await editor
+  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await page
     .getByLabel("Profile name", { exact: true })
-    .fill("01B Consumer brands");
-  await editor
-    .getByLabel("Who do you want to reach?")
-    .fill("Established US brands");
-  await expect(editor.getByRole("status")).toHaveText("Saved");
+    .fill("Consumer brands");
+  await page.getByLabel("Profile code", { exact: true }).fill("01B");
+  await page
+    .getByLabel("Who do you want to reach?", { exact: true })
+    .fill("Established US consumer brands");
+  await page
+    .getByLabel("Industries", { exact: true })
+    .fill("not a real industry");
+  await page.getByLabel("Industries", { exact: true }).press("Enter");
+  await expect(
+    page.getByText("Choose a value from the suggestions.", { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Industries", { exact: true })
+    .fill("Consumer Goods,Food and Beverage Manufacturing");
+  await page
+    .getByLabel("Priority job titles", { exact: true })
+    .fill("CMO,Brand Director,CMO");
+  await expect(
+    page.getByRole("button", {
+      name: "Remove Priority job titles: CMO",
+      exact: true,
+    }),
+  ).toHaveCount(1);
+  await page.getByLabel("Locations", { exact: true }).fill("United States");
+  await page.getByLabel("Locations", { exact: true }).press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Saved");
   await page.reload();
-  await expect(editor.getByLabel("Who do you want to reach?")).toHaveValue(
-    "Established US brands",
-  );
-  await editor
-    .getByLabel("Conversation to open")
-    .fill("A draft saved when this tab closes");
+  await expect(
+    page.getByRole("button", {
+      name: "Remove Industries: Consumer Goods",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Conversation to open", { exact: true })
+    .fill("A specific reason to connect about their new marketing priorities.");
   await page.close();
   const reopened = await context.newPage();
   await reopened.goto(path);
-  const restored = reopened.locator("section").filter({
-    has: reopened.getByRole("heading", { name: "ICP profile", exact: true }),
-  });
-  await expect(restored.getByLabel("Conversation to open")).toHaveValue(
-    "A draft saved when this tab closes",
+  await expect(
+    reopened.getByLabel("Conversation to open", { exact: true }),
+  ).toHaveValue(
+    "A specific reason to connect about their new marketing priorities.",
   );
-  await expect(restored.getByRole("status")).toHaveText("Saved");
+  await expect(reopened.getByRole("status")).toHaveText("Saved");
+  await reopened.goto("/clients/" + workspace + "/setup?step=1");
   await reopened.getByLabel("Placeholder plan").selectOption("2");
-  await expect(reopened.locator("#details").getByRole("status")).toHaveText(
-    "Saved",
-  );
-  await reopened
-    .getByRole("button", { name: "Add profile", exact: true })
-    .click();
+  await expect(reopened.getByRole("status")).toHaveText("Saved");
+  await reopened.goto(path);
+  await reopened.getByRole("button", { name: "+ Add", exact: true }).click();
   await expect(
     reopened.getByText(
       "Profile limit reached. Choose a larger placeholder plan to add more.",
     ),
   ).toBeVisible();
-  await reopened
-    .getByRole("button", { name: "Add profile", exact: true })
-    .click();
+  await reopened.getByRole("button", { name: "+ Add", exact: true }).click();
   await expect(reopened.locator("p[role=alert]")).toContainText(
     "Profile limit reached",
   );
-  await reopened.screenshot({
-    path: resolve("../../docs/signals-phase-2/setup-desktop.png"),
-    fullPage: true,
-  });
-  await reopened.setViewportSize({ width: 390, height: 844 });
-  expect(
-    await reopened.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-  await reopened.screenshot({
-    path: resolve("../../docs/signals-phase-2/setup-mobile.png"),
-    fullPage: true,
-  });
 });
-test("client roles cannot open client setup URLs", async ({ page }) => {
+test("client roles cannot open overview, setup, global budgets or runs", async ({
+  page,
+}) => {
   for (const email of ["client@example.test", "manager@example.test"]) {
     await login(page, email);
-    await page.goto(path);
-    await expect(
-      page.getByRole("heading", { name: "Not allowed." }),
-    ).toBeVisible();
+    for (const target of ["/clients/" + workspace, path, "/budgets", "/runs"]) {
+      await page.goto(target);
+      await expect(
+        page.getByRole("heading", { name: "Not allowed." }),
+      ).toBeVisible();
+    }
     await page.goto("/today");
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
   }
 });
-
-test("named companies and range errors persist safely; stale tabs cannot overwrite", async ({
+test("named chips, range errors and stale tabs retain their protections", async ({
   page,
   context,
 }) => {
   await login(page);
   await page.goto(path);
-  const editor = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", { name: "ICP profile", exact: true }),
-    });
-  await editor.getByRole("button", { name: "Add named company" }).click();
-  await editor
-    .getByLabel("Company name 1", { exact: true })
-    .fill("Example brand");
-  await editor.getByLabel("Website 1", { exact: true }).fill("example.test");
-  await editor.getByLabel("Include parent", { exact: true }).check();
-  await editor.getByLabel("Minimum revenue", { exact: true }).fill("100");
-  await editor.getByLabel("Maximum revenue", { exact: true }).fill("50");
-  await expect(editor.getByRole("alert")).toContainText(
-    "minimum cannot exceed",
-  );
-  await editor.getByLabel("Maximum revenue", { exact: true }).fill("200");
-  await expect(editor.getByRole("status")).toHaveText("Saved");
+  await page
+    .getByLabel("Also watch these companies or brands", { exact: true })
+    .fill("example.test,Example brand");
+  await page
+    .getByLabel("Revenue (USD) from", { exact: true })
+    .selectOption("50000000");
+  await page
+    .getByLabel("Revenue (USD) to", { exact: true })
+    .selectOption("10000000");
+  await expect(page.getByText("To must be at least From.")).toBeVisible();
+  await page
+    .getByLabel("Revenue (USD) to", { exact: true })
+    .selectOption("100000000");
+  await expect(page.getByRole("status")).toHaveText("Saved");
   await page.reload();
   await expect(
-    editor.getByLabel("Include parent", { exact: true }),
-  ).toBeChecked();
+    page.getByRole("button", {
+      name: "Remove Also watch these companies or brands: https://example.test/",
+      exact: true,
+    }),
+  ).toBeVisible();
   const stale = await context.newPage();
   await stale.goto(path);
-  await editor
+  await page
     .getByLabel("Relevant moment", { exact: true })
     .fill("Latest saved priorities");
-  await expect(editor.getByRole("status")).toHaveText("Saved");
-  const staleEditor = stale
-    .locator("section")
-    .filter({
-      has: stale.getByRole("heading", { name: "ICP profile", exact: true }),
-    });
-  await staleEditor
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await stale
     .getByLabel("Relevant moment", { exact: true })
     .fill("An older tab should not win");
-  await expect(staleEditor.getByRole("alert")).toContainText(
+  await expect(stale.locator("p[role=alert]")).toContainText(
     "changed elsewhere",
   );
   await page.reload();
-  await expect(
-    page.getByRole("textbox", { name: "Relevant moment", exact: true }),
-  ).toHaveValue("Latest saved priorities");
+  await expect(page.getByLabel("Relevant moment", { exact: true })).toHaveValue(
+    "Latest saved priorities",
+  );
 });

@@ -5,10 +5,11 @@ import { Frame } from "@/components/frame";
 export default async function Today({
   searchParams,
 }: {
-  searchParams: Promise<{ workspace?: string }>;
+  searchParams: Promise<{ workspace?: string; viewAs?: string }>;
 }) {
   const [ctx, q] = await Promise.all([access("/today"), searchParams]);
-  const ids = ctx.members.map((m) => m.workspace_id);
+  const viewing = ctx.isAdmin && q.viewAs === "1" && q.workspace;
+  const ids = viewing ? [q.workspace!] : ctx.members.map((m) => m.workspace_id);
   if (!ids.length)
     return (
       <Frame admin={ctx.isAdmin} email={ctx.user.email ?? ""}>
@@ -49,10 +50,16 @@ export default async function Today({
   }).format(new Date());
   return (
     <Frame
-      admin={ctx.isAdmin}
+      admin={ctx.isAdmin && !viewing}
       workspace={workspace.name}
       email={ctx.user.email ?? ""}
     >
+      {viewing && (
+        <p className="notice">
+          Viewing as {workspace.name}.{" "}
+          <Link href={"/clients/" + workspace.id}>Exit</Link>
+        </p>
+      )}
       <div className="page-heading">
         <div>
           <p className="eyebrow">

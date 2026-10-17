@@ -10,20 +10,17 @@ test("discovery estimates before approval, keeps polling and saves only checked 
     .fill("correct-password-123");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/clients$/);
+  await page.getByRole("link", { name: "+ New client", exact: true }).click();
   await page
     .getByLabel("Client name", { exact: true })
     .fill("Phase 4 search (test)");
   await page
     .getByRole("button", { name: "Create client", exact: true })
     .click();
-  await expect(
-    page.getByRole("cell", { name: "Phase 4 search (test)", exact: true }),
-  ).toBeVisible();
-  const path = await page
-    .getByRole("link", { name: "Phase 4 search (test)", exact: true })
-    .getAttribute("href");
-  await page.goto(path!);
-  await page.getByRole("button", { name: "Add profile", exact: true }).click();
+  await expect(page).toHaveURL(/\/setup\?step=1/);
+  const path = new URL(page.url()).pathname.replace("/setup", "");
+  await page.goto(path + "/setup?step=2");
+  await page.getByRole("button", { name: "+ Add", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "ICP profile", exact: true }),
   ).toBeVisible();
@@ -37,6 +34,7 @@ test("discovery estimates before approval, keeps polling and saves only checked 
   ).toBeVisible();
   await page.goto(path + "/find");
   await page.getByLabel("Company search keywords").fill("consumer");
+  await page.getByLabel("Company search keywords").press("Enter");
   await page
     .getByRole("button", { name: "Estimate search cost", exact: true })
     .click();
@@ -77,17 +75,15 @@ test("discovery estimates before approval, keeps polling and saves only checked 
   await expect(
     page.getByText("Watch list saved.", { exact: true }),
   ).toBeVisible();
-  const saved = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", { name: "Saved watch list", exact: true }),
-    });
+  const saved = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Saved watch list", exact: true }),
+  });
   await expect(
     saved.getByRole("link", { name: "Company 0 (test) ↗", exact: true }),
   ).toHaveCount(0);
   await expect(
     saved.getByRole("link", { name: "Company 1 (test) ↗", exact: true }),
-  ).toHaveCount(2);
+  ).toHaveCount(1);
   await page.screenshot({
     path: resolve("../../docs/signals-phase-4/discovery-desktop.png"),
     fullPage: true,

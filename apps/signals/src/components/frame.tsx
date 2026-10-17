@@ -5,11 +5,13 @@ export function Frame({
   admin = false,
   email,
   workspace,
+  client,
 }: {
   children: React.ReactNode;
   admin?: boolean;
   email: string;
   workspace?: string;
+  client?: { id: string; name: string };
 }) {
   return (
     <>
@@ -29,14 +31,25 @@ export function Frame({
         <aside>
           <p className="eyebrow">Workspace</p>
           <nav aria-label="Main navigation">
-            {admin && (
-              <Link href="/clients">
-                Clients <span>↗</span>
+            {admin ? (
+              <>
+                <Link href="/clients">
+                  Clients <span>↗</span>
+                </Link>
+                {client && (
+                  <>
+                    <Link href={"/clients/" + client.id}>{client.name}</Link>
+                    <Link href={"/clients/" + client.id + "/setup"}>Setup</Link>
+                  </>
+                )}
+                <Link href="/runs">Runs and costs</Link>
+                <Link href="/budgets">Budgets</Link>
+              </>
+            ) : (
+              <Link href="/today">
+                Today <span>↗</span>
               </Link>
             )}
-            <Link href="/today">
-              Today <span>↗</span>
-            </Link>
           </nav>
           <div className="sidebar-footer">
             <span className="status-dot" />

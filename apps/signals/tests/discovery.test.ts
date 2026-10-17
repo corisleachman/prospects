@@ -208,3 +208,57 @@ test("ECB XML accepts published single quotes and rejects stale rates", () => {
   );
   assert.throws(() => ecbRate(xml, Date.parse("2026-10-25")), /current ECB/);
 });
+
+test("structured country, state and labelled metro chips map to native HQ filters", () => {
+  const { plan } = makePlan(
+    {
+      ...profile,
+      criteria: {
+        locations: [
+          "United States",
+          "California (US state)",
+          "New York metro (city keyword)",
+        ],
+      },
+    },
+    [],
+    0.75,
+    "2026-10-16",
+    0.000495,
+    0.1,
+  );
+  assert.deepEqual(plan.location_groups, [
+    { country_code: ["US"] },
+    { country_code: ["US"], state: { include: ["California"] } },
+    { city: { include: ["New York"] } },
+  ]);
+  assert.throws(
+    () =>
+      makePlan(
+        { ...profile, criteria: { industries: ["Invented industry"] } },
+        [],
+        0.75,
+        "2026-10-16",
+        0.000495,
+        0.1,
+      ),
+    /provider list/,
+  );
+});
+
+test("location alternatives advance independently and remain inside their quoted cap", () => {
+  const p = {
+    ...profile,
+    watch_list_size: 25,
+    criteria: { locations: ["United Kingdom", "California (US state)"] },
+  };
+  const { plan, result } = makePlan(p, [], 0.75, "2026-10-16", 0.000495, 0.1);
+  const first = nextCall(plan, result)!;
+  assert.deepEqual(first.body?.company, { hq: { country_code: ["GB"] } });
+  absorb(plan, result, first, { results: [], cursor: null, total_results: 0 });
+  const second = nextCall(plan, result)!;
+  assert.deepEqual(second.body?.company, {
+    hq: { country_code: ["US"], state: { include: ["California"] } },
+  });
+  assert.ok(plan.estimate >= 0.75 * (first.usd + second.usd + 0.2));
+});

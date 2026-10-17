@@ -46,7 +46,7 @@ export async function saveProfile(
     return {
       error:
         error.code === "23505"
-          ? "Another profile already uses that name."
+          ? "Another profile already uses that name or code."
           : error.message,
     };
   return { revision: data };
@@ -60,6 +60,7 @@ export async function addProfile(form: FormData) {
   redirect(
     "/clients/" +
       encodeURIComponent(workspace) +
+      "/setup" +
       (error
         ? "?error=" + encodeURIComponent(error.message)
         : "?profile=" + data),

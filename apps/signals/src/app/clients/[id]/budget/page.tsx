@@ -118,9 +118,9 @@ export default async function Budget({
     </form>
   );
   return (
-    <Frame admin email={user.email ?? ""}>
+    <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
       <div className="setup-heading">
-        <Link href={"/clients/" + id}>← Client setup</Link>
+        <Link href={"/clients/" + id + "/setup?step=1"}>← Client setup</Link>
         <p className="eyebrow">{client.name} / Budget</p>
         <h1>
           A clear limit.

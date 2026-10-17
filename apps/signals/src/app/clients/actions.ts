@@ -8,13 +8,13 @@ import { serviceClient } from "@/lib/supabase/server";
 import { sendInvitation } from "@/lib/mail";
 export async function createClientWorkspace(form: FormData) {
   const { db } = await requireAdmin();
-  const { error } = await db.rpc("create_signals_client", {
+  const { data, error } = await db.rpc("create_signals_client", {
     p_name: String(form.get("name") ?? "").trim(),
     p_timezone: String(form.get("timezone") ?? "Europe/London"),
   });
   if (error) redirect("/clients?error=create");
   revalidatePath("/clients");
-  redirect("/clients?created=1");
+  redirect("/clients/" + data + "/setup?step=1");
 }
 export async function inviteClientMember(form: FormData) {
   const { db } = await requireAdmin();
