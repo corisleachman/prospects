@@ -26,4 +26,4 @@ Differences:
 
 Database tests cover exact keyword storage, stale saves, scope ownership, invitation-to-member routing, access removal/undo and client isolation. Browser checks save a custom negative rule for two profiles, three example messages and banned phrases, a source window, and an invited recipient with a five-card cap and 08:00 delivery. Test email goes only to a local sink. No paid sourcing or AI requests are used.
 
-Migration: `20261017130712_signals_phase_five.sql`. Existing legacy library values and memberships are preserved. Every new product table has workspace ownership, explicit grants and RLS.
+Migration: `20261017133154_signals_phase_five.sql`. Existing legacy library values and memberships are preserved. Every new product table has workspace ownership, explicit grants and RLS.
