@@ -36,7 +36,10 @@ async function getFeed(url: string) {
     try {
       robots = (await getPublicSource(u.origin + "/robots.txt")).text;
     } catch (e) {
-      throw Error("Publisher robots rules unavailable; feed skipped: "+(e instanceof Error?e.message:"public request failed"));
+      throw Error(
+        "Publisher robots rules unavailable; feed skipped: " +
+          (e instanceof Error ? e.message : "public request failed"),
+      );
     }
     robotCache.set(u.origin, robots);
   }
@@ -623,13 +626,20 @@ Deno.serve(async (req: Request) => {
     );
     // Internal workers may continue an already-approved run, never create one.
     let internal = jwt === key;
-    const workerToken=req.headers.get("X-Signals-Cron-Token");
-    if(workerToken){internal=await rpc("verify_signals_discovery_cron",{p_token:workerToken});if(!internal)return reply({error:"Not allowed"},401);}
+    const workerToken = req.headers.get("X-Signals-Cron-Token");
+    if (workerToken) {
+      internal = await rpc("verify_signals_discovery_cron", {
+        p_token: workerToken,
+      });
+      if (!internal) return reply({ error: "Not allowed" }, 401);
+    }
 
     if (!internal && jwt.startsWith("sb_secret_")) {
-      const caller = createClient(base,jwt,{auth:{persistSession:false,autoRefreshToken:false}});
-      const access=await caller.rpc("signals_collection_worker_access");
-      internal=!access.error&&access.data===true;
+      const caller = createClient(base, jwt, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const access = await caller.rpc("signals_collection_worker_access");
+      internal = !access.error && access.data === true;
     }
     if (internal) {
       const body = await req.json();
@@ -637,6 +647,7 @@ Deno.serve(async (req: Request) => {
         return reply({
           treg_configured: !!Deno.env.get("TREG_TOKEN"),
           apify_configured: !!Deno.env.get("APIFY_TOKEN"),
+          anthropic_configured: !!Deno.env.get("ANTHROPIC_API_KEY"),
         });
       if (body.action !== "work")
         return reply(
@@ -666,6 +677,7 @@ Deno.serve(async (req: Request) => {
       return reply({
         treg_configured: !!Deno.env.get("TREG_TOKEN"),
         apify_configured: !!Deno.env.get("APIFY_TOKEN"),
+        anthropic_configured: !!Deno.env.get("ANTHROPIC_API_KEY"),
       });
     if (body.action === "start") {
       const p = await plan(

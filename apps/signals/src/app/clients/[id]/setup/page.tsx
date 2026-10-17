@@ -42,7 +42,7 @@ export default async function Setup({
     db
       .from("workspaces")
       .select(
-        "id,name,timezone,logo_url,website,client_type,profile_limit,setup_revision,status",
+        "id,name,timezone,logo_url,website,client_type,profile_limit,setup_revision,status,default_max_cards_per_day,default_no_repeat_days,delivery_limits_revision",
       )
       .eq("id", id)
       .eq("is_signals_client", true)
@@ -216,6 +216,11 @@ export default async function Setup({
               initial={settings.recipients}
               profiles={profiles ?? []}
               timezone={client.timezone}
+              limits={{
+                daily: client.default_max_cards_per_day ?? 10,
+                repeat: client.default_no_repeat_days ?? 30,
+                revision: client.delivery_limits_revision ?? 0,
+              }}
             />
           )}
           <div className="setup-next">

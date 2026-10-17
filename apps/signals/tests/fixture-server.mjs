@@ -47,6 +47,9 @@ const sourceCatalog = JSON.parse(
   ),
 );
 function seedSettings(c) {
+  c.default_max_cards_per_day ??= 10;
+  c.default_no_repeat_days ??= 30;
+  c.delivery_limits_revision ??= 0;
   for (const d of ruleDefaults)
     signalRules.push({
       id: randomUUID(),
@@ -257,8 +260,14 @@ const server = http.createServer(async (req, res) => {
       invite_id: id,
       user_id: null,
       profile_ids: [],
-      max_cards_per_day: 10,
-      no_repeat_days: 30,
+      max_cards_per_day:
+        clients.find((c) => c.id === body.p_workspace_id)
+          ?.default_max_cards_per_day ?? 10,
+      no_repeat_days:
+        clients.find((c) => c.id === body.p_workspace_id)
+          ?.default_no_repeat_days ?? 30,
+      max_cards_override: null,
+      repeat_days_override: null,
       morning_email_time: null,
       enabled: true,
       setup_revision: 0,
@@ -380,6 +389,22 @@ const server = http.createServer(async (req, res) => {
       return reply({ message: "Voice changed elsewhere" }, 400);
     Object.assign(r, body.p_value, { setup_revision: r.setup_revision + 1 });
     return reply(r.setup_revision);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_delivery_limits") {
+    const c = clients.find((c) => c.id === body.p_workspace);
+    if (role !== "admin" || !c) return reply({ message: "Not allowed" }, 403);
+    if (c.delivery_limits_revision !== body.p_revision)
+      return reply({ message: "Client limits changed elsewhere" }, 400);
+    c.default_max_cards_per_day = body.p_daily;
+    c.default_no_repeat_days = body.p_repeat;
+    c.delivery_limits_revision++;
+    const rs = deliveries.filter((r) => r.workspace_id === c.id);
+    for (const row of rs) {
+      row.max_cards_per_day = row.max_cards_override ?? body.p_daily;
+      row.no_repeat_days = row.repeat_days_override ?? body.p_repeat;
+      row.setup_revision++;
+    }
+    return reply({ revision: c.delivery_limits_revision, routes: rs });
   }
   if (url.pathname === "/rest/v1/rpc/save_signals_delivery") {
     const r = deliveries.find(

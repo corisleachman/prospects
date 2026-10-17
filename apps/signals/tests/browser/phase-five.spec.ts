@@ -136,15 +136,33 @@ test("sources autosave windows and recipients use the real invite action with a 
       exact: true,
     })
     .click();
-  await row.getByRole("button", {name: "Receive 02 for alex@example.test", exact:true}).click();
+  await row
+    .getByRole("button", {
+      name: "Receive 02 for alex@example.test",
+      exact: true,
+    })
+    .click();
   await row
     .getByLabel("Morning email for alex@example.test", { exact: true })
     .selectOption("08:00");
   await row.getByText("Limits", { exact: true }).click();
   await row
+    .getByRole("checkbox", {
+      name: "Override daily card cap for alex@example.test",
+      exact: true,
+    })
+    .check();
+  await row
     .getByLabel("Daily card cap for alex@example.test", { exact: true })
     .fill("5");
   await expect(row.getByRole("status")).toHaveText("Saved");
+  const defaults = page.locator(".client-limits");
+  await defaults
+    .getByLabel("Cards per person per day", { exact: true })
+    .fill("15");
+  await defaults.getByLabel("Repeat window (days)", { exact: true }).fill("45");
+  await expect(defaults.getByRole("status")).toHaveText("Saved");
+  await expect(row).toContainText("5 a day (custom) · 45 days");
   await page.reload();
   const saved = page.getByRole("row").filter({ hasText: "alex@example.test" });
   await expect(

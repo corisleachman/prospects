@@ -77,6 +77,8 @@ export async function inviteClientMember(form: FormData) {
         display_name: String(form.get("name") ?? ""),
         role,
         profile_ids: [],
+        max_cards_override: null,
+        repeat_days_override: null,
         max_cards_per_day: 10,
         no_repeat_days: 30,
         morning_email_time: null,

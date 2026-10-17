@@ -1681,10 +1681,116 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
-  await db.exec(await readFile(resolve(migrations,"20261017135020_signals_collection_worker_keys.sql"),"utf8"));
-  await t.test("Only service credentials can authenticate an internal collection worker",async()=>{
-    await assert.rejects(()=>asUser(owner,"select public.signals_collection_worker_access()"),/permission denied/);
-    const result=await service<{allowed:boolean}>("select public.signals_collection_worker_access() as allowed");assert.equal(result.rows[0].allowed,true);
-  });
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017135020_signals_collection_worker_keys.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Only service credentials can authenticate an internal collection worker",
+    async () => {
+      await assert.rejects(
+        () => asUser(owner, "select public.signals_collection_worker_access()"),
+        /permission denied/,
+      );
+      const result = await service<{ allowed: boolean }>(
+        "select public.signals_collection_worker_access() as allowed",
+      );
+      assert.equal(result.rows[0].allowed, true);
+    },
+  );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017162319_signals_delivery_defaults.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Client-wide delivery limits inherit, keep individual overrides and reject stale edits",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Delivery defaults','Europe/London') as id",
+      );
+      const invite = await adminScalar(
+        "select public.create_signals_invite($1,'alice@example.test','client_user',$2) as id",
+        [w, "8".repeat(64)],
+      );
+      const id = (
+        await db.query<{ id: string }>(
+          "select id from public.delivery_rules where invite_id=$1",
+          [invite],
+        )
+      ).rows[0].id;
+      await asUser(
+        owner,
+        "select public.save_signals_delivery_limits($1,0,15,45)",
+        [w],
+      );
+      let row = (
+        await db.query<any>("select * from public.delivery_rules where id=$1", [
+          id,
+        ])
+      ).rows[0];
+      assert.equal(row.max_cards_per_day, 15);
+      assert.equal(row.no_repeat_days, 45);
+      assert.equal(row.max_cards_override, null);
+      await asUser(owner, "select public.save_signals_delivery($1,$2,$3,$4)", [
+        w,
+        id,
+        row.setup_revision,
+        JSON.stringify({
+          role: "client_user",
+          profile_ids: [],
+          max_cards_override: 5,
+          repeat_days_override: null,
+        }),
+      ]);
+      await asUser(
+        owner,
+        "select public.save_signals_delivery_limits($1,1,20,60)",
+        [w],
+      );
+      row = (
+        await db.query<any>("select * from public.delivery_rules where id=$1", [
+          id,
+        ])
+      ).rows[0];
+      assert.equal(row.max_cards_per_day, 5);
+      assert.equal(row.no_repeat_days, 60);
+      assert.equal(row.max_cards_override, 5);
+      assert.equal(row.repeat_days_override, null);
+      const next = await adminScalar(
+        "select public.create_signals_invite($1,'new@example.test','client_user',$2) as id",
+        [w, "7".repeat(64)],
+      );
+      const inherited = (
+        await db.query<any>(
+          "select * from public.delivery_rules where invite_id=$1",
+          [next],
+        )
+      ).rows[0];
+      assert.equal(inherited.max_cards_per_day, 20);
+      assert.equal(inherited.no_repeat_days, 60);
+      await assert.rejects(
+        () =>
+          asUser(
+            owner,
+            "select public.save_signals_delivery_limits($1,1,10,30)",
+            [w],
+          ),
+        /changed elsewhere/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(
+            alice,
+            "select public.save_signals_delivery_limits($1,2,10,30)",
+            [w],
+          ),
+        /Not allowed/,
+      );
+    },
+  );
   await db.close();
 });
