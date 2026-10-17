@@ -35,8 +35,8 @@ async function getFeed(url: string) {
   if (robots === undefined) {
     try {
       robots = (await getPublicSource(u.origin + "/robots.txt")).text;
-    } catch {
-      throw Error("Publisher robots rules unavailable; feed skipped");
+    } catch (e) {
+      throw Error("Publisher robots rules unavailable; feed skipped: "+(e instanceof Error?e.message:"public request failed"));
     }
     robotCache.set(u.origin, robots);
   }
