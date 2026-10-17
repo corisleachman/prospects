@@ -42,3 +42,9 @@ Each row links to the application screenshot beside its matching prototype scree
 Database tests preserve stale-edit checks, profile caps, cross-client isolation, unique codes, immutable cost records and reservations. Adapter tests check industry values and native location mappings, alternative-query caps and receipt handling. Browser tests cover the revised creation route, autosave recovery, chip de-duplication, invalid filters/ranges, stale tabs, grouped watch lists, admin preview and mobile overflow. No paid discovery or email is needed for these checks.
 
 The migration also passed against Prospects inside a transaction that rolled back: default/edited codes, uniqueness, revision checks, website metadata and the admin-only monthly aggregate. Production rollout is recorded below once verified.
+
+## Rollout, 17 October 2026
+
+Migration applied to Prospects; discovery worker version 5 deployed. Vercel deployment `dpl_BZkSFe344bjybLmzbpbUnrYLTfdy` serves the new setup and overview routes. An authenticated read-only browser check verified the actual BEFORE:WORK profile text, codes, chip controls, dropdown choices, last preview counts and disabled future steps. No live profile or budget fields were edited by that check.
+
+BEFORE:WORK still has its £10 normal budget, £0.168540 reported discovery spend and no enabled refresh. The security advisor reports only the existing pg_net extension warning. Draft PR: https://github.com/corisleachman/prospects/pull/36, stacked on Phase 4. Verification: 38 Node tests, 14 browser tests, Deno check and production build pass.
