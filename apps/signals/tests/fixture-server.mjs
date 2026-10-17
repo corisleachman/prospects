@@ -20,6 +20,10 @@ const clients = [
   },
 ];
 const previews = [];
+const collections = [],
+  collectionItems = [],
+  collectionTasks = [],
+  collectionSearchRuns = [];
 const watches = [];
 const profiles = [];
 const signalRules = [],
@@ -207,7 +211,8 @@ const server = http.createServer(async (req, res) => {
     return role
       ? reply(user(role))
       : reply({ code: "bad_jwt", msg: "Invalid token" }, 401);
-  if (url.pathname === "/fixture/resend") return reply({ id: "fixture-message" });
+  if (url.pathname === "/fixture/resend")
+    return reply({ id: "fixture-message" });
   if (!role) return reply({ message: "Not authenticated" }, 401);
   if (url.pathname === "/rest/v1/platform_admins")
     return rows(role === "admin" ? [{ user_id: owner }] : []);
@@ -268,6 +273,28 @@ const server = http.createServer(async (req, res) => {
     }
     return reply(null);
   }
+  if (url.pathname === "/rest/v1/collection_runs")
+    return rows(role === "admin" ? collections : []);
+  if (url.pathname === "/rest/v1/collection_items")
+    return rows(
+      role === "admin"
+        ? collectionItems.filter(
+            (x) =>
+              !url.searchParams.has("run_id") ||
+              x.run_id === url.searchParams.get("run_id").slice(3),
+          )
+        : [],
+    );
+  if (url.pathname === "/rest/v1/source_tasks")
+    return rows(
+      role === "admin"
+        ? collectionTasks.filter(
+            (x) =>
+              !url.searchParams.has("run_id") ||
+              x.run_id === url.searchParams.get("run_id").slice(3),
+          )
+        : [],
+    );
   const setupTables = {
     signal_definitions: signalRules,
     campaign_signal_rules: ruleScopes,
@@ -484,7 +511,8 @@ const server = http.createServer(async (req, res) => {
       days_left: 30,
     });
   }
-  if(url.pathname === '/rest/v1/rpc/signals_discovery_mail_config')return reply(null);
+  if (url.pathname === "/rest/v1/rpc/signals_discovery_mail_config")
+    return reply(null);
   if (url.pathname === "/rest/v1/rpc/pending_signals_budget_alerts")
     return reply([]);
   if (url.pathname === "/rest/v1/rpc/change_signals_budget") {
@@ -582,6 +610,50 @@ const server = http.createServer(async (req, res) => {
         "budget:used up on " + new Date().toISOString().slice(0, 10);
     }
     return reply(l.id);
+  }
+  if (url.pathname === "/functions/v1/signals-collect") {
+    if (role !== "admin") return reply({ error: "Not allowed" }, 403);
+    if (body.action === "work") return reply({ id: body.id });
+    const id = randomUUID(),
+      workspace_id = body.workspace_id;
+    collectionSearchRuns.push({
+      id,
+      workspace_id,
+      status: "succeeded",
+      run_type: "manual",
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    });
+    collections.push({ id, workspace_id, kind: "manual" });
+    collectionTasks.push({
+      id: randomUUID(),
+      workspace_id,
+      run_id: id,
+      collection_source_key: "trade_press",
+      status: "succeeded",
+      collected_count: 4,
+      fresh_count: 1,
+      usable_count: 0,
+      cost_gbp: 0,
+      drop_counts: { too_old: 1, no_date: 1, duplicate: 1 },
+      input: { url: "https://example.test/feed" },
+      error_summary: null,
+    });
+    collectionItems.push({
+      id: randomUUID(),
+      workspace_id,
+      run_id: id,
+      drop_reason: null,
+      company_ids: [],
+      item: {
+        title: "A brand launches a new creative campaign (fixture)",
+        excerpt: "The brand announced a new campaign. Local test data.",
+        url: "https://example.test/news",
+        source_name: "Trade test",
+        published_at: new Date().toISOString(),
+      },
+    });
+    return reply({ id });
   }
   if (url.pathname === "/functions/v1/signals-discovery") {
     if (role !== "admin") return reply({ error: "Not allowed" }, 403);
@@ -710,7 +782,16 @@ const server = http.createServer(async (req, res) => {
     return reply(
       ledger.filter((l) => !l.is_test).reduce((n, l) => n + l.cost, 0),
     );
-  if (url.pathname === "/rest/v1/search_runs") return rows([]);
+  if (url.pathname === "/rest/v1/search_runs")
+    return rows(
+      role === "admin"
+        ? collectionSearchRuns.filter(
+            (r) =>
+              !url.searchParams.has("id") ||
+              r.id === url.searchParams.get("id").slice(3),
+          )
+        : [],
+    );
   if (url.pathname === "/rest/v1/campaigns")
     return rows(
       role === "admin"

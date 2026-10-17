@@ -148,7 +148,7 @@ export async function checkSource(url: string, fetcher = get) {
     if (hasPublishDate(page.text))
       return {
         validation_status: "ok",
-        detected_feed: page.url,
+        detected_feed: /<(?:rss|feed)\b/i.test(page.text) ? page.url : null,
         last_error: null,
       };
     const links = [...page.text.matchAll(/<link\b[^>]*>/gi)].filter((m) =>

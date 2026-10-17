@@ -5,6 +5,7 @@ on:
       - 'apps/signals/**'
       - 'supabase/migrations/**'
       - 'supabase/functions/signals-discovery/**'
+      - 'supabase/functions/signals-collect/**'
       - '.github/workflows/signals-phase-one.yml'
   push:
     branches: [main]
@@ -12,6 +13,7 @@ on:
       - 'apps/signals/**'
       - 'supabase/migrations/**'
       - 'supabase/functions/signals-discovery/**'
+      - 'supabase/functions/signals-collect/**'
       - '.github/workflows/signals-phase-one.yml'
 permissions:
   contents: read

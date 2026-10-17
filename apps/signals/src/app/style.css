@@ -1467,3 +1467,5 @@ input[type="checkbox"]:checked:after {
     font-size: 23px;
   }
 }
+
+.collection-form{display:flex;gap:16px;align-items:end;flex-wrap:wrap}.collection-form label{min-width:240px;max-width:100%}.collected-item{padding:24px 0;border-bottom:1px solid var(--line)}.collected-item h3{margin:12px 0}.collected-item p{max-width:75ch}.collected-item a{color:var(--coral)}
