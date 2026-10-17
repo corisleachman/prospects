@@ -623,6 +623,9 @@ Deno.serve(async (req: Request) => {
     );
     // Internal workers may continue an already-approved run, never create one.
     let internal = jwt === key;
+    const workerToken=req.headers.get("X-Signals-Cron-Token");
+    if(workerToken){internal=await rpc("verify_signals_discovery_cron",{p_token:workerToken});if(!internal)return reply({error:"Not allowed"},401);}
+
     if (!internal && jwt.startsWith("sb_secret_")) {
       const caller = createClient(base,jwt,{auth:{persistSession:false,autoRefreshToken:false}});
       const access=await caller.rpc("signals_collection_worker_access");

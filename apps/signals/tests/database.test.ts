@@ -1681,7 +1681,7 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
-  await db.exec(await readFile(resolve(migrations,"20261017134953_signals_collection_worker_keys.sql"),"utf8"));
+  await db.exec(await readFile(resolve(migrations,"20261017135020_signals_collection_worker_keys.sql"),"utf8"));
   await t.test("Only service credentials can authenticate an internal collection worker",async()=>{
     await assert.rejects(()=>asUser(owner,"select public.signals_collection_worker_access()"),/permission denied/);
     const result=await service<{allowed:boolean}>("select public.signals_collection_worker_access() as allowed");assert.equal(result.rows[0].allowed,true);
