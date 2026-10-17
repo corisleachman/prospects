@@ -91,7 +91,7 @@ async function collect(body: Record<string, unknown>, jwt = key) {
       signal: AbortSignal.timeout(30000),
     }),
     data = await r.json();
-  if (!r.ok || data.error) throw Error(data.error ?? "Collection unavailable");
+  if (!r.ok || data.error) throw Error(data.error ?? data.message ?? ("Collection HTTP " + r.status));
   return data;
 }
 async function register(id: string, fallback?: string) {
