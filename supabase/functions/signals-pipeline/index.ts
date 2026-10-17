@@ -1124,7 +1124,7 @@ async function work(id: string) {
         pending = rows.filter(
           (j) => j.stage === stage && j.status === "pending",
         );
-      if (pending.length) {
+      if (pending.length && Date.parse(r.fallback_at) > Date.now()) {
         const previous =
           (
             await svc
@@ -1160,6 +1160,8 @@ async function work(id: string) {
           if (used.error) throw Error("Fallback history unavailable");
           if (
             !used.data?.length ||
+            (j.input.validation_retry === true &&
+              (used.data?.length ?? 0) < 2) ||
             (j.fallback_variant &&
               !used.data.some(
                 (c) =>
@@ -1229,6 +1231,54 @@ async function work(id: string) {
   } finally {
     await svc.from("pipeline_runs").update({ lease_until: null }).eq("id", id);
   }
+}
+async function retryEmailValidation(runId: string) {
+  const { data: run } = await svc
+    .from("pipeline_runs")
+    .select("fingerprint,workspace_id")
+    .eq("id", runId)
+    .single();
+  if (!run) throw Error("Run unavailable");
+  const setup = await rpc("signals_pipeline_setup", {
+    p_workspace: run.workspace_id,
+  });
+  if (setup.fingerprint !== run.fingerprint)
+    throw Error("Setup changed; run a new test");
+  const { data: jobs } = await svc
+    .from("pipeline_jobs")
+    .select("id,input,configuration_errors")
+    .eq("run_id", runId)
+    .eq("stage", "score")
+    .eq("status", "failed")
+    .eq("error_summary", "Email opener exceeds three sentences");
+  let retried = 0;
+  for (const j of jobs ?? []) {
+    if (j.input.validation_retry) continue;
+    await svc
+      .from("pipeline_jobs")
+      .update({
+        status: "pending",
+        error_summary: null,
+        input: { ...j.input, validation_retry: true },
+        configuration_errors: [
+          ...(j.configuration_errors ?? []),
+          {
+            validation_retry:
+              "Greeting/sign-off sentence counter fixed; one paid retry through budget gate",
+          },
+        ],
+      })
+      .eq("id", j.id);
+    retried++;
+  }
+  if (retried) {
+    await svc
+      .from("pipeline_runs")
+      .update({ status: "score", completed_at: null, error_summary: null })
+      .eq("id", runId);
+    EdgeRuntime.waitUntil(work(runId));
+  }
+  return { retried };
 }
 async function repairCompanyValidation(runId: string) {
   const { data: run, error } = await svc
@@ -1753,6 +1803,8 @@ Deno.serve(async (req: Request) => {
       if (!(await rpc("verify_signals_discovery_cron", { p_token: token })))
         return reply({ error: "Not allowed" }, 401);
       const b = await req.json();
+      if (b.action === "retry_email_validation")
+        return reply(await retryEmailValidation(b.id));
       if (b.action === "repair_company_validation")
         return reply(await repairCompanyValidation(b.id));
       EdgeRuntime.waitUntil(b.id ? work(b.id) : globalWork());
