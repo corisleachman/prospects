@@ -1,5 +1,6 @@
 "use client";
 import { useId, useState } from "react";
+import { splitChips, keywordParts } from "@/lib/setup";
 export function ChipInput({
   label,
   values,
@@ -7,6 +8,7 @@ export function ChipInput({
   options,
   hint,
   strict = false,
+  keywords = false,
 }: {
   label: string;
   values: string[];
@@ -14,16 +16,14 @@ export function ChipInput({
   options?: string[];
   hint?: string;
   strict?: boolean;
+  keywords?: boolean;
 }) {
   const id = useId(),
     [draft, setDraft] = useState(""),
     [editing, setEditing] = useState<number | null>(null),
     [error, setError] = useState("");
   function add(raw: string) {
-    const incoming = raw
-      .split(/[,\n]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const incoming = splitChips(raw);
     if (!incoming.length) return;
     const mapped = incoming.map(
       (v) =>
@@ -55,7 +55,19 @@ export function ChipInput({
       <div className="chip-box">
         <div className="chips">
           {values.map((v, i) => (
-            <span className="token" key={v}>
+            <span
+              className={
+                "token" +
+                (keywords
+                  ? keywordParts(v).excluded
+                    ? " keyword-exclude"
+                    : keywordParts(v).exact
+                      ? " keyword-exact"
+                      : ""
+                  : "")
+              }
+              key={v}
+            >
               <button
                 type="button"
                 aria-label={"Edit " + label + ": " + v}

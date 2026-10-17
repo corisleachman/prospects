@@ -1,3 +1,9 @@
+import { setupData } from "@/lib/setup-data";
+import { examples } from "@/lib/setup";
+import { Signals } from "./components/signals";
+import { Sources } from "./components/sources";
+import { Voice } from "./components/voice";
+import { Recipients } from "./components/recipients";
 import { money } from "@/lib/budget";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -62,7 +68,16 @@ export default async function Setup({
   if (error || profileError || teamError || previewError || budgetError)
     throw new Error("Client setup unavailable");
   if (!client) redirect("/not-allowed");
-  const step = q.step === "2" || q.profile ? 2 : 1;
+  const step = q.profile ? 2 : Math.min(6, Math.max(1, Number(q.step) || 1));
+  const settings = await setupData(db, id);
+  const done = [
+    !!client.name,
+    !!profiles?.length,
+    settings.rules.some((r) => r.is_active),
+    settings.sources.some((s) => s.enabled),
+    examples(settings.voice.examples_text).length >= 3,
+    settings.recipients.some((r) => r.profile_ids.length > 0),
+  ];
   const selected = profiles?.find((p) => p.id === q.profile) ?? profiles?.[0];
   return (
     <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
@@ -91,17 +106,14 @@ export default async function Setup({
             "Who gets what",
             "Test and go live",
           ].map((name, i) =>
-            i < 2 ? (
+            i < 6 ? (
               <Link
                 key={name}
                 aria-current={step === i + 1 ? "step" : undefined}
                 href={"/clients/" + id + "/setup?step=" + (i + 1)}
               >
                 <span className="step-number">
-                  {step !== i + 1 &&
-                  ((i === 0 && client.name) || (i === 1 && profiles?.length))
-                    ? "✓"
-                    : i + 1}
+                  {step !== i + 1 && done[i] ? "✓" : i + 1}
                 </span>
                 {name}
               </Link>
@@ -183,12 +195,35 @@ export default async function Setup({
               )}
             </>
           )}
+          {step === 3 && (
+            <Signals
+              workspace={id}
+              initial={settings.rules}
+              profiles={profiles ?? []}
+            />
+          )}
+          {step === 4 && (
+            <Sources
+              workspace={id}
+              initial={settings.sources}
+              extra={settings.extra}
+            />
+          )}
+          {step === 5 && <Voice workspace={id} initial={settings.voice} />}
+          {step === 6 && (
+            <Recipients
+              workspace={id}
+              initial={settings.recipients}
+              profiles={profiles ?? []}
+              timezone={client.timezone}
+            />
+          )}
           <div className="setup-next">
             <Link
               className="button secondary"
               href={
-                step === 1
-                  ? "/clients/" + id + "/setup?step=2"
+                step < 6
+                  ? "/clients/" + id + "/setup?step=" + (step + 1)
                   : "/clients/" + id
               }
             >

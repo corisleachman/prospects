@@ -16,7 +16,8 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: "npm run start -- --port 3107",
+      command:
+        "node --import ./tests/mail-fixture.mjs ./node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3107",
       url: "http://127.0.0.1:3107/login",
       reuseExistingServer: false,
       env: {
@@ -24,6 +25,8 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "fixture-publishable-key",
         APP_ORIGIN: "http://127.0.0.1:3107",
         SUPABASE_SERVICE_ROLE_KEY: "fixture-service-key",
+        RESEND_API_KEY: "fixture-resend-key",
+        RESEND_FROM: "Signals <signals@example.test>",
       },
     },
   ],

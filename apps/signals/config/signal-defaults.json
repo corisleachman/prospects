@@ -1,0 +1,77 @@
+[
+  {
+    "key": "campaign_launch",
+    "label": "Campaign launch",
+    "description": "A brand launches or announces a new campaign.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope": "all"
+  },
+  {
+    "key": "new_marketing_leader",
+    "label": "New marketing leader",
+    "description": "New CMO, VP Marketing, Brand Director or VP Brand appointed.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope_names": ["Enterprise portfolios", "Established growth brands"]
+  },
+  {
+    "key": "agency_review",
+    "label": "Agency review or search",
+    "description": "A brand puts creative business up for review, or a consultant announces a search.",
+    "polarity": "neutral",
+    "enabled": true,
+    "scope": "all"
+  },
+  {
+    "key": "product_launch",
+    "label": "Product launch or expansion",
+    "description": "New product, new market or retail expansion.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope_names": ["Established growth brands", "CPG investors"]
+  },
+  {
+    "key": "investment",
+    "label": "Investment",
+    "description": "New funding or acquisition of a consumer brand.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope_names": ["CPG investors"]
+  },
+  {
+    "key": "client_win",
+    "label": "Client win or scope increase",
+    "description": "An agency wins a consumer client or expands scope.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope_names": ["Creative agency partners"]
+  },
+  {
+    "key": "award",
+    "label": "Award or shortlist",
+    "description": "Shortlisted or won at Cannes, Effies, One Show and similar.",
+    "polarity": "positive",
+    "enabled": true,
+    "scope": "all",
+    "tone_guidance": "No pitch. Acknowledge the award only."
+  },
+  {
+    "key": "layoffs",
+    "label": "Layoffs or restructure",
+    "description": "Handled gently. Opener is empathetic and never pitches.",
+    "polarity": "negative",
+    "enabled": true,
+    "scope": "all",
+    "tone_guidance": "Only acknowledge the news kindly. No pitch or opportunity framing. Never raise relevance for layoffs."
+  },
+  {
+    "key": "lost_client",
+    "label": "Lost a major client or account",
+    "description": "Off by default.",
+    "polarity": "negative",
+    "enabled": false,
+    "scope_names": ["Creative agency partners"],
+    "tone_guidance": "Acknowledge sensitively. No pitch."
+  }
+]
