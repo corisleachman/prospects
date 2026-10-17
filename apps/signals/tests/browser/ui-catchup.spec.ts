@@ -75,8 +75,9 @@ test("catch-up matches prototype structure at 1280 and 390, including real chip 
     }
   }
   await page.goto("/clients/" + w + "/setup?step=2");
+  await expect(page.getByRole("link", { name: /Signals/ })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /Signals.*Coming in Phase 5/ }),
+    page.getByRole("button", { name: /Test and go live.*Coming in Phase 7/ }),
   ).toBeDisabled();
   await page
     .getByLabel("Locations", { exact: true })

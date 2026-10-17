@@ -1,0 +1,54 @@
+[
+  {
+    "key": "trade_press",
+    "name": "Trade press",
+    "description": "Adweek, Marketing Dive and Muse by Clio. The three working trade feeds from the sourcing test.",
+    "family": "publication",
+    "provider": "public_rss_trade",
+    "enabled": true,
+    "freshness_hours": 48,
+    "adapter": "rss",
+    "feeds": [
+      "https://www.adweek.com/feed/",
+      "https://www.marketingdive.com/feeds/news/",
+      "https://musebyclios.com/feed/"
+    ]
+  },
+  {
+    "key": "news_search",
+    "name": "News search",
+    "description": "Watched brands by name and event phrases across the market. AnyAPI Google News through treg.",
+    "family": "web_search",
+    "provider": "treg_anyapi_news",
+    "enabled": true,
+    "freshness_hours": 48,
+    "adapter": "treg_news",
+    "endpoint": "anyapi.google.serp.news"
+  },
+  {
+    "key": "press_wires",
+    "name": "Press release wires",
+    "description": "PR Newswire and Business Wire consumer feeds. English only; financial notices are filtered out.",
+    "family": "publication",
+    "provider": "public_rss_wires",
+    "enabled": true,
+    "freshness_hours": 48,
+    "adapter": "rss",
+    "feeds": [
+      "https://www.prnewswire.com/rss/consumer-products-retail-latest-news/consumer-products-retail-latest-news-list.rss",
+      "https://www.prnewswire.com/rss/food-beverages-latest-news/food-beverages-latest-news-list.rss",
+      "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeEFpQWA=="
+    ]
+  },
+  {
+    "key": "linkedin_posts",
+    "name": "LinkedIn posts",
+    "description": "Posts from watched people only. Collection currently excludes reactions and comments, matching the sourcing test.",
+    "family": "linkedin",
+    "provider": "apify_harvestapi",
+    "enabled": true,
+    "freshness_hours": 48,
+    "adapter": "apify_posts",
+    "actor": "harvestapi~linkedin-profile-posts"
+  }
+]

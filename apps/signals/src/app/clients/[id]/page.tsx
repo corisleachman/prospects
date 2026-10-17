@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/access";
 import { Frame } from "@/components/frame";
 import { RowLink } from "@/components/row-link";
+import { setupData } from "@/lib/setup-data";
 import { money } from "@/lib/budget";
 export default async function Overview({
   params,
@@ -36,6 +37,12 @@ export default async function Overview({
     throw new Error("Client overview unavailable");
   if (!w.data) redirect("/not-allowed");
   const client = w.data;
+  const settings = await setupData(db, id);
+  const times = [
+    ...new Set(
+      settings.recipients.map((r) => r.morning_email_time).filter(Boolean),
+    ),
+  ].sort();
   return (
     <Frame admin email={user.email ?? ""} client={{ id, name: client.name }}>
       <div className="screen-head">
@@ -79,7 +86,7 @@ export default async function Overview({
         </div>
         <div className="stat-tile">
           <span>Morning list time</span>
-          <strong>Not configured</strong>
+          <strong>{times.length ? times.join(" · ") : "Not configured"}</strong>
           <small>{client.timezone}</small>
         </div>
       </div>
@@ -130,7 +137,12 @@ export default async function Overview({
                       {new Set(rows.map((r) => r.company_id)).size} companies ·{" "}
                       {rows.filter((r) => r.person_id).length} people
                     </td>
-                    <td>Not configured</td>
+                    <td>
+                      {settings.recipients
+                        .filter((r) => r.profile_ids.includes(x.id))
+                        .map((r) => r.display_name || r.email)
+                        .join(", ") || "Not configured"}
+                    </td>
                   </RowLink>
                 );
               })}

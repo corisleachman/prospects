@@ -118,6 +118,7 @@ export function useAutosave<T>(
     error,
     retry: () => void flush.current(),
     discard,
+    getRevision: () => revision.current,
   };
 }
 export function SaveStatus({

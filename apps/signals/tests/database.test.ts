@@ -1290,5 +1290,242 @@ test("Phase 1 database access and invitation lifecycle", async (t) => {
       );
     },
   );
+  await db.exec(
+    await readFile(
+      resolve(migrations, "20261017130712_signals_phase_five.sql"),
+      "utf8",
+    ),
+  );
+  await t.test(
+    "Phase 5 seeds per-client rules and sources without changing the legacy library",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Phase 5','Europe/London') as id",
+      );
+      assert.equal(
+        (
+          await db.query(
+            "select 1 from public.signal_definitions where workspace_id=$1 and template_key is not null",
+            [w],
+          )
+        ).rows.length,
+        9,
+      );
+      assert.equal(
+        (
+          await db.query(
+            "select 1 from public.workspace_source_settings where workspace_id=$1",
+            [w],
+          )
+        ).rows.length,
+        4,
+      );
+      const p = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      assert.ok(
+        (
+          await db.query(
+            "select 1 from public.campaign_source_rules where campaign_id=$1",
+            [p],
+          )
+        ).rows.length === 4,
+      );
+      const val = {
+        label: "Agency phrases",
+        description: "A live creative search",
+        polarity: "neutral",
+        keywords: ['"agency of record"', "agency review", "-recruitment"],
+        is_active: true,
+        applies_to_all: false,
+        profile_ids: [p],
+      };
+      const r = (
+        await asUser<{ r: { id: string; setup_revision: number } }>(
+          owner,
+          "select public.save_signals_rule($1,null,0,$2) as r",
+          [w, JSON.stringify(val)],
+        )
+      ).rows[0].r;
+      await assert.rejects(
+        () =>
+          asUser(alice, "select public.save_signals_rule($1,$2,1,$3)", [
+            w,
+            r.id,
+            JSON.stringify(val),
+          ]),
+        /Not allowed/,
+      );
+      assert.deepEqual(
+        (
+          await db.query<{ keywords: string[] }>(
+            "select keywords from public.signal_definitions where id=$1",
+            [r.id],
+          )
+        ).rows[0].keywords,
+        val.keywords,
+      );
+      await asUser(owner, "select public.save_signals_rule($1,$2,$3,$4)", [
+        w,
+        r.id,
+        r.setup_revision,
+        JSON.stringify({ ...val, polarity: "negative" }),
+      ]);
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_rule($1,$2,$3,$4)", [
+            w,
+            r.id,
+            r.setup_revision,
+            JSON.stringify(val),
+          ]),
+        /changed elsewhere/,
+      );
+      assert.equal(
+        (await asUser(alice, "select * from public.voice_profiles")).rows
+          .length,
+        0,
+      );
+    },
+  );
+  await t.test(
+    "Phase 5 routing survives acceptance, rejects foreign profiles, and removes access with undo",
+    async () => {
+      const w = await adminScalar(
+        "select public.create_signals_client('Routing test','Europe/London') as id",
+      );
+      const p = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [w],
+      );
+      const foreign = await adminScalar(
+        "select public.create_signals_profile($1) as id",
+        [b],
+      );
+      await db.query(
+        "update auth.users set email_confirmed_at=now() where id=$1",
+        [bob],
+      );
+      const token = "9".repeat(64);
+      const invite = await adminScalar(
+        "select public.create_signals_invite($1,'bob@example.test','client_user',$2) as id",
+        [w, token],
+      );
+      await asUser(
+        owner,
+        "select public.mark_signals_invite_delivery($1,true)",
+        [invite],
+      );
+      const route = (
+        await db.query<{ id: string; setup_revision: number }>(
+          "select id,setup_revision from public.delivery_rules where invite_id=$1",
+          [invite],
+        )
+      ).rows[0];
+      const value = {
+        display_name: "Bob",
+        role: "client_user",
+        profile_ids: [p],
+        max_cards_per_day: 5,
+        no_repeat_days: 30,
+        morning_email_time: "08:00",
+      };
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_delivery($1,$2,$3,$4)", [
+            w,
+            route.id,
+            route.setup_revision,
+            JSON.stringify({ ...value, profile_ids: [foreign] }),
+          ]),
+        /Profiles must belong/,
+      );
+      await asUser(owner, "select public.save_signals_delivery($1,$2,$3,$4)", [
+        w,
+        route.id,
+        route.setup_revision,
+        JSON.stringify(value),
+      ]);
+      await asUser(bob, "select public.accept_signals_invite($1)", [token]);
+      const accepted = (
+        await asUser<{
+          user_id: string;
+          profile_ids: string[];
+          setup_revision: number;
+        }>(bob, "select * from public.delivery_rules where workspace_id=$1", [
+          w,
+        ])
+      ).rows[0];
+      assert.equal(accepted.user_id, bob);
+      assert.deepEqual(accepted.profile_ids, [p]);
+      await assert.rejects(
+        () =>
+          asUser(bob, "select public.save_signals_delivery($1,$2,$3,$4)", [
+            w,
+            route.id,
+            accepted.setup_revision,
+            JSON.stringify(value),
+          ]),
+        /Not allowed/,
+      );
+      await asUser(owner, "select public.remove_signals_recipient($1,$2,$3)", [
+        w,
+        route.id,
+        accepted.setup_revision,
+      ]);
+      assert.equal(
+        (await asUser(bob, "select id from public.workspaces where id=$1", [w]))
+          .rows.length,
+        0,
+      );
+      await asUser(
+        owner,
+        "select public.restore_signals_recipient($1,$2,$3,$4)",
+        [w, route.id, accepted.setup_revision + 1, JSON.stringify(value)],
+      );
+      assert.equal(
+        (await asUser(bob, "select id from public.workspaces where id=$1", [w]))
+          .rows.length,
+        1,
+      );
+      const voice = (
+        await db.query<{ setup_revision: number }>(
+          "select setup_revision from public.voice_profiles where workspace_id=$1",
+          [w],
+        )
+      ).rows[0];
+      const v = {
+        examples_text: "One\n---\nTwo\n---\nThree",
+        tone: "Warm",
+        sign_off: "Bob",
+        banned_phrases: ["synergy"],
+        channels: ["linkedin"],
+        linkedin_length: 200,
+      };
+      await asUser(owner, "select public.save_signals_voice($1,$2,$3)", [
+        w,
+        voice.setup_revision,
+        JSON.stringify(v),
+      ]);
+      await assert.rejects(
+        () =>
+          asUser(owner, "select public.save_signals_voice($1,$2,$3)", [
+            w,
+            voice.setup_revision,
+            JSON.stringify(v),
+          ]),
+        /changed elsewhere/,
+      );
+      await assert.rejects(
+        () =>
+          asUser(bob, "select public.save_signals_voice($1,1,$2)", [
+            w,
+            JSON.stringify(v),
+          ]),
+        /Not allowed/,
+      );
+    },
+  );
   await db.close();
 });

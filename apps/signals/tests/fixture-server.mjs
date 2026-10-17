@@ -1,4 +1,5 @@
 import http from "node:http";
+import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 const owner = "00000000-0000-0000-0000-000000000001",
   client = "00000000-0000-0000-0000-000000000002",
@@ -21,6 +22,64 @@ const clients = [
 const previews = [];
 const watches = [];
 const profiles = [];
+const signalRules = [],
+  ruleScopes = [],
+  sourceSettings = [],
+  extraSources = [],
+  voices = [],
+  deliveries = [],
+  invitations = [],
+  teamMembers = [];
+const ruleDefaults = JSON.parse(
+  readFileSync(
+    new URL("../config/signal-defaults.json", import.meta.url),
+    "utf8",
+  ),
+);
+const sourceCatalog = JSON.parse(
+  readFileSync(
+    new URL("../config/source-catalog.json", import.meta.url),
+    "utf8",
+  ),
+);
+function seedSettings(c) {
+  for (const d of ruleDefaults)
+    signalRules.push({
+      id: randomUUID(),
+      workspace_id: c.id,
+      label: d.label,
+      description: d.description,
+      polarity: d.polarity,
+      tone_guidance: d.tone_guidance ?? "",
+      keywords: [],
+      is_active: d.enabled,
+      applies_to_all: d.scope === "all",
+      scope_names: d.scope_names ?? [],
+      setup_revision: 0,
+    });
+  for (const d of sourceCatalog)
+    sourceSettings.push({
+      workspace_id: c.id,
+      source_key: d.key,
+      enabled: d.enabled,
+      freshness_hours: d.freshness_hours,
+      config: d,
+      setup_revision: 0,
+    });
+  voices.push({
+    id: randomUUID(),
+    workspace_id: c.id,
+    user_id: null,
+    examples_text: "",
+    tone: "",
+    sign_off: "",
+    banned_phrases: [],
+    channels: ["email", "linkedin"],
+    linkedin_length: 280,
+    setup_revision: 0,
+  });
+}
+clients.forEach(seedSettings);
 const budgets = [],
   budgetHistory = [],
   ledger = [],
@@ -148,6 +207,7 @@ const server = http.createServer(async (req, res) => {
     return role
       ? reply(user(role))
       : reply({ code: "bad_jwt", msg: "Invalid token" }, 401);
+  if (url.pathname === "/fixture/resend") return reply({ id: "fixture-message" });
   if (!role) return reply({ message: "Not authenticated" }, 401);
   if (url.pathname === "/rest/v1/platform_admins")
     return rows(role === "admin" ? [{ user_id: owner }] : []);
@@ -164,6 +224,205 @@ const server = http.createServer(async (req, res) => {
           ]
         : [],
     );
+  if (url.pathname === "/auth/v1/admin/generate_link")
+    return reply({
+      id: randomUUID(),
+      email: body.email,
+      hashed_token: "fixture-invite",
+      action_link: "https://example.test/invite",
+      verification_type: "invite",
+    });
+  if (url.pathname === "/rest/v1/rpc/create_signals_invite") {
+    if (role !== "admin") return reply({ message: "Not allowed" }, 403);
+    const id = randomUUID();
+    invitations.push({
+      id,
+      workspace_id: body.p_workspace_id,
+      email: body.p_email,
+      role: body.p_role,
+      display_name: "",
+      expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+      accepted_at: null,
+      revoked_at: null,
+      delivery_status: "pending",
+    });
+    deliveries.push({
+      id: randomUUID(),
+      workspace_id: body.p_workspace_id,
+      invite_id: id,
+      user_id: null,
+      profile_ids: [],
+      max_cards_per_day: 10,
+      no_repeat_days: 30,
+      morning_email_time: null,
+      enabled: true,
+      setup_revision: 0,
+    });
+    return reply(id);
+  }
+  if (url.pathname === "/rest/v1/rpc/mark_signals_invite_delivery") {
+    const i = invitations.find((i) => i.id === body.p_id);
+    if (i) {
+      i.delivery_status = body.p_sent ? "sent" : "failed";
+      if (!body.p_sent) i.revoked_at = new Date().toISOString();
+    }
+    return reply(null);
+  }
+  const setupTables = {
+    signal_definitions: signalRules,
+    campaign_signal_rules: ruleScopes,
+    workspace_source_settings: sourceSettings,
+    client_extra_sources: extraSources,
+    voice_profiles: voices,
+    delivery_rules: deliveries,
+  };
+  const setupTable = url.pathname.split("/").pop();
+  if (url.pathname.startsWith("/rest/v1/") && setupTables[setupTable]) {
+    if (role !== "admin") return rows([]);
+    const matches = setupTables[setupTable].filter(
+      (r) =>
+        (!url.searchParams.has("workspace_id") ||
+          r.workspace_id === url.searchParams.get("workspace_id").slice(3)) &&
+        (!url.searchParams.has("id") ||
+          r.id === url.searchParams.get("id").slice(3)) &&
+        (!url.searchParams.has("invite_id") ||
+          r.invite_id === url.searchParams.get("invite_id").slice(3)) &&
+        (!url.searchParams.has("enabled") || r.enabled === true) &&
+        !r.deleted_at,
+    );
+    if (req.method === "PATCH") for (const r of matches) Object.assign(r, body);
+    return rows(matches);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_rule") {
+    if (role !== "admin") return reply({ message: "Not allowed" }, 403);
+    let r = signalRules.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (r && r.setup_revision !== body.p_revision)
+      return reply({ message: "Rule changed elsewhere" }, 400);
+    if (!r) {
+      r = {
+        id: randomUUID(),
+        workspace_id: body.p_workspace,
+        setup_revision: 0,
+      };
+      signalRules.push(r);
+    }
+    Object.assign(r, body.p_value, {
+      id: r.id,
+      setup_revision: r.setup_revision + 1,
+    });
+    for (let i = ruleScopes.length - 1; i >= 0; i--)
+      if (ruleScopes[i].signal_definition_id === r.id) ruleScopes.splice(i, 1);
+    const ids = r.applies_to_all
+      ? profiles
+          .filter((p) => p.workspace_id === r.workspace_id)
+          .map((p) => p.id)
+      : r.profile_ids;
+    for (const id of ids)
+      ruleScopes.push({
+        workspace_id: r.workspace_id,
+        signal_definition_id: r.id,
+        campaign_id: id,
+      });
+    return reply({ ...r, profile_ids: ids });
+  }
+  if (url.pathname === "/rest/v1/rpc/delete_signals_rule") {
+    const r = signalRules.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (r) r.deleted_at = new Date().toISOString();
+    return reply(null);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_source") {
+    const r = sourceSettings.find(
+      (r) => r.workspace_id === body.p_workspace && r.source_key === body.p_key,
+    );
+    if (!r || r.setup_revision !== body.p_revision)
+      return reply({ message: "Source changed elsewhere" }, 400);
+    Object.assign(r, {
+      enabled: body.p_enabled,
+      freshness_hours: body.p_hours,
+      setup_revision: r.setup_revision + 1,
+    });
+    return reply(r);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_voice") {
+    const r = voices.find((r) => r.workspace_id === body.p_workspace);
+    if (!r || r.setup_revision !== body.p_revision)
+      return reply({ message: "Voice changed elsewhere" }, 400);
+    Object.assign(r, body.p_value, { setup_revision: r.setup_revision + 1 });
+    return reply(r.setup_revision);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_delivery") {
+    const r = deliveries.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (!r || r.setup_revision !== body.p_revision)
+      return reply({ message: "Person changed elsewhere" }, 400);
+    Object.assign(r, body.p_value, { setup_revision: r.setup_revision + 1 });
+    const i = invitations.find((i) => i.id === r.invite_id);
+    if (i)
+      Object.assign(i, {
+        display_name: body.p_value.display_name,
+        role: body.p_value.role,
+      });
+    return reply(r);
+  }
+  if (url.pathname === "/rest/v1/rpc/remove_signals_recipient") {
+    const r = deliveries.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (r) {
+      r.enabled = false;
+      r.setup_revision++;
+      const i = invitations.find((i) => i.id === r.invite_id);
+      if (i) i.revoked_at = new Date().toISOString();
+    }
+    return reply(null);
+  }
+  if (url.pathname === "/rest/v1/rpc/restore_signals_recipient") {
+    const r = deliveries.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (r) {
+      Object.assign(r, body.p_value, {
+        enabled: true,
+        setup_revision: r.setup_revision + 1,
+      });
+      const i = invitations.find((i) => i.id === r.invite_id);
+      if (i) i.revoked_at = null;
+    }
+    return reply(r);
+  }
+  if (url.pathname === "/rest/v1/rpc/save_signals_extra_source") {
+    let r = extraSources.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (!r) {
+      r = {
+        id: randomUUID(),
+        workspace_id: body.p_workspace,
+        setup_revision: 0,
+      };
+      extraSources.push(r);
+    }
+    Object.assign(r, {
+      url: body.p_url,
+      validation_status: "pending",
+      detected_feed: null,
+      last_error: null,
+      setup_revision: r.setup_revision + 1,
+    });
+    return reply(r);
+  }
+  if (url.pathname === "/rest/v1/rpc/delete_signals_extra_source") {
+    const r = extraSources.find(
+      (r) => r.id === body.p_id && r.workspace_id === body.p_workspace,
+    );
+    if (r) r.deleted_at = new Date().toISOString();
+    return reply(null);
+  }
   if (url.pathname === "/rest/v1/workspaces")
     return rows(
       (role === "admin"
@@ -225,6 +484,7 @@ const server = http.createServer(async (req, res) => {
       days_left: 30,
     });
   }
+  if(url.pathname === '/rest/v1/rpc/signals_discovery_mail_config')return reply(null);
   if (url.pathname === "/rest/v1/rpc/pending_signals_budget_alerts")
     return reply([]);
   if (url.pathname === "/rest/v1/rpc/change_signals_budget") {
@@ -462,7 +722,10 @@ const server = http.createServer(async (req, res) => {
           )
         : [],
     );
-  if (url.pathname === "/rest/v1/rpc/signals_team") return reply([]);
+  if (url.pathname === "/rest/v1/rpc/signals_team")
+    return reply(
+      teamMembers.filter((m) => m.workspace_id === body.p_workspace_id),
+    );
   if (url.pathname === "/rest/v1/rpc/create_signals_profile") {
     const c = clients.find((c) => c.id === body.p_workspace_id);
     if (role !== "admin" || !c) return reply({ message: "Not allowed" }, 403);
@@ -491,6 +754,14 @@ const server = http.createServer(async (req, res) => {
       setup_revision: 0,
     };
     profiles.push(p);
+    for (const r of signalRules.filter(
+      (r) => r.workspace_id === p.workspace_id && r.applies_to_all,
+    ))
+      ruleScopes.push({
+        workspace_id: p.workspace_id,
+        signal_definition_id: r.id,
+        campaign_id: p.id,
+      });
     return reply(p.id);
   }
   if (url.pathname === "/rest/v1/rpc/save_signals_profile") {
@@ -507,6 +778,20 @@ const server = http.createServer(async (req, res) => {
         400,
       );
     Object.assign(p, body.p_profile, { setup_revision: p.setup_revision + 1 });
+    for (const r of signalRules.filter(
+      (r) =>
+        r.workspace_id === p.workspace_id && r.scope_names?.includes(p.name),
+    ))
+      if (
+        !ruleScopes.some(
+          (s) => s.signal_definition_id === r.id && s.campaign_id === p.id,
+        )
+      )
+        ruleScopes.push({
+          workspace_id: p.workspace_id,
+          signal_definition_id: r.id,
+          campaign_id: p.id,
+        });
     return reply(p.setup_revision);
   }
   if (url.pathname === "/rest/v1/rpc/save_signals_client") {
@@ -533,7 +818,13 @@ const server = http.createServer(async (req, res) => {
     Object.assign(c, body.p_details, { setup_revision: c.setup_revision + 1 });
     return reply(c.setup_revision);
   }
-  if (url.pathname === "/rest/v1/workspace_invites") return rows([]);
+  if (url.pathname === "/rest/v1/workspace_invites")
+    return rows(
+      invitations.filter(
+        (i) =>
+          i.workspace_id === url.searchParams.get("workspace_id")?.slice(3),
+      ),
+    );
   if (url.pathname === "/rest/v1/rpc/create_signals_client") {
     if (role !== "admin") return reply({ message: "Not allowed" }, 403);
     const item = {
@@ -549,6 +840,7 @@ const server = http.createServer(async (req, res) => {
       created_at: new Date().toISOString(),
     };
     clients.push(item);
+    seedSettings(item);
     return reply(item.id);
   }
   if (url.pathname === "/rest/v1/rpc/preview_signals_invite")
