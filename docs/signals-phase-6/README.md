@@ -30,4 +30,4 @@ A task has one claim and one cost reservation. Interrupted paid calls record the
 
 Node/database checks cover filtering, source parsing, publisher rules, grouping, cross-client isolation, exclusive task claims, one-time settlement and budget pauses. Browser checks cover manual collection, run details, drop counts and responsive layouts. Screenshot data is a labelled local fixture. The public HTTP reader was also exercised in Deno against Marketing Dive's live feed.
 
-Migration: `20261017133332_signals_phase_six.sql`.
+Migration: `20261017134828_signals_phase_six.sql`.

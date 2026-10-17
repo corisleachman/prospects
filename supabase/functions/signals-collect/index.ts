@@ -622,7 +622,13 @@ Deno.serve(async (req: Request) => {
       "",
     );
     // Internal workers may continue an already-approved run, never create one.
-    if (jwt === key) {
+    let internal = jwt === key;
+    if (!internal && jwt.startsWith("sb_secret_")) {
+      const caller = createClient(base,jwt,{auth:{persistSession:false,autoRefreshToken:false}});
+      const access=await caller.rpc("signals_collection_worker_access");
+      internal=!access.error&&access.data===true;
+    }
+    if (internal) {
       const body = await req.json();
       if (body.action === "health")
         return reply({
